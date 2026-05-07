@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Clover.tech.netmon v5.3 - Network Monitoring System
+MyClover.Tech.netmon v5.3 - Network Monitoring System
 Features: ICMP ping, TCP port, HTTP, SNMP checks; email alerts;
           Flask dashboard with device CRUD, links/notes, maintenance mode,
           device detail drawer, status filters/search,
@@ -855,7 +855,7 @@ def send_alert_email(result, smtp_cfg):
     if key in _last_alert_email and (now - _last_alert_email[key]) < cooldown:
         return False
 
-    subject = "[Clover.tech.netmon %s] %s - %s" % (result["status"], result["device_name"],
+    subject = "[MyClover.Tech.netmon %s] %s - %s" % (result["status"], result["device_name"],
                                                      result.get("check_label", ""))
     body_text = (
         "Device: %s\nHost: %s\nCheck: %s\nStatus: %s\nMessage: %s\nTime: %s"
@@ -968,7 +968,7 @@ def _send_slack_webhook(result, url):
                 {"title": "Status", "value": result["status"], "short": True},
                 {"title": "Message", "value": result.get("message", ""), "short": False},
             ],
-            "footer": "Clover.tech.netmon",
+            "footer": "MyClover.Tech.netmon",
             "ts": int(time.time()),
         }]
     }
@@ -2660,7 +2660,7 @@ def create_app():
 
         nodes.append({
             "id": "__netmon__",
-            "label": "Clover.tech",
+            "label": "MyClover.Tech",
             "type": "hub",
             "status": "hub",
             "group": "",
@@ -2813,8 +2813,8 @@ def create_app():
             return jsonify({"ok": False, "error": "No recipients configured"}), 400
         try:
             from_addr = smtp_cfg.get("from_addr", smtp_cfg.get("username", "netmon@localhost"))
-            subject = "Clover.tech.netmon Test Alert"
-            body = "This is a test alert from Clover.tech.netmon. If you received this, your email settings are working correctly."
+            subject = "MyClover.Tech.netmon Test Alert"
+            body = "This is a test alert from MyClover.Tech.netmon. If you received this, your email settings are working correctly."
             msg = email.mime.multipart.MIMEMultipart("alternative")
             msg["Subject"] = subject
             msg["From"] = from_addr
@@ -3065,7 +3065,7 @@ def create_app():
             "check_label": "Test Check",
             "status": "WARNING",
             "response_ms": 42.0,
-            "message": "This is a test notification from Clover.tech.netmon",
+            "message": "This is a test notification from MyClover.Tech.netmon",
         }
         try:
             hook_type = data.get("type", "generic")
@@ -3392,7 +3392,7 @@ def create_app():
 # ---------------------------------------------------------------------------
 
 def main():
-    log.info("Clover.tech.netmon v5 starting...")
+    log.info("MyClover.Tech.netmon v5 starting...")
     _reload_config()
 
     with _config_lock:

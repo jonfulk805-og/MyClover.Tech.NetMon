@@ -1,5 +1,5 @@
 # ============================================================
-# Clover.tech.netmon - Stripe Payment Configuration
+# MyClover.Tech.netmon - Stripe Payment Configuration
 # ============================================================
 # This configures the stripe_handler.py service.
 # Environment variables override these values.

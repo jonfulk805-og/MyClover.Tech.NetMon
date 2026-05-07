@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Clover.tech.netmon - Stripe Payment & License Fulfillment
+MyClover.Tech.netmon - Stripe Payment & License Fulfillment
 ==========================================================
 
 Standalone Flask app that handles:
@@ -199,9 +199,9 @@ def send_license_email(customer_email, tier, license_key):
 
     tier_label = "Pro" if tier == "pro" else "Enterprise"
 
-    subject = "Your Clover.tech.netmon %s License Key" % tier_label
+    subject = "Your MyClover.Tech.netmon %s License Key" % tier_label
 
-    body_text = """Thank you for purchasing Clover.tech.netmon %s!
+    body_text = """Thank you for purchasing MyClover.Tech.netmon %s!
 
 Your license key:
 %s
@@ -215,14 +215,14 @@ All %s features will unlock immediately. No restart required.
 
 If you have any questions, reply to this email or visit https://myclover.tech
 
--- The Clover.tech Team
+-- The MyClover.Tech Team
 """ % (tier_label, license_key, tier_label)
 
     body_html = """
 <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0e17; color: #e2e8f0; padding: 40px; border-radius: 12px;">
     <div style="text-align: center; margin-bottom: 30px;">
         <span style="font-size: 28px; font-weight: 700;">
-            <span style="color: #22c55e;">Clover</span>.tech.netmon
+            <span style="color: #22c55e;">My</span>Clover<span style="color: #22c55e;">.</span>Tech<span style="color: #22c55e;">.</span>netmon
         </span>
     </div>
 
@@ -627,7 +627,7 @@ def create_stripe_app():
         try:
             # Pro product
             pro_product = stripe.Product.create(
-                name="Clover.tech.netmon Pro",
+                name="MyClover.Tech.netmon Pro",
                 description="Unlimited devices, network map, discovery scanner, "
                             "inventory, scheduled downtime, and more.",
                 metadata={"tier": "pro"},
@@ -646,7 +646,7 @@ def create_stripe_app():
 
             # Enterprise product
             ent_product = stripe.Product.create(
-                name="Clover.tech.netmon Enterprise",
+                name="MyClover.Tech.netmon Enterprise",
                 description="Everything in Pro plus NOC display, SLA reports, "
                             "user auth, custom plugins, SNMP deep polling, "
                             "and multi-channel notifications.",
@@ -684,7 +684,7 @@ def create_stripe_app():
 # Main
 # ---------------------------------------------------------------------------
 def main():
-    log.info("Clover.tech.netmon Stripe Handler starting...")
+    log.info("MyClover.Tech.netmon Stripe Handler starting...")
     load_config()
     init_stripe_db()
 
