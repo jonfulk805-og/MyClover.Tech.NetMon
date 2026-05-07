@@ -15,7 +15,7 @@ import secrets
 import sys
 
 # Must match _LICENSE_SECRET in netmon.py
-LICENSE_SECRET = b"clovertech-netmon-2026-salt"
+LICENSE_SECRET = b"CHANGE-ME-BEFORE-DEPLOYMENT"
 
 
 def generate_key(tier_code, unique_id):

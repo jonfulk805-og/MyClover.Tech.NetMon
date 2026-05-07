@@ -89,7 +89,7 @@ log = logging.getLogger("netmon")
 # where TIER is PRO or ENT, X is a unique id, Y is the HMAC signature.
 # Keys are validated locally -- no phone-home required.
 
-_LICENSE_SECRET = b"clovertech-netmon-2026-salt"  # Change for production
+_LICENSE_SECRET = b"CHANGE-ME-BEFORE-DEPLOYMENT"  # Change for production
 
 TIER_FREE = "community"
 TIER_PRO = "pro"
@@ -3393,27 +3393,43 @@ def create_app():
     def api_backup():
         """Create a zip backup of the database and config."""
         import io
+        import sqlite3 as _sqlite3
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         buf = io.BytesIO()
-        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-            # Database
-            if DB_PATH.exists():
-                zf.write(str(DB_PATH), "netmon.db")
-            # Config
-            cfg_path = DEFAULT_CFG
-            if cfg_path.exists():
-                zf.write(str(cfg_path), "config.yaml")
-            # Plugins
-            if PLUGIN_DIR.exists():
-                for pf in PLUGIN_DIR.glob("*.py"):
-                    zf.write(str(pf), "plugins/" + pf.name)
-        buf.seek(0)
-        return send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name="netmon_backup_%s.zip" % ts,
-        )
+        tmp_db = DB_PATH.parent / ".netmon_backup_tmp.db"
+        try:
+            with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+                # Database — use SQLite backup API for a consistent snapshot
+                # even when the DB is being actively written to.
+                if DB_PATH.exists():
+                    try:
+                        src = _sqlite3.connect(str(DB_PATH))
+                        dst = _sqlite3.connect(str(tmp_db))
+                        src.backup(dst)
+                        dst.close()
+                        src.close()
+                        zf.write(str(tmp_db), "netmon.db")
+                    finally:
+                        if tmp_db.exists():
+                            tmp_db.unlink()
+                # Config
+                cfg_path = DEFAULT_CFG
+                if cfg_path.exists():
+                    zf.write(str(cfg_path), "config.yaml")
+                # Plugins
+                if PLUGIN_DIR.exists():
+                    for pf in PLUGIN_DIR.glob("*.py"):
+                        zf.write(str(pf), "plugins/" + pf.name)
+            buf.seek(0)
+            return send_file(
+                buf,
+                mimetype="application/zip",
+                as_attachment=True,
+                download_name="netmon_backup_%s.zip" % ts,
+            )
+        except Exception as exc:
+            log.exception("Backup failed: %s", exc)
+            return jsonify({"error": "Backup failed: %s" % str(exc)}), 500
 
     @app.route("/api/restore", methods=["POST"])
     def api_restore():
