@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clover.tech.netmon - NOC Display</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0e17; color: #e2e8f0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; overflow: hidden; height: 100vh; }
+.noc-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; background: #111827; border-bottom: 1px solid #1e293b; }
+.noc-title { font-size: 20px; font-weight: 700; }
+.noc-title span.green { color: #22c55e; }
+.noc-title span.dim { color: #64748b; font-weight: 400; font-size: 14px; margin-left: 12px; }
+.noc-clock { font-size: 28px; font-weight: 300; font-variant-numeric: tabular-nums; color: #94a3b8; }
+.noc-body { display: grid; grid-template-columns: 1fr 320px; grid-template-rows: auto 1fr; gap: 0; height: calc(100vh - 56px); }
+.summary-bar { grid-column: 1 / -1; display: flex; gap: 0; background: #111827; border-bottom: 1px solid #1e293b; }
+.summary-item { flex: 1; text-align: center; padding: 16px 12px; border-right: 1px solid #1e293b; }
+.summary-item:last-child { border-right: none; }
+.summary-item .val { font-size: 42px; font-weight: 700; line-height: 1.1; }
+.summary-item .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-top: 4px; }
+.val.ok { color: #22c55e; }
+.val.warn { color: #f59e0b; }
+.val.crit { color: #ef4444; }
+.val.total { color: #94a3b8; }
+.device-grid { padding: 16px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; align-content: start; }
+.dev-card { background: #1a1d2b; border: 1px solid #2a2d3a; border-radius: 8px; padding: 14px; position: relative; transition: all 0.3s; }
+.dev-card.ok { border-left: 4px solid #22c55e; }
+.dev-card.warning { border-left: 4px solid #f59e0b; }
+.dev-card.critical { border-left: 4px solid #ef4444; animation: pulse-red 2s infinite; }
+.dev-card.maintenance { border-left: 4px solid #6366f1; opacity: 0.6; }
+@keyframes pulse-red { 0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } 50% { box-shadow: 0 0 12px 2px rgba(239,68,68,0.3); } }
+.dev-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dev-host { font-size: 11px; color: #64748b; margin-top: 2px; }
+.dev-group { font-size: 10px; color: #475569; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.dev-status { position: absolute; top: 14px; right: 14px; width: 10px; height: 10px; border-radius: 50%; }
+.dev-status.ok { background: #22c55e; }
+.dev-status.warning { background: #f59e0b; }
+.dev-status.critical { background: #ef4444; }
+.alert-panel { background: #111827; border-left: 1px solid #1e293b; padding: 16px; overflow-y: auto; }
+.alert-panel h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 12px; }
+.alert-item { background: #1a1d2b; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; border-left: 3px solid #ef4444; }
+.alert-item.warning { border-left-color: #f59e0b; }
+.alert-device { font-size: 13px; font-weight: 600; }
+.alert-msg { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.alert-time { font-size: 10px; color: #475569; margin-top: 4px; }
+.noc-footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 6px 24px; background: #111827; border-top: 1px solid #1e293b; display: flex; justify-content: space-between; font-size: 11px; color: #475569; }
+.refresh-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #22c55e; margin-right: 6px; animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: 0.3; } }
+.upgrade-msg { display: flex; align-items: center; justify-content: center; height: 100%; grid-column: 1 / -1; text-align: center; color: #64748b; flex-direction: column; gap: 16px; }
+.upgrade-msg h2 { color: #e2e8f0; }
+.upgrade-msg a { color: #22c55e; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="noc-header">
+    <div class="noc-title"><span class="green">Clover</span>.tech.netmon <span class="dim">NOC Display</span></div>
+    <div class="noc-clock" id="noc-clock">--:--:--</div>
+</div>
+<div class="noc-body" id="noc-body">
+    <div class="upgrade-msg" id="noc-upgrade" style="display:none;">
+        <div style="font-size:48px;">&#128274;</div>
+        <h2>Enterprise Feature</h2>
+        <p>NOC Display Mode requires an Enterprise license.</p>
+        <a href="https://myclover.tech/#pricing" target="_blank">View Pricing &rarr;</a>
+    </div>
+    <div class="summary-bar" id="noc-summary">
+        <div class="summary-item"><div class="val total" id="noc-total">-</div><div class="lbl">Total Devices</div></div>
+        <div class="summary-item"><div class="val ok" id="noc-ok">-</div><div class="lbl">Healthy</div></div>
+        <div class="summary-item"><div class="val warn" id="noc-warn">-</div><div class="lbl">Warning</div></div>
+        <div class="summary-item"><div class="val crit" id="noc-crit">-</div><div class="lbl">Critical</div></div>
+    </div>
+    <div class="device-grid" id="noc-devices"></div>
+    <div class="alert-panel" id="noc-alerts">
+        <h3>Recent Alerts</h3>
+        <div id="alert-list"></div>
+    </div>
+</div>
+<div class="noc-footer">
+    <span><span class="refresh-dot"></span>Auto-refresh 10s</span>
+    <span id="noc-last-update">--</span>
+</div>
+<script>
+function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.appendChild(document.createTextNode(String(s))); return d.innerHTML; }
+
+function updateClock() {
+    var now = new Date();
+    document.getElementById('noc-clock').textContent =
+        now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+function loadNOC() {
+    fetch('/api/noc/data')
+    .then(function(r) {
+        if (r.status === 403) {
+            document.getElementById('noc-upgrade').style.display = 'flex';
+            document.getElementById('noc-summary').style.display = 'none';
+            document.getElementById('noc-devices').style.display = 'none';
+            document.getElementById('noc-alerts').style.display = 'none';
+            return null;
+        }
+        return r.json();
+    })
+    .then(function(data) {
+        if (!data) return;
+        var s = data.summary;
+        document.getElementById('noc-total').textContent = s.total;
+        document.getElementById('noc-ok').textContent = s.ok;
+        document.getElementById('noc-warn').textContent = s.warning;
+        document.getElementById('noc-crit').textContent = s.critical;
+
+        // Devices
+        var html = '';
+        // Sort: critical first, then warning, then ok
+        var order = { CRITICAL: 0, WARNING: 1, OK: 2, UNKNOWN: 3 };
+        data.devices.sort(function(a, b) { return (order[a.status]||3) - (order[b.status]||3); });
+        data.devices.forEach(function(d) {
+            var cls = d.maintenance ? 'maintenance' : d.status.toLowerCase();
+            html += '<div class="dev-card ' + cls + '">'
+                + '<div class="dev-status ' + cls + '"></div>'
+                + '<div class="dev-name">' + esc(d.name) + '</div>'
+                + '<div class="dev-host">' + esc(d.host) + '</div>'
+                + '<div class="dev-group">' + esc(d.group) + '</div>'
+                + '</div>';
+        });
+        document.getElementById('noc-devices').innerHTML = html;
+
+        // Alerts
+        var ahtml = '';
+        if (!data.alerts.length) {
+            ahtml = '<div style="color:#475569;font-size:12px;text-align:center;padding:20px;">No recent alerts</div>';
+        }
+        data.alerts.forEach(function(a) {
+            var cls = (a.status === 'CRITICAL') ? '' : ' warning';
+            var ts = (a.timestamp || '').replace('T', ' ').substring(0, 19);
+            ahtml += '<div class="alert-item' + cls + '">'
+                + '<div class="alert-device">' + esc(a.device_name) + ' - ' + esc(a.check_label || '') + '</div>'
+                + '<div class="alert-msg">' + esc(a.message || a.status) + '</div>'
+                + '<div class="alert-time">' + ts + '</div>'
+                + '</div>';
+        });
+        document.getElementById('alert-list').innerHTML = ahtml;
+        document.getElementById('noc-last-update').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+    })
+    .catch(function(e) {
+        console.error('NOC load error:', e);
+    });
+}
+
+loadNOC();
+setInterval(loadNOC, 10000);
+</script>
+</body>
+</html>

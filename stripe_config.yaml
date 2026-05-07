@@ -1,0 +1,38 @@
+# ============================================================
+# Clover.tech.netmon - Stripe Payment Configuration
+# ============================================================
+# This configures the stripe_handler.py service.
+# Environment variables override these values.
+# ============================================================
+
+# Stripe API Keys
+# Get these from https://dashboard.stripe.com/apikeys
+stripe_secret_key: ""         # sk_test_... or sk_live_...
+stripe_webhook_secret: ""     # whsec_... (from Stripe webhook settings)
+
+# Price IDs (created in Stripe Dashboard or via /api/admin/setup-products)
+# Subscription (monthly) prices:
+stripe_pro_price_id: ""       # price_... for Pro $29/mo
+stripe_ent_price_id: ""       # price_... for Enterprise $99/mo
+
+# One-time purchase prices (optional, if offering perpetual licenses):
+# stripe_pro_onetime_price_id: ""
+# stripe_ent_onetime_price_id: ""
+
+# Checkout redirect URLs
+success_url: "https://myclover.tech/thank-you?session_id={CHECKOUT_SESSION_ID}"
+cancel_url: "https://myclover.tech/#pricing"
+
+# Server settings
+host: "0.0.0.0"
+port: 8443
+
+# SMTP for license delivery emails
+# Uses the same SMTP config format as netmon.py
+smtp:
+  smtp_host: ""
+  smtp_port: 587
+  use_tls: true
+  username: ""
+  password: ""
+  from_addr: "sales@myclover.tech"

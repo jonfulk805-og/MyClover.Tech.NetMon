@@ -1,0 +1,12 @@
+# Clover.tech.netmon v5.2 - Python Dependencies
+# Install: pip install -r requirements.txt
+
+PyYAML>=6.0
+flask>=3.0
+requests>=2.31
+
+# Optional: SNMP deep polling (Enterprise)
+# Install net-snmp tools for snmpget/snmpwalk:
+#   Ubuntu/Debian: sudo apt install snmp
+#   RHEL/CentOS:   sudo yum install net-snmp-utils
+#   Windows:       Download from net-snmp.org
