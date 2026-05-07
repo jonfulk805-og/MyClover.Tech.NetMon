@@ -78,7 +78,7 @@ logging.basicConfig(
 # ---------------------------------------------------------------------------
 # License key generation (mirrors netmon.py logic exactly)
 # ---------------------------------------------------------------------------
-LICENSE_SECRET = b"CHANGE-ME-BEFORE-DEPLOYMENT"  # Must match netmon.py
+LICENSE_SECRET = b"clovertech-netmon-2026-salt"  # Must match netmon.py
 
 
 def generate_license_key(tier_code, unique_id=None):
@@ -222,7 +222,7 @@ If you have any questions, reply to this email or visit https://myclover.tech
 <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0e17; color: #e2e8f0; padding: 40px; border-radius: 12px;">
     <div style="text-align: center; margin-bottom: 30px;">
         <span style="font-size: 28px; font-weight: 700;">
-            <span style="color: #22c55e;">My</span>Clover<span style="color: #22c55e;">.</span>Tech<span style="color: #22c55e;">.</span>netmon
+            <span style="color: #22c55e;">Clover</span>.tech.netmon
         </span>
     </div>
 
