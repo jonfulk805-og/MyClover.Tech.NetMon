@@ -84,11 +84,9 @@ log = logging.getLogger("netmon")
 # ---------------------------------------------------------------------------
 # License / Tier System
 # ---------------------------------------------------------------------------
-# License keys are HMAC-SHA256 based. Format: TIER-XXXXXXXX-YYYYYYYY
-# where TIER is PRO or ENT, X is a unique id, Y is the HMAC signature.
 # Keys are validated locally -- no phone-home required.
-
-_LICENSE_SECRET = b"clovertech-netmon-2026-salt"  # Change for production
+# IMPORTANT: Replace this secret with your own unique value before deployment!
+_LICENSE_SECRET = b"CHANGE-ME-BEFORE-DEPLOYMENT"
 
 TIER_FREE = "community"
 TIER_PRO = "pro"
@@ -1268,7 +1266,7 @@ def generate_sla_csv(reports):
 # Simple JWT-like token auth. Users are stored in config.yaml.
 # Tokens are HMAC-SHA256 signed. No external dependencies.
 
-_AUTH_SECRET = b"netmon-auth-secret-2026"  # Change for production
+_AUTH_SECRET = b"CHANGE-ME-AUTH-SECRET"  # IMPORTANT: Change before deployment!
 _AUTH_TOKEN_EXPIRY = 86400  # 24 hours
 
 # Roles: admin (full access), operator (can ack alerts, toggle maint),

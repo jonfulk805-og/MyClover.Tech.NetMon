@@ -170,36 +170,15 @@ Configure via `config.yaml` or the Settings tab. Test webhooks from the API.
 
 ---
 
-## Stripe Payment Integration
+## License Activation
 
-For automated license key sales, `stripe_handler.py` provides:
+License keys are delivered via email after purchase at [myclover.tech](https://myclover.tech). To activate:
 
-- Stripe Checkout sessions for Pro and Enterprise tiers
-- Webhook fulfillment with automatic HMAC license key generation
-- Email delivery of license keys to customers
-- Customer self-service portal
-- Admin endpoints for order management
+1. Open the dashboard and go to **Settings > License**
+2. Paste your license key and click **Activate**
+3. All features for your tier unlock immediately
 
-See `stripe_config.yaml` for configuration.
-
----
-
-## License Key Management
-
-Generate license keys for customers:
-
-```bash
-# Generate a single Pro key
-python generate_key.py --tier pro
-
-# Generate 5 Enterprise keys
-python generate_key.py --tier ent --batch 5
-
-# Custom customer ID
-python generate_key.py --tier pro --id CUST001
-```
-
-Keys are validated locally using HMAC-SHA256 — no internet connection required. Customers paste the key in **Settings > License > Activate** in the dashboard.
+Keys are validated locally — no internet connection required.
 
 ---
 
@@ -274,7 +253,7 @@ See [FEATURES.md](FEATURES.md) for the complete endpoint reference.
 ### config.yaml
 
 ```yaml
-license_key: ""                # PRO-xxx or ENT-xxx
+license_key: ""                # Your license key here
 check_interval_seconds: 60
 
 dashboard:
@@ -347,7 +326,6 @@ Run directly or set up as a Windows Service using [NSSM](https://nssm.cc/).
 MyClover.Tech.NetMon/
 ├── netmon.py              # Main application (3,400+ lines)
 ├── stripe_handler.py      # Stripe payment integration
-├── generate_key.py        # License key generator
 ├── config.yaml            # Monitoring configuration
 ├── stripe_config.yaml     # Stripe/payment configuration
 ├── requirements.txt       # Python dependencies

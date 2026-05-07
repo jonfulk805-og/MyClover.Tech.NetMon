@@ -681,7 +681,7 @@ tr:hover { background: #1a1d2b; }
             <div class="form-group" style="margin-bottom:12px;">
                 <label>License Key</label>
                 <div style="display:flex;gap:8px;">
-                    <input type="text" id="set-license-key" placeholder="PRO-XXXXXXXX-YYYYYYYYYYYYYYYY" style="flex:1;font-family:monospace;">
+                    <input type="text" id="set-license-key" placeholder="Paste your license key here" style="flex:1;font-family:monospace;">
                     <button class="btn btn-primary btn-sm" onclick="activateLicense()" id="activate-license-btn">Activate</button>
                 </div>
             </div>
@@ -809,7 +809,7 @@ WantedBy=multi-user.target</pre>
                 <li>Paste your license key and click <strong>Activate</strong></li>
                 <li>Alternatively, set <code>license_key</code> in <code>config.yaml</code> and restart</li>
             </ol>
-            <p>Keys are validated locally -- no internet connection required. Format: <code>PRO-XXXXXXXX-YYYYYYYY</code> or <code>ENT-XXXXXXXX-YYYYYYYY</code></p>
+            <p>Keys are validated locally -- no internet connection required. You will receive your key via email after purchase.</p>
             <h4>Purchase a License</h4>
             <p>Visit <a href="https://myclover.tech" target="_blank" style="color:#22c55e;">myclover.tech</a> to purchase a Pro or Enterprise license.</p>
         </div>
@@ -1245,7 +1245,7 @@ users:
         <div class="help-body">
             <h4>config.yaml Structure</h4>
             <pre>
-license_key: ""            # PRO-xxx or ENT-xxx
+license_key: ""            # Your license key here
 check_interval_seconds: 60
 
 dashboard:
@@ -1307,7 +1307,7 @@ devices:
             </ul>
 
             <h4>License key not accepted</h4>
-            <p>Keys must match the format <code>TIER-UNIQUEID-SIGNATURE</code>. Copy the full key including dashes. Keys are case-sensitive.</p>
+            <p>Copy your full license key exactly as received, including all dashes. Keys are case-sensitive.</p>
 
             <h4>Database errors or corruption</h4>
             <p>Stop netmon, rename/delete <code>netmon.db</code>, and restart. A fresh database will be created automatically. Note: this resets all history data.</p>
@@ -1352,7 +1352,6 @@ netmon.py              # Main application
 config.yaml            # Configuration
 netmon.db              # Database (auto-created)
 requirements.txt       # Python dependencies
-generate_key.py        # License key generator
 templates/
   dashboard.html       # Web dashboard
   noc.html             # NOC display mode

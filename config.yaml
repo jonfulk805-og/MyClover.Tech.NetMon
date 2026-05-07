@@ -7,7 +7,7 @@
 
 # License key (leave blank for Community/free tier)
 # Purchase a key at myclover.tech to unlock Pro or Enterprise features.
-# Format: PRO-XXXXXXXX-YYYYYYYY or ENT-XXXXXXXX-YYYYYYYY
+# Paste your license key here (received via email after purchase)
 license_key: ""
 
 # User authentication (Enterprise only)

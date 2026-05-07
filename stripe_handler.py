@@ -78,7 +78,7 @@ logging.basicConfig(
 # ---------------------------------------------------------------------------
 # License key generation (mirrors netmon.py logic exactly)
 # ---------------------------------------------------------------------------
-LICENSE_SECRET = b"clovertech-netmon-2026-salt"  # Must match netmon.py
+LICENSE_SECRET = b"CHANGE-ME-BEFORE-DEPLOYMENT"  # Must match netmon.py
 
 
 def generate_license_key(tier_code, unique_id=None):
