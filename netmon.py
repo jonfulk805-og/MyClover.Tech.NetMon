@@ -3394,7 +3394,7 @@ def create_app():
         """Create a zip backup of the database and config."""
         import io
         import sqlite3 as _sqlite3
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         buf = io.BytesIO()
         tmp_db = DB_PATH.parent / ".netmon_backup_tmp.db"
         try:
