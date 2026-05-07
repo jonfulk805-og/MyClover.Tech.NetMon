@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MyClover.Tech.netmon v5.3 - Network Monitoring System
+Clover.tech.netmon v5.3 - Network Monitoring System
 Features: ICMP ping, TCP port, HTTP, SNMP checks; email alerts;
           Flask dashboard with device CRUD, links/notes, maintenance mode,
           device detail drawer, status filters/search,
@@ -40,6 +40,7 @@ import csv
 import io
 import glob as glob_mod
 import functools
+import zipfile
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -58,7 +59,7 @@ except ImportError:
     print("[WARN] requests not installed. HTTP checks disabled. Run: pip install requests")
 
 try:
-    from flask import Flask, jsonify, request, render_template, abort
+    from flask import Flask, jsonify, request, render_template, abort, send_file
     HAS_FLASK = True
 except ImportError:
     HAS_FLASK = False
@@ -84,8 +85,10 @@ log = logging.getLogger("netmon")
 # ---------------------------------------------------------------------------
 # License / Tier System
 # ---------------------------------------------------------------------------
+# License keys are HMAC-SHA256 based. Format: TIER-XXXXXXXX-YYYYYYYY
+# where TIER is PRO or ENT, X is a unique id, Y is the HMAC signature.
 # Keys are validated locally -- no phone-home required.
-# IMPORTANT: Replace this secret with your own unique value before deployment!
+
 _LICENSE_SECRET = b"CHANGE-ME-BEFORE-DEPLOYMENT"
 
 TIER_FREE = "community"
@@ -855,7 +858,7 @@ def send_alert_email(result, smtp_cfg):
     if key in _last_alert_email and (now - _last_alert_email[key]) < cooldown:
         return False
 
-    subject = "[MyClover.Tech.netmon %s] %s - %s" % (result["status"], result["device_name"],
+    subject = "[Clover.tech.netmon %s] %s - %s" % (result["status"], result["device_name"],
                                                      result.get("check_label", ""))
     body_text = (
         "Device: %s\nHost: %s\nCheck: %s\nStatus: %s\nMessage: %s\nTime: %s"
@@ -968,7 +971,7 @@ def _send_slack_webhook(result, url):
                 {"title": "Status", "value": result["status"], "short": True},
                 {"title": "Message", "value": result.get("message", ""), "short": False},
             ],
-            "footer": "MyClover.Tech.netmon",
+            "footer": "Clover.tech.netmon",
             "ts": int(time.time()),
         }]
     }
@@ -1266,7 +1269,7 @@ def generate_sla_csv(reports):
 # Simple JWT-like token auth. Users are stored in config.yaml.
 # Tokens are HMAC-SHA256 signed. No external dependencies.
 
-_AUTH_SECRET = b"CHANGE-ME-AUTH-SECRET"  # IMPORTANT: Change before deployment!
+_AUTH_SECRET = b"netmon-auth-secret-2026"  # Change for production
 _AUTH_TOKEN_EXPIRY = 86400  # 24 hours
 
 # Roles: admin (full access), operator (can ack alerts, toggle maint),
@@ -2660,7 +2663,7 @@ def create_app():
 
         nodes.append({
             "id": "__netmon__",
-            "label": "MyClover.Tech",
+            "label": "Clover.tech",
             "type": "hub",
             "status": "hub",
             "group": "",
@@ -2813,8 +2816,8 @@ def create_app():
             return jsonify({"ok": False, "error": "No recipients configured"}), 400
         try:
             from_addr = smtp_cfg.get("from_addr", smtp_cfg.get("username", "netmon@localhost"))
-            subject = "MyClover.Tech.netmon Test Alert"
-            body = "This is a test alert from MyClover.Tech.netmon. If you received this, your email settings are working correctly."
+            subject = "Clover.tech.netmon Test Alert"
+            body = "This is a test alert from Clover.tech.netmon. If you received this, your email settings are working correctly."
             msg = email.mime.multipart.MIMEMultipart("alternative")
             msg["Subject"] = subject
             msg["From"] = from_addr
@@ -3065,7 +3068,7 @@ def create_app():
             "check_label": "Test Check",
             "status": "WARNING",
             "response_ms": 42.0,
-            "message": "This is a test notification from MyClover.Tech.netmon",
+            "message": "This is a test notification from Clover.tech.netmon",
         }
         try:
             hook_type = data.get("type", "generic")
@@ -3384,6 +3387,77 @@ def create_app():
         conn.close()
         return jsonify({"status": "deleted", "scan_id": scan_id})
 
+    # --- Backup & Restore API ---
+
+    @app.route("/api/backup", methods=["GET"])
+    def api_backup():
+        """Create a zip backup of the database and config."""
+        import io
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            # Database
+            if DB_PATH.exists():
+                zf.write(str(DB_PATH), "netmon.db")
+            # Config
+            cfg_path = DEFAULT_CFG
+            if cfg_path.exists():
+                zf.write(str(cfg_path), "config.yaml")
+            # Plugins
+            if PLUGIN_DIR.exists():
+                for pf in PLUGIN_DIR.glob("*.py"):
+                    zf.write(str(pf), "plugins/" + pf.name)
+        buf.seek(0)
+        return send_file(
+            buf,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name="netmon_backup_%s.zip" % ts,
+        )
+
+    @app.route("/api/restore", methods=["POST"])
+    def api_restore():
+        """Restore from a backup zip uploaded via multipart form."""
+        if "file" not in request.files:
+            abort(400, description="No file uploaded.")
+        f = request.files["file"]
+        if not f.filename or not f.filename.lower().endswith(".zip"):
+            abort(400, description="Upload must be a .zip file.")
+        buf = io.BytesIO(f.read())
+        try:
+            zf = zipfile.ZipFile(buf, "r")
+        except zipfile.BadZipFile:
+            abort(400, description="Invalid zip file.")
+        names = zf.namelist()
+        restored = []
+        # Restore database
+        if "netmon.db" in names:
+            db_bytes = zf.read("netmon.db")
+            with open(str(DB_PATH), "wb") as out:
+                out.write(db_bytes)
+            restored.append("netmon.db")
+        # Restore config
+        if "config.yaml" in names:
+            cfg_bytes = zf.read("config.yaml")
+            with open(str(DEFAULT_CFG), "wb") as out:
+                out.write(cfg_bytes)
+            restored.append("config.yaml")
+            _reload_config()
+        # Restore plugins
+        for n in names:
+            if n.startswith("plugins/") and n.endswith(".py"):
+                PLUGIN_DIR.mkdir(exist_ok=True)
+                plugin_bytes = zf.read(n)
+                dest = PLUGIN_DIR / Path(n).name
+                with open(str(dest), "wb") as out:
+                    out.write(plugin_bytes)
+                restored.append(n)
+        zf.close()
+        if not restored:
+            abort(400, description="Zip contained no recognized files (netmon.db, config.yaml, plugins/*.py).")
+        return jsonify({"status": "restored", "files": restored,
+                        "message": "Restored %d file(s). Restart netmon for full effect." % len(restored)})
+
     return app
 
 
@@ -3392,7 +3466,7 @@ def create_app():
 # ---------------------------------------------------------------------------
 
 def main():
-    log.info("MyClover.Tech.netmon v5.3 starting...")
+    log.info("Clover.tech.netmon v5 starting...")
     _reload_config()
 
     with _config_lock:

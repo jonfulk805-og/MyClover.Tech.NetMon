@@ -722,6 +722,25 @@ a.port-link:hover {
             </div>
         </div>
     </div>
+    <div style="margin-top:20px;">
+        <div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:20px;">
+            <h3 style="color:#ccc;font-size:14px;margin-bottom:16px;border-bottom:1px solid #2a2d3a;padding-bottom:8px;">Backup &amp; Restore</h3>
+            <p style="color:#64748b;font-size:12px;margin-bottom:16px;">Download a full backup (database, config, plugins) or restore from a previous backup zip.</p>
+            <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+                <div>
+                    <button class="btn btn-primary btn-sm" onclick="downloadBackup()" id="backup-btn">&#128229; Download Backup</button>
+                    <div id="backup-status" style="font-size:11px;color:#64748b;margin-top:6px;"></div>
+                </div>
+                <div style="border-left:1px solid #2a2d3a;padding-left:12px;">
+                    <label style="display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:#1e293b;border:1px dashed #3a3d4a;border-radius:6px;cursor:pointer;font-size:12px;color:#94a3b8;transition:border-color 0.2s;">
+                        &#128228; Choose Backup to Restore...
+                        <input type="file" id="restore-file" accept=".zip" style="display:none;" onchange="handleRestoreFile(this)">
+                    </label>
+                    <div id="restore-status" style="font-size:11px;color:#64748b;margin-top:6px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
     <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">
         <button class="btn btn-ghost" onclick="loadSettings()">Revert</button>
         <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
@@ -1531,9 +1550,24 @@ var _perfPeriod = 24;
 
 var PORT_NAMES = {22:"SSH",23:"Telnet",53:"DNS",80:"HTTP",443:"HTTPS",161:"SNMP",445:"SMB",3389:"RDP",5900:"VNC",8080:"HTTP-Alt",8443:"HTTPS-Alt"};
 
+// Download a .rdp file to launch Remote Desktop Connection
+function downloadRdpFile(ip) {
+    var content = 'full address:s:' + ip + '\r\nprompt for credentials:i:1\r\nscreen mode id:i:2\r\n';
+    var blob = new Blob([content], {type: 'application/x-rdp'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = ip.replace(/\./g, '_') + '.rdp';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+}
+
 // Build a clickable service link from port number and host IP
 function portServiceLink(port, ip) {
     var name = PORT_NAMES[port] || port;
+    // RDP: generate a downloadable .rdp file instead of rdp:// protocol
+    if (port === 3389) {
+        return '<a href="javascript:void(0)" onclick="downloadRdpFile(\'' + escAttr(ip) + '\')" class="port-chip port-link" title="Download .rdp file for ' + esc(ip) + '">' + name + '</a>';
+    }
     var urlMap = {
         80:  'http://' + ip,
         443: 'https://' + ip,
@@ -1541,7 +1575,6 @@ function portServiceLink(port, ip) {
         8443:'https://' + ip + ':8443',
         22:  'ssh://' + ip,
         23:  'telnet://' + ip,
-        3389:'rdp://' + ip,
         5900:'vnc://' + ip
     };
     var url = urlMap[port];
@@ -2654,6 +2687,56 @@ function testEmail() {
         .then(function(d) { btn.disabled = false; btn.textContent = 'Send Test Email'; if (d.ok) { res.textContent = 'Sent!'; res.style.color = '#2ecc71'; } else { res.textContent = d.error || 'Failed'; res.style.color = '#e74c3c'; } setTimeout(function(){ res.textContent = ''; }, 8000); })
         .catch(function(e) { btn.disabled = false; btn.textContent = 'Send Test Email'; res.textContent = e.message; res.style.color = '#e74c3c'; });
     }, 500);
+}
+
+// ===== Backup & Restore =====
+function downloadBackup() {
+    var btn = document.getElementById('backup-btn');
+    var st = document.getElementById('backup-status');
+    btn.disabled = true; btn.innerHTML = '&#9203; Creating backup...';
+    st.textContent = '';
+    fetch('/api/backup')
+    .then(function(r) {
+        if (!r.ok) throw new Error('Backup failed (HTTP ' + r.status + ')');
+        return r.blob().then(function(blob) {
+            var cd = r.headers.get('Content-Disposition') || '';
+            var match = cd.match(/filename[^;=\n]*="?([^";\n]+)/);
+            var fname = match ? match[1] : 'netmon_backup.zip';
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fname;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+            st.style.color = '#2ecc71';
+            st.textContent = 'Backup downloaded: ' + fname;
+        });
+    })
+    .catch(function(e) { st.style.color = '#e74c3c'; st.textContent = e.message; })
+    .finally(function() { btn.disabled = false; btn.innerHTML = '&#128229; Download Backup'; });
+}
+
+function handleRestoreFile(input) {
+    if (!input.files || !input.files[0]) return;
+    var file = input.files[0];
+    var st = document.getElementById('restore-status');
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+        st.style.color = '#e74c3c'; st.textContent = 'Please select a .zip backup file.';
+        input.value = ''; return;
+    }
+    if (!confirm('Restore from "' + file.name + '"?\n\nThis will overwrite the current database and config. A restart is recommended after restore.')) {
+        input.value = ''; return;
+    }
+    st.style.color = '#f39c12'; st.textContent = 'Uploading and restoring...';
+    var fd = new FormData();
+    fd.append('file', file);
+    fetch('/api/restore', { method: 'POST', body: fd })
+    .then(function(r) { return r.json().then(function(d) { d._status = r.status; return d; }); })
+    .then(function(d) {
+        if (d._status >= 400) { st.style.color = '#e74c3c'; st.textContent = d.description || 'Restore failed.'; }
+        else { st.style.color = '#2ecc71'; st.textContent = 'Restored ' + (d.files||[]).length + ' file(s): ' + (d.files||[]).join(', ') + '. Restart recommended.'; loadSettings(); }
+    })
+    .catch(function(e) { st.style.color = '#e74c3c'; st.textContent = e.message; })
+    .finally(function() { input.value = ''; });
 }
 
 // ===== Inventory =====
