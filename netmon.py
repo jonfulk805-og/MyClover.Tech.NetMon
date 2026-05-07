@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Clover.tech.netmon v5.2 - Network Monitoring System
+Clover.tech.netmon v5.3 - Network Monitoring System
 Features: ICMP ping, TCP port, HTTP, SNMP checks; email alerts;
           Flask dashboard with device CRUD, links/notes, maintenance mode,
           device detail drawer, status filters/search,
@@ -10,7 +10,8 @@ Features: ICMP ping, TCP port, HTTP, SNMP checks; email alerts;
           alert acknowledgment, scheduled downtime,
           NOC/TV display mode, multi-channel notifications,
           SLA/uptime reports, user authentication,
-          custom check plugins, SNMP deep polling.
+          custom check plugins, SNMP deep polling,
+          security scanning / penetration testing.
 """
 
 import os
@@ -31,6 +32,7 @@ import email.mime.text
 import email.mime.multipart
 import ipaddress
 import re
+import ssl as ssl_mod
 import json as json_mod
 import secrets
 import base64
@@ -114,7 +116,7 @@ TIER_FEATURES = {
         "max_sensors": 0,
         "tabs": ["status", "alerts", "history", "devices", "settings",
                  "inventory", "map", "discovery", "downtime", "noc",
-                 "reports"],
+                 "reports", "security"],
         "api_write": True,
         "multi_recipient": True,
         "noc_mode": True,
@@ -123,6 +125,7 @@ TIER_FEATURES = {
         "custom_plugins": True,
         "snmp_deep": True,
         "multi_channel_notify": True,
+        "security_scan": True,
     },
 }
 
@@ -374,6 +377,32 @@ def init_db():
                  ON perf_data(device_name, check_label, timestamp)""")
     c.execute("""CREATE INDEX IF NOT EXISTS idx_downtime_device
                  ON scheduled_downtime(device_name, start_time)""")
+    # Security scan tables (Enterprise)
+    c.execute("""CREATE TABLE IF NOT EXISTS security_scans (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        scan_id TEXT UNIQUE NOT NULL,
+        started_at TEXT NOT NULL,
+        finished_at TEXT,
+        targets TEXT NOT NULL,
+        scan_types TEXT NOT NULL,
+        status TEXT DEFAULT 'running',
+        summary TEXT DEFAULT '{}'
+    )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS security_findings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        scan_id TEXT NOT NULL,
+        target TEXT NOT NULL,
+        category TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        details TEXT DEFAULT '{}',
+        remediation TEXT DEFAULT ''
+    )""")
+    c.execute("""CREATE INDEX IF NOT EXISTS idx_secscans_id
+                 ON security_scans(scan_id)""")
+    c.execute("""CREATE INDEX IF NOT EXISTS idx_secfindings_scan
+                 ON security_findings(scan_id)""")
     # Migrate: add acknowledged columns to alerts if missing
     try:
         c.execute("SELECT acknowledged FROM alerts LIMIT 1")
@@ -1585,6 +1614,638 @@ def monitoring_loop():
 
 
 # ---------------------------------------------------------------------------
+# Security / Penetration Testing Engine (Enterprise)
+# ---------------------------------------------------------------------------
+_secscan_lock = threading.Lock()
+_secscan_state = {}  # current running scan state
+
+COMMON_PORTS = {
+    21: "FTP", 22: "SSH", 23: "Telnet", 25: "SMTP", 53: "DNS",
+    80: "HTTP", 110: "POP3", 111: "RPCbind", 135: "MSRPC",
+    139: "NetBIOS", 143: "IMAP", 161: "SNMP", 389: "LDAP",
+    443: "HTTPS", 445: "SMB", 465: "SMTPS", 514: "Syslog",
+    587: "Submission", 636: "LDAPS", 993: "IMAPS", 995: "POP3S",
+    1433: "MSSQL", 1521: "Oracle", 3306: "MySQL", 3389: "RDP",
+    5432: "PostgreSQL", 5900: "VNC", 5985: "WinRM", 6379: "Redis",
+    8080: "HTTP-Alt", 8443: "HTTPS-Alt", 9090: "WebUI",
+    9200: "Elasticsearch", 27017: "MongoDB",
+}
+
+WEAK_SSL_PROTOCOLS = ["SSLv2", "SSLv3", "TLSv1", "TLSv1.1"]
+
+HTTP_SECURITY_HEADERS = [
+    "Strict-Transport-Security",
+    "Content-Security-Policy",
+    "X-Content-Type-Options",
+    "X-Frame-Options",
+    "X-XSS-Protection",
+    "Referrer-Policy",
+    "Permissions-Policy",
+]
+
+SNMP_DEFAULT_COMMUNITIES = ["public", "private", "community", "snmp", "monitor",
+                            "admin", "default", "test", "read", "write"]
+
+
+def _sec_port_scan(host, timeout_s=2):
+    """Scan common ports on a host. Returns list of (port, service, banner)."""
+    open_ports = []
+    for port, svc in sorted(COMMON_PORTS.items()):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(timeout_s)
+            result = s.connect_ex((host, port))
+            if result == 0:
+                banner = ""
+                try:
+                    if port not in (80, 443, 8080, 8443):
+                        s.settimeout(2)
+                        s.sendall(b"\r\n")
+                        banner = s.recv(1024).decode("utf-8", errors="replace").strip()
+                        banner = banner[:200]
+                except Exception:
+                    pass
+                open_ports.append({"port": port, "service": svc, "banner": banner})
+            s.close()
+        except Exception:
+            pass
+    return open_ports
+
+
+def _sec_ssl_check(host, port=443, timeout_s=5):
+    """Check SSL/TLS configuration. Returns dict of findings."""
+    findings = []
+    cert_info = {}
+    try:
+        ctx = ssl_mod.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl_mod.CERT_NONE
+        with socket.create_connection((host, port), timeout=timeout_s) as sock:
+            with ctx.wrap_socket(sock, server_hostname=host) as ssock:
+                cert = ssock.getpeercert(binary_form=False)
+                cipher = ssock.cipher()
+                protocol = ssock.version()
+
+                cert_info["protocol"] = protocol or "Unknown"
+                cert_info["cipher"] = cipher[0] if cipher else "Unknown"
+                cert_info["bits"] = cipher[2] if cipher and len(cipher) > 2 else 0
+
+                if cert:
+                    # Parse expiry
+                    not_after = cert.get("notAfter", "")
+                    not_before = cert.get("notBefore", "")
+                    subject = dict(x[0] for x in cert.get("subject", ()) if x)
+                    issuer = dict(x[0] for x in cert.get("issuer", ()) if x)
+                    cert_info["subject_cn"] = subject.get("commonName", "")
+                    cert_info["issuer_cn"] = issuer.get("commonName", "")
+                    cert_info["not_before"] = not_before
+                    cert_info["not_after"] = not_after
+
+                    if not_after:
+                        try:
+                            exp = datetime.datetime.strptime(not_after, "%b %d %H:%M:%S %Y %Z")
+                            days_left = (exp - datetime.datetime.utcnow()).days
+                            cert_info["days_until_expiry"] = days_left
+                            if days_left < 0:
+                                findings.append({
+                                    "severity": "critical",
+                                    "title": "SSL certificate expired",
+                                    "description": "Certificate expired %d days ago" % abs(days_left),
+                                    "remediation": "Renew the SSL certificate immediately.",
+                                })
+                            elif days_left < 30:
+                                findings.append({
+                                    "severity": "high",
+                                    "title": "SSL certificate expiring soon",
+                                    "description": "Certificate expires in %d days (on %s)" % (days_left, not_after),
+                                    "remediation": "Renew the SSL certificate before it expires.",
+                                })
+                        except Exception:
+                            pass
+                else:
+                    findings.append({
+                        "severity": "high",
+                        "title": "No SSL certificate presented",
+                        "description": "The server did not present a certificate.",
+                        "remediation": "Configure a valid SSL certificate.",
+                    })
+
+                # Check protocol
+                if protocol in WEAK_SSL_PROTOCOLS:
+                    findings.append({
+                        "severity": "high",
+                        "title": "Weak SSL/TLS protocol: %s" % protocol,
+                        "description": "Server uses %s which has known vulnerabilities." % protocol,
+                        "remediation": "Disable %s and use TLS 1.2 or 1.3." % protocol,
+                    })
+
+                # Check cipher strength
+                if cipher and cipher[2] < 128:
+                    findings.append({
+                        "severity": "high",
+                        "title": "Weak cipher: %s (%d-bit)" % (cipher[0], cipher[2]),
+                        "description": "Cipher uses less than 128-bit encryption.",
+                        "remediation": "Configure stronger cipher suites (AES-128 or AES-256).",
+                    })
+
+    except ssl_mod.SSLError as e:
+        findings.append({
+            "severity": "medium",
+            "title": "SSL connection error",
+            "description": str(e)[:200],
+            "remediation": "Check SSL/TLS configuration on the server.",
+        })
+    except (socket.timeout, ConnectionRefusedError, OSError):
+        cert_info["error"] = "Cannot connect to %s:%d" % (host, port)
+
+    # Try verifying the certificate chain
+    try:
+        ctx2 = ssl_mod.create_default_context()
+        with socket.create_connection((host, port), timeout=timeout_s) as sock:
+            with ctx2.wrap_socket(sock, server_hostname=host) as ssock:
+                pass  # if it works, certificate is trusted
+        cert_info["trusted"] = True
+    except ssl_mod.SSLCertVerificationError as e:
+        cert_info["trusted"] = False
+        findings.append({
+            "severity": "medium",
+            "title": "SSL certificate not trusted",
+            "description": str(e)[:200],
+            "remediation": "Use a certificate from a trusted CA (e.g., Let's Encrypt).",
+        })
+    except Exception:
+        pass
+
+    return {"cert_info": cert_info, "findings": findings}
+
+
+def _sec_http_headers(host, port=80, use_ssl=False, timeout_s=5):
+    """Check HTTP security headers. Returns list of findings."""
+    findings = []
+    headers_found = {}
+    try:
+        scheme = "https" if use_ssl else "http"
+        url = "%s://%s:%d/" % (scheme, host, port)
+        # Use raw HTTP to avoid external dependencies
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(timeout_s)
+        if use_ssl:
+            ctx = ssl_mod.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl_mod.CERT_NONE
+            s = ctx.wrap_socket(s, server_hostname=host)
+        s.connect((host, port))
+        req = "GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n" % host
+        s.sendall(req.encode("utf-8"))
+        response = b""
+        while True:
+            chunk = s.recv(4096)
+            if not chunk:
+                break
+            response += chunk
+            if len(response) > 16384:
+                break
+        s.close()
+        header_block = response.split(b"\r\n\r\n")[0].decode("utf-8", errors="replace")
+        for line in header_block.split("\r\n")[1:]:
+            if ":" in line:
+                k, v = line.split(":", 1)
+                headers_found[k.strip()] = v.strip()
+
+        # Check for missing security headers
+        for hdr in HTTP_SECURITY_HEADERS:
+            found = False
+            for k in headers_found:
+                if k.lower() == hdr.lower():
+                    found = True
+                    break
+            if not found:
+                sev = "high" if hdr in ("Strict-Transport-Security", "Content-Security-Policy") else "medium"
+                findings.append({
+                    "severity": sev,
+                    "title": "Missing HTTP header: %s" % hdr,
+                    "description": "The %s header is not set." % hdr,
+                    "remediation": "Add the %s header to your web server configuration." % hdr,
+                })
+
+        # Check for server info disclosure
+        server_hdr = headers_found.get("Server", "")
+        if not server_hdr:
+            for k, v in headers_found.items():
+                if k.lower() == "server":
+                    server_hdr = v
+                    break
+        if server_hdr and any(s in server_hdr.lower() for s in ["apache/", "nginx/", "iis/", "lighttpd/"]):
+            findings.append({
+                "severity": "low",
+                "title": "Server version disclosed: %s" % server_hdr,
+                "description": "The Server header reveals software version information.",
+                "remediation": "Remove or obfuscate the Server header to reduce information leakage.",
+            })
+
+        # Check for X-Powered-By disclosure
+        powered = headers_found.get("X-Powered-By", "")
+        if not powered:
+            for k, v in headers_found.items():
+                if k.lower() == "x-powered-by":
+                    powered = v
+                    break
+        if powered:
+            findings.append({
+                "severity": "low",
+                "title": "X-Powered-By disclosed: %s" % powered,
+                "description": "The X-Powered-By header reveals technology stack.",
+                "remediation": "Remove the X-Powered-By header.",
+            })
+
+    except Exception:
+        pass
+
+    return {"headers": headers_found, "findings": findings}
+
+
+def _sec_snmp_check(host, timeout_s=3):
+    """Check for default SNMP community strings."""
+    findings = []
+    weak_communities = []
+
+    for community in SNMP_DEFAULT_COMMUNITIES:
+        try:
+            result = subprocess.run(
+                ["snmpget", "-v2c", "-c", community, "-t", str(timeout_s),
+                 "-r", "0", host, "1.3.6.1.2.1.1.1.0"],
+                capture_output=True, text=True, timeout=timeout_s + 2
+            )
+            if result.returncode == 0 and "SNMPv2" in result.stdout:
+                weak_communities.append(community)
+        except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+            pass
+
+    if weak_communities:
+        findings.append({
+            "severity": "critical" if "public" in weak_communities or "private" in weak_communities else "high",
+            "title": "Default SNMP community string(s) accepted",
+            "description": "The following default community strings are accepted: %s" % ", ".join(weak_communities),
+            "remediation": "Change SNMP community strings to unique, complex values. "
+                           "Consider using SNMPv3 with authentication and encryption.",
+        })
+
+    return {"weak_communities": weak_communities, "findings": findings}
+
+
+def _sec_dns_check(host, timeout_s=5):
+    """Check DNS for zone transfer vulnerability."""
+    findings = []
+    try:
+        result = subprocess.run(
+            ["nslookup", "-type=AXFR", host, host],
+            capture_output=True, text=True, timeout=timeout_s + 2
+        )
+        output = result.stdout + result.stderr
+        if "transfer" in output.lower() and "failed" not in output.lower():
+            findings.append({
+                "severity": "high",
+                "title": "DNS zone transfer may be allowed",
+                "description": "The DNS server at %s may allow zone transfers (AXFR)." % host,
+                "remediation": "Restrict DNS zone transfers to authorized secondary servers only.",
+            })
+    except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+        pass
+    return {"findings": findings}
+
+
+def _sec_service_checks(host, open_ports):
+    """Check for risky service configurations on open ports."""
+    findings = []
+
+    port_numbers = [p["port"] for p in open_ports]
+
+    # FTP anonymous login
+    if 21 in port_numbers:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(5)
+            s.connect((host, 21))
+            banner = s.recv(1024).decode("utf-8", errors="replace")
+            s.sendall(b"USER anonymous\r\n")
+            resp = s.recv(1024).decode("utf-8", errors="replace")
+            if "331" in resp:
+                s.sendall(b"PASS anonymous@\r\n")
+                resp2 = s.recv(1024).decode("utf-8", errors="replace")
+                if "230" in resp2:
+                    findings.append({
+                        "severity": "critical",
+                        "title": "FTP anonymous login enabled",
+                        "description": "The FTP server allows anonymous login.",
+                        "remediation": "Disable anonymous FTP access unless explicitly required.",
+                    })
+            s.close()
+        except Exception:
+            pass
+
+    # Telnet open
+    if 23 in port_numbers:
+        findings.append({
+            "severity": "high",
+            "title": "Telnet service running (port 23)",
+            "description": "Telnet transmits data in cleartext including credentials.",
+            "remediation": "Replace Telnet with SSH. Disable the Telnet service.",
+        })
+
+    # RDP without NLA
+    if 3389 in port_numbers:
+        findings.append({
+            "severity": "medium",
+            "title": "RDP service exposed (port 3389)",
+            "description": "Remote Desktop is accessible. Verify NLA is enabled.",
+            "remediation": "Enable Network Level Authentication (NLA). Use VPN to restrict RDP access.",
+        })
+
+    # Exposed databases
+    db_ports = {3306: "MySQL", 5432: "PostgreSQL", 1433: "MSSQL",
+                1521: "Oracle", 6379: "Redis", 27017: "MongoDB",
+                9200: "Elasticsearch"}
+    for p, name in db_ports.items():
+        if p in port_numbers:
+            findings.append({
+                "severity": "high",
+                "title": "%s exposed (port %d)" % (name, p),
+                "description": "%s is listening on a network interface." % name,
+                "remediation": "Bind %s to localhost or use firewall rules. "
+                               "Never expose databases directly to the network." % name,
+            })
+
+    # Redis no-auth check
+    if 6379 in port_numbers:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(3)
+            s.connect((host, 6379))
+            s.sendall(b"PING\r\n")
+            resp = s.recv(1024).decode("utf-8", errors="replace")
+            s.close()
+            if "+PONG" in resp:
+                findings.append({
+                    "severity": "critical",
+                    "title": "Redis accessible without authentication",
+                    "description": "Redis responds to PING without credentials.",
+                    "remediation": "Enable Redis AUTH and bind to localhost.",
+                })
+        except Exception:
+            pass
+
+    # VNC open
+    if 5900 in port_numbers:
+        findings.append({
+            "severity": "high",
+            "title": "VNC service exposed (port 5900)",
+            "description": "VNC is accessible on the network.",
+            "remediation": "Restrict VNC access via VPN or firewall. Use SSH tunneling.",
+        })
+
+    # SMB open
+    if 445 in port_numbers:
+        findings.append({
+            "severity": "medium",
+            "title": "SMB service exposed (port 445)",
+            "description": "SMB/CIFS is accessible. Check for SMBv1 and guest access.",
+            "remediation": "Disable SMBv1. Require authentication. Restrict via firewall.",
+        })
+
+    return findings
+
+
+def run_security_scan(targets, scan_types, scan_id=None):
+    """Run a security scan against one or more targets.
+    targets: list of IP/hostname strings
+    scan_types: list of scan type strings (ports, ssl, http, snmp, dns, services)
+    """
+    if scan_id is None:
+        scan_id = "sec-%s" % secrets.token_hex(6)
+
+    started = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.execute(
+        "INSERT INTO security_scans (scan_id, started_at, targets, scan_types, status) "
+        "VALUES (?, ?, ?, ?, 'running')",
+        (scan_id, started, json_mod.dumps(targets), json_mod.dumps(scan_types))
+    )
+    conn.commit()
+    conn.close()
+
+    with _secscan_lock:
+        _secscan_state["scan_id"] = scan_id
+        _secscan_state["status"] = "running"
+        _secscan_state["targets"] = targets
+        _secscan_state["progress"] = 0
+        _secscan_state["current_target"] = ""
+        _secscan_state["current_test"] = ""
+
+    all_findings = []
+    total_steps = len(targets) * len(scan_types)
+    step = 0
+
+    def _cancelled():
+        with _secscan_lock:
+            return _secscan_state.get("status") == "cancelling"
+
+    for target in targets:
+        if _cancelled():
+            break
+
+        with _secscan_lock:
+            _secscan_state["current_target"] = target
+
+        target_findings = []
+
+        # Port scan (always first, other checks may use results)
+        open_ports = []
+        if "ports" in scan_types and not _cancelled():
+            with _secscan_lock:
+                _secscan_state["current_test"] = "Port scan"
+            open_ports = _sec_port_scan(target)
+
+            if not open_ports:
+                target_findings.append({
+                    "target": target, "category": "ports", "severity": "info",
+                    "title": "No common ports open",
+                    "description": "None of the %d scanned common ports are open." % len(COMMON_PORTS),
+                    "details": json_mod.dumps({"scanned_count": len(COMMON_PORTS)}),
+                    "remediation": "",
+                })
+            else:
+                # Informational: list open ports
+                target_findings.append({
+                    "target": target, "category": "ports", "severity": "info",
+                    "title": "%d open port(s) found" % len(open_ports),
+                    "description": "Open: %s" % ", ".join(
+                        "%d/%s" % (p["port"], p["service"]) for p in open_ports),
+                    "details": json_mod.dumps({"open_ports": open_ports}),
+                    "remediation": "Review each open port and close unnecessary services.",
+                })
+
+                # High port count warning
+                if len(open_ports) > 10:
+                    target_findings.append({
+                        "target": target, "category": "ports", "severity": "medium",
+                        "title": "Large number of open ports (%d)" % len(open_ports),
+                        "description": "Having many open ports increases the attack surface.",
+                        "remediation": "Close unnecessary ports. Apply firewall rules.",
+                    })
+
+            step += 1
+            with _secscan_lock:
+                _secscan_state["progress"] = int(step * 100 / total_steps)
+
+        # SSL/TLS check
+        if "ssl" in scan_types and not _cancelled():
+            with _secscan_lock:
+                _secscan_state["current_test"] = "SSL/TLS analysis"
+
+            ssl_ports = [p["port"] for p in open_ports if p["port"] in (443, 8443, 993, 995, 636)]
+            if not ssl_ports and not open_ports:
+                ssl_ports = [443]  # try 443 even if port scan wasn't run
+
+            for sp in ssl_ports:
+                ssl_result = _sec_ssl_check(target, sp)
+                for f in ssl_result.get("findings", []):
+                    f["target"] = target
+                    f["category"] = "ssl"
+                    f["details"] = json_mod.dumps(ssl_result.get("cert_info", {}))
+                    target_findings.append(f)
+
+                if ssl_result.get("cert_info") and not ssl_result.get("cert_info", {}).get("error"):
+                    ci = ssl_result["cert_info"]
+                    target_findings.append({
+                        "target": target, "category": "ssl", "severity": "info",
+                        "title": "SSL certificate on port %d" % sp,
+                        "description": "Protocol: %s, Cipher: %s (%s-bit), CN: %s, Issuer: %s" % (
+                            ci.get("protocol", "?"), ci.get("cipher", "?"),
+                            ci.get("bits", "?"), ci.get("subject_cn", "?"),
+                            ci.get("issuer_cn", "?")),
+                        "details": json_mod.dumps(ci),
+                        "remediation": "",
+                    })
+
+            step += 1
+            with _secscan_lock:
+                _secscan_state["progress"] = int(step * 100 / total_steps)
+
+        # HTTP security headers
+        if "http" in scan_types and not _cancelled():
+            with _secscan_lock:
+                _secscan_state["current_test"] = "HTTP headers"
+
+            http_ports = [(p["port"], p["port"] in (443, 8443))
+                          for p in open_ports if p["port"] in (80, 443, 8080, 8443)]
+            if not http_ports and not open_ports:
+                http_ports = [(80, False)]
+
+            for hp, use_ssl in http_ports:
+                hdr_result = _sec_http_headers(target, hp, use_ssl)
+                for f in hdr_result.get("findings", []):
+                    f["target"] = target
+                    f["category"] = "http"
+                    f["details"] = json_mod.dumps({"port": hp, "headers": hdr_result.get("headers", {})})
+                    target_findings.append(f)
+
+            step += 1
+            with _secscan_lock:
+                _secscan_state["progress"] = int(step * 100 / total_steps)
+
+        # SNMP community strings
+        if "snmp" in scan_types and not _cancelled():
+            with _secscan_lock:
+                _secscan_state["current_test"] = "SNMP community"
+            snmp_result = _sec_snmp_check(target)
+            for f in snmp_result.get("findings", []):
+                f["target"] = target
+                f["category"] = "snmp"
+                f["details"] = json_mod.dumps({"weak_communities": snmp_result.get("weak_communities", [])})
+                target_findings.append(f)
+
+            step += 1
+            with _secscan_lock:
+                _secscan_state["progress"] = int(step * 100 / total_steps)
+
+        # DNS checks
+        if "dns" in scan_types and not _cancelled():
+            with _secscan_lock:
+                _secscan_state["current_test"] = "DNS security"
+            dns_result = _sec_dns_check(target)
+            for f in dns_result.get("findings", []):
+                f["target"] = target
+                f["category"] = "dns"
+                f["details"] = "{}"
+                target_findings.append(f)
+
+            step += 1
+            with _secscan_lock:
+                _secscan_state["progress"] = int(step * 100 / total_steps)
+
+        # Service-specific vulnerability checks
+        if "services" in scan_types and not _cancelled():
+            with _secscan_lock:
+                _secscan_state["current_test"] = "Service vulnerabilities"
+            svc_findings = _sec_service_checks(target, open_ports)
+            for f in svc_findings:
+                f["target"] = target
+                f["category"] = "services"
+                f["details"] = "{}"
+                target_findings.append(f)
+
+            step += 1
+            with _secscan_lock:
+                _secscan_state["progress"] = int(step * 100 / total_steps)
+
+        all_findings.extend(target_findings)
+
+    # Determine final status
+    was_cancelled = _cancelled()
+    final_status = "cancelled" if was_cancelled else "completed"
+
+    # Store findings
+    finished = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+    conn = sqlite3.connect(str(DB_PATH))
+    for f in all_findings:
+        sev = f.get("severity", "info")
+        severity_counts[sev] = severity_counts.get(sev, 0) + 1
+        conn.execute(
+            "INSERT INTO security_findings "
+            "(scan_id, target, category, severity, title, description, details, remediation) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (scan_id, f["target"], f["category"], sev,
+             f["title"], f["description"], f.get("details", "{}"),
+             f.get("remediation", ""))
+        )
+    summary = {
+        "total_findings": len(all_findings),
+        "severity_counts": severity_counts,
+        "targets_scanned": len(targets),
+        "scan_types": scan_types,
+    }
+    conn.execute(
+        "UPDATE security_scans SET finished_at=?, status=?, summary=? "
+        "WHERE scan_id=?",
+        (finished, final_status, json_mod.dumps(summary), scan_id)
+    )
+    conn.commit()
+    conn.close()
+
+    with _secscan_lock:
+        _secscan_state["status"] = final_status
+        _secscan_state["progress"] = 100 if not was_cancelled else _secscan_state.get("progress", 0)
+        _secscan_state["current_test"] = ""
+
+    log.info("Security scan %s %s: %d findings across %d targets",
+             scan_id, final_status, len(all_findings), len(targets))
+
+    return {"scan_id": scan_id, "summary": summary}
+
+
+# ---------------------------------------------------------------------------
 # Flask dashboard + API
 # ---------------------------------------------------------------------------
 
@@ -2599,6 +3260,131 @@ def create_app():
             "by_type": types,
             "monitored_count": len(monitored_ips),
         })
+
+    # ----- Security / Penetration Testing (Enterprise) -----
+
+    @app.route("/api/security/scan", methods=["POST"])
+    @require_tier(TIER_ENT)
+    def api_security_scan():
+        """Start a security scan."""
+        with _secscan_lock:
+            if _secscan_state.get("status") == "running":
+                return jsonify({"error": "A scan is already running",
+                                "scan_id": _secscan_state.get("scan_id", "")}), 409
+
+        data = request.get_json(force=True) if request.data else {}
+        targets = data.get("targets", [])
+        scan_types = data.get("scan_types", ["ports", "ssl", "http", "services"])
+
+        # If no targets specified, scan all configured devices
+        if not targets:
+            with _config_lock:
+                targets = list(set(d.get("host", "") for d in _config.get("devices", []) if d.get("host")))
+
+        if not targets:
+            return jsonify({"error": "No targets specified and no devices configured"}), 400
+
+        valid_types = ["ports", "ssl", "http", "snmp", "dns", "services"]
+        scan_types = [t for t in scan_types if t in valid_types]
+        if not scan_types:
+            scan_types = ["ports", "ssl", "http", "services"]
+
+        scan_id = "sec-%s" % secrets.token_hex(6)
+
+        # Run in background thread
+        t = threading.Thread(target=run_security_scan,
+                             args=(targets, scan_types, scan_id), daemon=True)
+        t.start()
+
+        return jsonify({
+            "scan_id": scan_id,
+            "targets": targets,
+            "scan_types": scan_types,
+            "status": "started",
+        })
+
+    @app.route("/api/security/status")
+    @require_tier(TIER_ENT)
+    def api_security_status():
+        """Get current scan progress."""
+        with _secscan_lock:
+            state = dict(_secscan_state)
+        return jsonify(state)
+
+    @app.route("/api/security/cancel", methods=["POST"])
+    @require_tier(TIER_ENT)
+    def api_security_cancel():
+        """Cancel a running security scan."""
+        with _secscan_lock:
+            if _secscan_state.get("status") != "running":
+                return jsonify({"error": "No scan is currently running"}), 400
+            _secscan_state["status"] = "cancelling"
+        return jsonify({"status": "cancelling",
+                        "scan_id": _secscan_state.get("scan_id", "")})
+
+    @app.route("/api/security/scans")
+    @require_tier(TIER_ENT)
+    def api_security_scans():
+        """List all security scans."""
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT * FROM security_scans ORDER BY id DESC LIMIT 50"
+        ).fetchall()
+        conn.close()
+        results = []
+        for r in rows:
+            d = dict(r)
+            d["targets"] = json_mod.loads(d.get("targets", "[]"))
+            d["scan_types"] = json_mod.loads(d.get("scan_types", "[]"))
+            d["summary"] = json_mod.loads(d.get("summary", "{}"))
+            results.append(d)
+        return jsonify(results)
+
+    @app.route("/api/security/scans/<scan_id>")
+    @require_tier(TIER_ENT)
+    def api_security_scan_detail(scan_id):
+        """Get scan details with all findings."""
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        scan = conn.execute(
+            "SELECT * FROM security_scans WHERE scan_id = ?", (scan_id,)
+        ).fetchone()
+        if not scan:
+            conn.close()
+            return jsonify({"error": "Scan not found"}), 404
+        findings = conn.execute(
+            "SELECT * FROM security_findings WHERE scan_id = ? ORDER BY "
+            "CASE severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 "
+            "WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END, id",
+            (scan_id,)
+        ).fetchall()
+        conn.close()
+
+        scan_dict = dict(scan)
+        scan_dict["targets"] = json_mod.loads(scan_dict.get("targets", "[]"))
+        scan_dict["scan_types"] = json_mod.loads(scan_dict.get("scan_types", "[]"))
+        scan_dict["summary"] = json_mod.loads(scan_dict.get("summary", "{}"))
+
+        findings_list = []
+        for f in findings:
+            fd = dict(f)
+            fd["details"] = json_mod.loads(fd.get("details", "{}"))
+            findings_list.append(fd)
+
+        scan_dict["findings"] = findings_list
+        return jsonify(scan_dict)
+
+    @app.route("/api/security/scans/<scan_id>", methods=["DELETE"])
+    @require_tier(TIER_ENT)
+    def api_security_scan_delete(scan_id):
+        """Delete a security scan and its findings."""
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.execute("DELETE FROM security_findings WHERE scan_id = ?", (scan_id,))
+        conn.execute("DELETE FROM security_scans WHERE scan_id = ?", (scan_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({"status": "deleted", "scan_id": scan_id})
 
     return app
 
