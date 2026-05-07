@@ -336,8 +336,8 @@ tr:hover { background: #1a1d2b; }
 
 <div class="header">
     <div style="display:flex;align-items:baseline;">
-        <h1>My<span class="brand-dot"></span>Clover<span class="brand-dot">.</span>Tech<span class="brand-dot">.</span>netmon</h1>
-        <span class="subtitle">Network Monitoring System v5</span>
+        <h1>&#x1F340; My<span class="brand-dot"></span>Clover<span class="brand-dot">.</span>Tech<span class="brand-dot">.</span>netmon</h1>
+        <span class="subtitle">Network Monitoring System v5.3</span>
     </div>
     <span class="refresh-info" id="refresh-info">Auto-refresh: 30s</span>
 </div>
@@ -456,92 +456,7 @@ tr:hover { background: #1a1d2b; }
     <div class="device-toolbar">
         <h2 style="color:#fff;font-size:16px;">Alerts</h2>
         <div style="display:flex;gap:8px;">
-            <button class="btn btn-ghost l').classList.remove('open'); }
-
-n false;
-        if (cat && f.category !== cat) return false;
-        return true;
-    });
-    renderSecFindings(filtered);
-}
-
-function renderSecHistory(scans) {
-    if (!scans || scans.length === 0) {
-        document.getElementById('sec-history-body').innerHTML = '<tr><td colspan="9" style="text-align:center;color:#555;padding:40px;">No security scans yet. Launch one above.</td></tr>';
-        return;
-    }
-    var html = '';
-    scans.forEach(function(s) {
-        var summary = s.summary || {};
-        var counts = summary.severity_counts || {};
-        var targets = s.targets || [];
-        var targetStr = targets.length > 3 ? targets.slice(0,3).join(', ') + ' +' + (targets.length - 3) : targets.join(', ');
-        var types = s.scan_types || [];
-        html += '<tr>'
-            + '<td style="font-family:monospace;font-size:12px;">' + esc(s.scan_id) + '</td>'
-            + '<td style="font-size:12px;">' + esc(s.started_at || '') + '</td>'
-            + '<td style="font-size:12px;" title="' + escAttr(targets.join(', ')) + '">' + esc(targetStr) + '</td>'
-            + '<td style="font-size:12px;">' + esc(types.join(', ')) + '</td>'
-            + '<td style="color:#ef4444;font-weight:600;">' + (counts.critical || 0) + '</td>'
-            + '<td style="color:#f97316;font-weight:600;">' + (counts.high || 0) + '</td>'
-            + '<td style="color:#eab308;">' + (counts.medium || 0) + '</td>'
-            + '<td style="color:#3b82f6;">' + (counts.low || 0) + '</td>'
-            + '<td><button class="btn btn-ghost btn-sm" onclick="loadSecScanResults(\'' + escAttr(s.scan_id) + '\')">View</button> '
-            + '<button class="btn btn-ghost btn-sm" onclick="deleteSecScan(\'' + escAttr(s.scan_id) + '\')" style="color:#ef4444;">Del</button></td>'
-            + '</tr>';
-    });
-    document.getElementById('sec-history-body').innerHTML = html;
-}
-
-function deleteSecScan(scanId) {
-    if (!confirm('Delete this security scan and all findings?')) return;
-    fetch('/api/security/scans/' + scanId, {method:'DELETE'}).then(function(){ loadSecurityTab(); });
-}
-
-function stopSecurityScan() {
-    document.getElementById('sec-stop-btn').disabled = true;
-    document.getElementById('sec-stop-btn').textContent = 'Stopping...';
-    fetch('/api/security/cancel', {method:'POST'}).then(function(r){ return r.json(); }).then(function(d) {
-        document.getElementById('sec-progress-label').textContent = 'Cancelling scan...';
-        // Polling loop will pick up the cancelled status and clean up
-    }).catch(function() {
-        document.getElementById('sec-stop-btn').disabled = false;
-        document.getElementById('sec-stop-btn').textContent = 'Stop Scan';
-    });
-}
-
-// ===== Help Tab =====
-function toggleHelp(el) {
-    var section = el.parentElement;
-    section.classList.toggle('open');
-}
-
-function filterHelp() {
-    var q = (document.getElementById('help-search').value || '').toLowerCase().trim();
-    var sections = document.querySelectorAll('.help-section');
-    for (var i = 0; i < sections.length; i++) {
-        var s = sections[i];
-        if (!q) { s.classList.remove('hidden'); continue; }
-        var kw = (s.getAttribute('data-keywords') || '').toLowerCase();
-        var heading = (s.querySelector('.help-heading') || {}).textContent || '';
-        var body = (s.querySelector('.help-body') || {}).textContent || '';
-        var match = kw.indexOf(q) !== -1 || heading.toLowerCase().indexOf(q) !== -1 || body.toLowerCase().indexOf(q) !== -1;
-        if (match) { s.classList.remove('hidden'); s.classList.add('open'); }
-        else { s.classList.add('hidden'); }
-    }
-}
-
-function esc(s) { if (s === null || s === undefined) return ''; var d = document.createElement('div'); d.appendChild(document.createTextNode(String(s))); return d.innerHTML; }
-function escAttr(s) { return esc(String(s === null || s === undefined ? '' : s)).replace(/"/g, '&quot;'); }
-
-// ===== Auto-refresh =====
-function refreshAll() { loadStatus(); loadAlerts(); loadHistory(); }
-refreshAll();
-setInterval(refreshAll, 30000);
-</script>
-</body>
-</html>
-btn-sm" id="ack-all-btn" onclick="ackAllAlerts()">Acknowledge All</button>
+            <button class="btn btn-ghost btn-sm" id="ack-all-btn" onclick="ackAllAlerts()">Acknowledge All</button>
         </div>
     </div>
     <table>
@@ -766,7 +681,7 @@ btn-sm" id="ack-all-btn" onclick="ackAllAlerts()">Acknowledge All</button>
             <div class="form-group" style="margin-bottom:12px;">
                 <label>License Key</label>
                 <div style="display:flex;gap:8px;">
-                    <input type="text" id="set-license-key" placeholder="PRO-XXXXXXXX-YYYYYYYYYYYYYYYY" style="flex:1;font-family:monospace;">
+                    <input type="text" id="set-license-key" placeholder="Paste your license key here" style="flex:1;font-family:monospace;">
                     <button class="btn btn-primary btn-sm" onclick="activateLicense()" id="activate-license-btn">Activate</button>
                 </div>
             </div>
@@ -894,7 +809,7 @@ WantedBy=multi-user.target</pre>
                 <li>Paste your license key and click <strong>Activate</strong></li>
                 <li>Alternatively, set <code>license_key</code> in <code>config.yaml</code> and restart</li>
             </ol>
-            <p>Keys are validated locally -- no internet connection required. Format: <code>PRO-XXXXXXXX-YYYYYYYY</code> or <code>ENT-XXXXXXXX-YYYYYYYY</code></p>
+            <p>Keys are validated locally -- no internet connection required. You will receive your key via email after purchase.</p>
             <h4>Purchase a License</h4>
             <p>Visit <a href="https://myclover.tech" target="_blank" style="color:#22c55e;">myclover.tech</a> to purchase a Pro or Enterprise license.</p>
         </div>
@@ -1308,4 +1223,1831 @@ users:
             <h4>Enterprise Endpoints</h4>
             <table class="data-table" style="margin-bottom:16px;">
                 <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
-   
+                <tbody>
+                    <tr><td>GET</td><td><code>/api/reports/sla</code></td><td>SLA uptime report</td></tr>
+                    <tr><td>POST</td><td><code>/api/security/scan</code></td><td>Start security scan</td></tr>
+                    <tr><td>POST</td><td><code>/api/security/cancel</code></td><td>Cancel running scan</td></tr>
+                    <tr><td>GET</td><td><code>/api/security/scans</code></td><td>List security scans</td></tr>
+                    <tr><td>GET</td><td><code>/api/noc/data</code></td><td>NOC display data</td></tr>
+                    <tr><td>GET/PUT</td><td><code>/api/webhooks</code></td><td>Webhook config</td></tr>
+                    <tr><td>POST</td><td><code>/api/auth/login</code></td><td>Login (get token)</td></tr>
+                    <tr><td>GET</td><td><code>/api/plugins</code></td><td>List plugins</td></tr>
+                    <tr><td>GET</td><td><code>/api/license</code></td><td>Current license info</td></tr>
+                    <tr><td>POST</td><td><code>/api/license</code></td><td>Activate license key</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Configuration -->
+    <div class="help-section" data-keywords="config yaml settings configure file edit interval smtp dashboard host port reload hot">
+        <div class="help-heading" onclick="toggleHelp(this)">Configuration Reference</div>
+        <div class="help-body">
+            <h4>config.yaml Structure</h4>
+            <pre>
+license_key: ""            # Your license key here
+check_interval_seconds: 60
+
+dashboard:
+  host: 0.0.0.0            # bind address
+  port: 8080               # web UI port
+
+smtp:
+  smtp_host: ""
+  smtp_port: 587
+  use_tls: true
+  username: ""
+  password: ""
+  from_addr: "netmon@yourdomain.com"
+  recipients: []
+  cooldown_minutes: 15
+
+users: []                  # Enterprise RBAC
+webhooks: []               # Enterprise notifications
+
+devices:
+  - name: "Device Name"
+    host: "192.168.1.1"
+    group: "Group Name"
+    parent: ""             # parent device name
+    notes: ""
+    maintenance: false
+    links: []
+    checks:
+      - type: ping
+        label: "ICMP"
+        warning_ms: 20
+        critical_ms: 100</pre>
+            <h4>Hot Reload</h4>
+            <p>Most settings changes made via the dashboard or API are applied immediately without restarting netmon. Device changes and SMTP settings are hot-reloaded.</p>
+            <h4>Database</h4>
+            <p>All monitoring data is stored in <code>netmon.db</code> (SQLite) in the same directory as <code>netmon.py</code>. No database server required.</p>
+        </div>
+    </div>
+
+    <!-- Troubleshooting -->
+    <div class="help-section" data-keywords="troubleshoot error problem issue fix bug loading stuck crash log database permission port bind firewall">
+        <div class="help-heading" onclick="toggleHelp(this)">Troubleshooting</div>
+        <div class="help-body">
+            <h4>Dashboard shows "Loading..." and doesn't update</h4>
+            <p>This usually means the API is unreachable. Check that netmon.py is running and the port (default 8080) is accessible. If you recently upgraded, clear your browser cache (Ctrl+Shift+R).</p>
+
+            <h4>Port 8080 already in use</h4>
+            <p>Change the port in <code>config.yaml</code> under <code>dashboard: port:</code> or stop the other process using that port.</p>
+
+            <h4>Ping checks show CRITICAL on Windows</h4>
+            <p>Netmon v4+ validates Windows ping output by checking for TTL in the response. Make sure you're running as a user with permission to execute ping commands.</p>
+
+            <h4>Email alerts not sending</h4>
+            <ul>
+                <li>Verify SMTP settings in the Settings tab and use <strong>Test Email</strong></li>
+                <li>For Gmail: enable "App Passwords" (not your regular password)</li>
+                <li>For Office 365: use port 587 with TLS enabled</li>
+                <li>Check that <code>recipients</code> is not empty</li>
+            </ul>
+
+            <h4>License key not accepted</h4>
+            <p>Copy your full license key exactly as received, including all dashes. Keys are case-sensitive.</p>
+
+            <h4>Database errors or corruption</h4>
+            <p>Stop netmon, rename/delete <code>netmon.db</code>, and restart. A fresh database will be created automatically. Note: this resets all history data.</p>
+
+            <h4>"Permission denied" on Linux</h4>
+            <p>ICMP ping usually requires root or the <code>cap_net_raw</code> capability. Run as root or set: <code>sudo setcap cap_net_raw+ep $(which python3)</code></p>
+
+            <h4>Discovery scan finds no hosts</h4>
+            <ul>
+                <li>Verify the CIDR range is correct for your subnet</li>
+                <li>Some hosts may block ICMP (try with port scanning enabled)</li>
+                <li>Firewalls may block ping between subnets</li>
+            </ul>
+
+            <h4>High CPU usage</h4>
+            <p>Increase <code>check_interval_seconds</code>. Monitoring 100+ devices every 30 seconds can be CPU-intensive. Recommended: 60s for up to 200 devices, 120s for 200+.</p>
+
+            <h4>SNMP checks failing</h4>
+            <ul>
+                <li>Ensure net-snmp tools are installed (<code>snmpget --version</code> should work)</li>
+                <li>Verify the community string matches the device configuration</li>
+                <li>Check that SNMP is enabled on the target device and UDP port 161 is open</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- About -->
+    <div class="help-section" data-keywords="about version info stack technology python flask sqlite chart.js vis.js">
+        <div class="help-heading" onclick="toggleHelp(this)">About MyClover.Tech.netmon</div>
+        <div class="help-body">
+            <h4>Technology Stack</h4>
+            <ul>
+                <li><strong>Backend:</strong> Python 3.10+ / Flask</li>
+                <li><strong>Database:</strong> SQLite (zero configuration)</li>
+                <li><strong>Charts:</strong> Chart.js 4.x</li>
+                <li><strong>Network Map:</strong> vis.js 9.x</li>
+                <li><strong>Configuration:</strong> YAML</li>
+            </ul>
+            <h4>File Structure</h4>
+            <pre>
+netmon.py              # Main application
+config.yaml            # Configuration
+netmon.db              # Database (auto-created)
+requirements.txt       # Python dependencies
+templates/
+  dashboard.html       # Web dashboard
+  noc.html             # NOC display mode
+plugins/
+  check_disk_space.py  # Sample custom plugin</pre>
+            <p>Visit <a href="https://myclover.tech" target="_blank" style="color:#22c55e;">myclover.tech</a> for updates and documentation.</p>
+        </div>
+    </div>
+
+    </div><!-- /help-sections -->
+
+    <!-- Bottom support banner -->
+    <div style="margin-top:32px;padding:20px;background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;text-align:center;">
+        <div style="color:#e2e8f0;font-size:14px;margin-bottom:8px;">Still need help?</div>
+        <a href="mailto:support@myclover.tech" style="color:#22c55e;font-size:14px;font-weight:600;text-decoration:none;">Email support@myclover.tech</a>
+        <div style="color:#64748b;font-size:12px;margin-top:6px;">We typically respond within 24 hours.</div>
+    </div>
+</div>
+
+<!-- ========== DEVICE MODAL ========== -->
+<div class="modal-overlay" id="device-modal">
+<div class="modal">
+    <h2 id="modal-title">Add Device</h2>
+    <input type="hidden" id="modal-mode" value="add">
+    <input type="hidden" id="modal-original-name" value="">
+    <div class="form-row">
+        <div class="form-group"><label>Device Name</label><input type="text" id="dev-name" placeholder="e.g. Core Router"></div>
+        <div class="form-group"><label>Host / IP</label><input type="text" id="dev-host" placeholder="e.g. 192.168.1.1"></div>
+    </div>
+    <div class="form-row">
+        <div class="form-group"><label>Group</label><input type="text" id="dev-group" placeholder="e.g. Network" value="Default"></div>
+        <div class="form-group">
+            <label>Parent Device (Dependency)</label>
+            <select id="dev-parent"><option value="">-- None (root) --</option></select>
+            <span style="color:#555;font-size:11px;">If parent goes down, alerts for this device are suppressed.</span>
+        </div>
+    </div>
+    <div class="form-group"><label>Notes</label><textarea id="dev-notes" placeholder="Free-text notes about this device"></textarea></div>
+    <div class="links-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h4>Links</h4>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="addLinkRow()">+ Add Link</button>
+        </div>
+        <div id="links-container"></div>
+    </div>
+    <div class="checks-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h3>Checks</h3>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="addCheckRow()">+ Add Check</button>
+        </div>
+        <div id="checks-container"></div>
+    </div>
+    <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveDevice()">Save Device</button>
+    </div>
+</div>
+</div>
+
+<!-- ========== DELETE CONFIRM MODAL ========== -->
+<div class="modal-overlay" id="delete-modal">
+<div class="modal" style="width:400px;">
+    <h2>Delete Device</h2>
+    <p style="color:#aaa;margin-bottom:20px;">Are you sure you want to delete <strong id="delete-device-name" style="color:#fff;"></strong>? This cannot be undone.</p>
+    <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+    </div>
+</div>
+</div>
+
+<!-- ========== ASSET MODAL ========== -->
+<div class="modal-overlay" id="asset-modal">
+<div class="modal" style="width:700px;">
+    <h2 id="asset-modal-title">Add Asset</h2>
+    <input type="hidden" id="asset-modal-mode" value="add">
+    <input type="hidden" id="asset-modal-id" value="">
+    <div class="form-row">
+        <div class="form-group"><label>IP Address</label><input type="text" id="asset-ip" placeholder="192.168.1.100"></div>
+        <div class="form-group"><label>Hostname</label><input type="text" id="asset-hostname" placeholder="server01.local"></div>
+    </div>
+    <div class="form-row">
+        <div class="form-group"><label>MAC Address</label><input type="text" id="asset-mac" placeholder="AA:BB:CC:DD:EE:FF"></div>
+        <div class="form-group"><label>Device Type</label>
+            <select id="asset-type"><option value="">-- Select --</option>
+                <option value="Server">Server</option><option value="Router">Router</option><option value="Switch">Switch</option>
+                <option value="Firewall">Firewall</option><option value="Access Point">Access Point</option><option value="Printer">Printer</option>
+                <option value="Workstation">Workstation</option><option value="IP Phone">IP Phone</option><option value="Camera">Camera</option>
+                <option value="IoT Device">IoT Device</option><option value="Other">Other</option>
+            </select>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group"><label>Vendor</label><input type="text" id="asset-vendor" placeholder="e.g. Cisco, Dell, HP"></div>
+        <div class="form-group"><label>Model</label><input type="text" id="asset-model" placeholder="e.g. Catalyst 2960"></div>
+    </div>
+    <div class="form-row">
+        <div class="form-group"><label>OS / Firmware</label><input type="text" id="asset-os" placeholder="e.g. IOS 15.2"></div>
+        <div class="form-group"><label>Location</label><input type="text" id="asset-location" placeholder="e.g. Server Room A"></div>
+    </div>
+    <div class="form-row">
+        <div class="form-group"><label>Serial Number</label><input type="text" id="asset-serial"></div>
+        <div class="form-group"><label>Purchase Date</label><input type="date" id="asset-purchase" style="color-scheme:dark;"></div>
+    </div>
+    <div class="form-row">
+        <div class="form-group"><label>Status</label><select id="asset-status"><option value="active">Active</option><option value="retired">Retired</option></select></div>
+        <div class="form-group"><label>Open Ports</label><input type="text" id="asset-ports" placeholder="e.g. 22,80,443" readonly style="color:#666;"></div>
+    </div>
+    <div class="form-group"><label>Notes</label><textarea id="asset-notes" placeholder="Free-text notes"></textarea></div>
+    <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeAssetModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveAsset()">Save Asset</button>
+    </div>
+</div>
+</div>
+
+<!-- ========== ASSET DELETE MODAL ========== -->
+<div class="modal-overlay" id="asset-delete-modal">
+<div class="modal" style="width:400px;">
+    <h2>Delete Asset</h2>
+    <p style="color:#aaa;margin-bottom:20px;">Delete asset <strong id="asset-delete-ip" style="color:#fff;"></strong>?</p>
+    <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeAssetDeleteModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDeleteAsset()">Delete</button>
+    </div>
+</div>
+</div>
+
+<!-- ========== DOWNTIME MODAL ========== -->
+<div class="modal-overlay" id="downtime-modal">
+<div class="modal" style="width:500px;">
+    <h2>Schedule Downtime</h2>
+    <div class="form-group">
+        <label>Device</label>
+        <select id="dt-device"></select>
+    </div>
+    <div class="form-row">
+        <div class="form-group"><label>Start Time (UTC)</label><input type="datetime-local" id="dt-start" style="color-scheme:dark;"></div>
+        <div class="form-group"><label>End Time (UTC)</label><input type="datetime-local" id="dt-end" style="color-scheme:dark;"></div>
+    </div>
+    <div class="form-group"><label>Reason</label><textarea id="dt-reason" placeholder="e.g. Firmware upgrade, Hardware replacement"></textarea></div>
+    <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeDowntimeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveDowntime()">Schedule</button>
+    </div>
+</div>
+</div>
+
+<!-- ========== DETAIL DRAWER ========== -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="detail-drawer">
+    <button class="drawer-close" onclick="closeDrawer()">&times;</button>
+    <h2 id="drawer-title"></h2>
+    <div class="drawer-host" id="drawer-host"></div>
+    <div id="drawer-content"></div>
+</div>
+
+<script>
+var _allCards = [];
+var _allGroups = [];
+var _devicesCache = [];
+var _statusCache = [];
+var _deleteTarget = null;
+var _scanResults = [];
+var _scanPollTimer = null;
+var _networkGraph = null;
+var _inventoryCache = [];
+var _assetDeleteTarget = null;
+var _perfCharts = {};
+var _perfPeriod = 24;
+
+var PORT_NAMES = {22:"SSH",23:"Telnet",53:"DNS",80:"HTTP",443:"HTTPS",161:"SNMP",445:"SMB",3389:"RDP",5900:"VNC",8080:"HTTP-Alt",8443:"HTTPS-Alt"};
+
+var _currentTier = 'community';
+var _tierFeatures = {};
+function loadLicense() {
+    return fetch('/api/license').then(function(r){ return r.json(); }).then(function(data) {
+        _currentTier = data.tier || 'community';
+        _tierFeatures = data.features || {};
+    }).catch(function(){});
+}
+function safeFetch(url, fallback) {
+    return fetch(url).then(function(r) {
+        if (r.status === 403) return fallback !== undefined ? fallback : [];
+        return r.json();
+    });
+}
+function upgradeHTML(feature) {
+    return '<div style="text-align:center;padding:80px 20px;">'
+        + '<div style="font-size:48px;margin-bottom:16px;">&#128274;</div>'
+        + '<h2 style="color:#e2e8f0;margin-bottom:8px;">Pro Feature</h2>'
+        + '<p style="color:#94a3b8;margin-bottom:24px;">' + esc(feature) + ' requires a Pro or Enterprise license.</p>'
+        + '<a href="https://myclover.tech/#pricing" target="_blank" '
+        + 'style="display:inline-block;padding:10px 28px;background:#22c55e;color:#0a0e17;border-radius:8px;'
+        + 'text-decoration:none;font-weight:600;">View Pricing</a></div>';
+}
+loadLicense();
+
+document.querySelectorAll('.tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+        document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+        if (tab.dataset.tab === 'devices') loadDevices();
+        if (tab.dataset.tab === 'discovery') { loadDiscoveryTab(); }
+        if (tab.dataset.tab === 'map') loadNetworkMap();
+        if (tab.dataset.tab === 'reports') loadReportsTab();
+        if (tab.dataset.tab === 'security') loadSecurityTab();
+        if (tab.dataset.tab === 'settings') loadSettings();
+        if (tab.dataset.tab === 'inventory') loadInventory();
+        if (tab.dataset.tab === 'downtime') loadDowntimes();
+    });
+});
+
+// ===== Status Tab =====
+function loadStatus() {
+    Promise.all([
+        fetch('/api/devices').then(function(r){ return r.json(); }),
+        fetch('/api/status').then(function(r){ return r.json(); }),
+        safeFetch('/api/dependencies', [])
+    ]).then(function(all) {
+        _devicesCache = all[0];
+        _statusCache = all[1];
+        var deps = all[2];
+        var parentMap = {};
+        deps.forEach(function(d) { if (d.parent) parentMap[d.name] = d.parent; });
+        var statusMap = {};
+        _statusCache.forEach(function(s) {
+            var cur = statusMap[s.device_name] || 'OK';
+            if (s.status === 'CRITICAL') statusMap[s.device_name] = 'CRITICAL';
+            else if (s.status === 'WARNING' && cur !== 'CRITICAL') statusMap[s.device_name] = 'WARNING';
+            else if (!(s.device_name in statusMap)) statusMap[s.device_name] = s.status;
+        });
+        buildStatusData(parentMap, statusMap);
+        applyFilters();
+    });
+}
+
+function isAncestorDown(name, parentMap, statusMap) {
+    var visited = {};
+    var cur = name;
+    while (parentMap[cur]) {
+        var p = parentMap[cur];
+        if (visited[p]) break;
+        visited[p] = true;
+        if (statusMap[p] === 'CRITICAL') return true;
+        cur = p;
+    }
+    return false;
+}
+
+function buildStatusData(parentMap, statusMap) {
+    var devices = _devicesCache;
+    var results = _statusCache;
+    var container = document.getElementById('status-cards');
+    var summaryBar = document.getElementById('summary-bar');
+
+    if (!devices.length) {
+        summaryBar.innerHTML = '';
+        container.innerHTML = '<div class="empty-state"><p>No devices configured yet.</p><p style="font-size:13px;color:#666;">Go to <strong>Manage Devices</strong> to add your first device.</p></div>';
+        _allCards = []; _allGroups = [];
+        return;
+    }
+
+    var resultMap = {};
+    results.forEach(function(r) { resultMap[r.device_name + '|' + (r.check_label || '')] = r; });
+
+    _allCards = [];
+    var groupSet = {};
+
+    devices.forEach(function(dev) {
+        var grp = dev.group || 'Default';
+        groupSet[grp] = true;
+        var isMaint = dev.maintenance || false;
+        var parentDown = !isMaint && isAncestorDown(dev.name, parentMap, statusMap);
+        var checks = dev.checks || [];
+
+        if (!checks.length) {
+            var st = isMaint ? 'MAINTENANCE' : (parentDown ? 'PARENT_DOWN' : 'PENDING');
+            var sc = isMaint ? 'maint' : (parentDown ? 'parent-down' : 'pending');
+            _allCards.push({
+                deviceName: dev.name, host: dev.host, group: grp,
+                checkLabel: '(no checks)', status: st, statusClass: sc,
+                response: 'N/A', message: isMaint ? 'Maintenance mode' : (parentDown ? 'Parent device unreachable' : 'No checks configured'),
+                timestamp: '', maintenance: isMaint, parentDown: parentDown, parent: dev.parent || ''
+            });
+            return;
+        }
+
+        checks.forEach(function(c) {
+            var label = c.label || c.type.toUpperCase();
+            var key = dev.name + '|' + label;
+            var r = resultMap[key];
+
+            if (isMaint) {
+                _allCards.push({
+                    deviceName: dev.name, host: dev.host, group: grp,
+                    checkLabel: label, status: 'MAINTENANCE', statusClass: 'maint',
+                    response: r ? (r.response_ms !== null ? r.response_ms.toFixed(1) + ' ms' : 'N/A') : '--',
+                    message: 'Maintenance mode -- alerts paused',
+                    timestamp: r ? (r.timestamp || '').replace('T',' ').substring(0,19) : '',
+                    maintenance: true, parentDown: false, parent: dev.parent || ''
+                });
+            } else if (parentDown) {
+                _allCards.push({
+                    deviceName: dev.name, host: dev.host, group: grp,
+                    checkLabel: label, status: 'PARENT_DOWN', statusClass: 'parent-down',
+                    response: r ? (r.response_ms !== null ? r.response_ms.toFixed(1) + ' ms' : 'N/A') : '--',
+                    message: 'Parent device unreachable -- alerts suppressed',
+                    timestamp: r ? (r.timestamp || '').replace('T',' ').substring(0,19) : '',
+                    maintenance: false, parentDown: true, parent: dev.parent || ''
+                });
+            } else if (r) {
+                var s = r.status.toLowerCase();
+                _allCards.push({
+                    deviceName: dev.name, host: dev.host, group: grp,
+                    checkLabel: label, status: r.status, statusClass: s,
+                    response: r.response_ms !== null ? r.response_ms.toFixed(1) + ' ms' : 'N/A',
+                    message: r.message || '',
+                    timestamp: (r.timestamp || '').replace('T',' ').substring(0,19),
+                    maintenance: false, parentDown: false, parent: dev.parent || ''
+                });
+            } else {
+                _allCards.push({
+                    deviceName: dev.name, host: dev.host, group: grp,
+                    checkLabel: label, status: 'PENDING', statusClass: 'pending',
+                    response: '--', message: 'Awaiting first check...',
+                    timestamp: '', maintenance: false, parentDown: false, parent: dev.parent || ''
+                });
+            }
+        });
+    });
+
+    _allGroups = Object.keys(groupSet).sort();
+    var sel = document.getElementById('filter-group');
+    var curVal = sel.value;
+    sel.innerHTML = '<option value="">All Groups</option>';
+    _allGroups.forEach(function(g) { sel.innerHTML += '<option value="' + escAttr(g) + '">' + esc(g) + '</option>'; });
+    sel.value = curVal;
+}
+
+function applyFilters() {
+    var search = (document.getElementById('filter-search').value || '').toLowerCase();
+    var groupF = document.getElementById('filter-group').value;
+    var statusF = document.getElementById('filter-status').value;
+
+    var filtered = _allCards.filter(function(c) {
+        if (search && c.deviceName.toLowerCase().indexOf(search) === -1 && c.host.toLowerCase().indexOf(search) === -1) return false;
+        if (groupF && c.group !== groupF) return false;
+        if (statusF) {
+            if (statusF === 'maint' && !c.maintenance) return false;
+            if (statusF === 'parent-down' && !c.parentDown) return false;
+            if (statusF !== 'maint' && statusF !== 'parent-down' && c.statusClass !== statusF) return false;
+        }
+        return true;
+    });
+
+    var counts = { ok:0, warning:0, critical:0, pending:0, maint:0, parentDown:0 };
+    filtered.forEach(function(c) {
+        if (c.maintenance) counts.maint++;
+        else if (c.parentDown) counts.parentDown++;
+        else if (c.statusClass === 'ok') counts.ok++;
+        else if (c.statusClass === 'warning') counts.warning++;
+        else if (c.statusClass === 'critical') counts.critical++;
+        else counts.pending++;
+    });
+
+    var shtml = '';
+    shtml += '<div class="summary-item ok"><div><div class="count">' + counts.ok + '</div><div class="label">OK</div></div></div>';
+    if (counts.warning) shtml += '<div class="summary-item warning"><div><div class="count">' + counts.warning + '</div><div class="label">Warning</div></div></div>';
+    if (counts.critical) shtml += '<div class="summary-item critical"><div><div class="count">' + counts.critical + '</div><div class="label">Critical</div></div></div>';
+    if (counts.pending) shtml += '<div class="summary-item pending"><div><div class="count">' + counts.pending + '</div><div class="label">Pending</div></div></div>';
+    if (counts.maint) shtml += '<div class="summary-item maint"><div><div class="count">' + counts.maint + '</div><div class="label">Maintenance</div></div></div>';
+    if (counts.parentDown) shtml += '<div class="summary-item parent-down"><div><div class="count">' + counts.parentDown + '</div><div class="label">Parent Down</div></div></div>';
+    shtml += '<div class="summary-item"><div><div class="count">' + filtered.length + '</div><div class="label">Total</div></div></div>';
+    document.getElementById('summary-bar').innerHTML = shtml;
+
+    var byGroup = {};
+    filtered.forEach(function(c) { byGroup[c.group] = byGroup[c.group] || []; byGroup[c.group].push(c); });
+
+    var html = '';
+    if (!filtered.length) {
+        html = '<div class="empty-state"><p>No devices match your filters.</p></div>';
+    } else {
+        Object.keys(byGroup).sort().forEach(function(grp) {
+            html += '<div class="group-title">' + esc(grp) + '</div><div class="cards">';
+            byGroup[grp].forEach(function(item) {
+                html += '<div class="card ' + item.statusClass + '" onclick="openDrawer(\'' + escAttr(item.deviceName) + '\')">'
+                    + '<div class="card-top"><div>'
+                    + '<span class="device-name">' + esc(item.deviceName) + '</span>'
+                    + '<span class="check-label">' + esc(item.checkLabel) + '</span>'
+                    + '</div>';
+                if (item.maintenance) html += '<span class="maint-badge">Maint</span>';
+                else if (item.parentDown) html += '<span class="parent-down-badge">Parent Down</span>';
+                html += '</div>'
+                    + '<div class="host">' + esc(item.host) + (item.parent ? ' &larr; ' + esc(item.parent) : '') + '</div>'
+                    + '<div class="status-row">'
+                    + '  <span class="status-badge ' + item.statusClass + '">' + esc(item.status.replace('_',' ')) + '</span>'
+                    + '  <span class="response">' + item.response + '</span>'
+                    + '</div>'
+                    + '<div class="message">' + esc(item.message) + '</div>';
+                if (item.timestamp) html += '<div class="timestamp">' + item.timestamp + '</div>';
+                html += '</div>';
+            });
+            html += '</div>';
+        });
+    }
+    document.getElementById('status-cards').innerHTML = html;
+}
+
+// ===== Detail Drawer =====
+function openDrawer(deviceName) {
+    document.getElementById('drawer-title').textContent = deviceName;
+    var dev = null;
+    _devicesCache.forEach(function(d) { if (d.name === deviceName) dev = d; });
+    if (!dev) return;
+
+    document.getElementById('drawer-host').textContent = dev.host + ' | ' + (dev.group || 'Default') + (dev.parent ? ' | Parent: ' + dev.parent : '');
+
+    var html = '';
+    var isMaint = dev.maintenance || false;
+    html += '<div class="drawer-section">'
+        + '<h3>Maintenance Mode</h3>'
+        + '<button class="btn btn-maint btn-sm' + (isMaint ? ' active-maint' : '') + '" '
+        + 'onclick="toggleMaint(\'' + escAttr(deviceName) + '\',' + (!isMaint ? 'true' : 'false') + ')">'
+        + (isMaint ? 'Disable Maintenance' : 'Enable Maintenance') + '</button>'
+        + (isMaint ? ' <span style="color:#9b59b6;font-size:12px;margin-left:8px;">Alerts paused</span>' : '')
+        + '</div>';
+
+    var links = dev.links || [];
+    if (links.length) {
+        html += '<div class="drawer-section"><h3>Links</h3><ul class="link-list">';
+        links.forEach(function(lnk) { html += '<li><a href="' + escAttr(lnk.url) + '" target="_blank">' + esc(lnk.label || lnk.url) + '</a></li>'; });
+        html += '</ul></div>';
+    }
+
+    if (dev.notes) {
+        html += '<div class="drawer-section"><h3>Notes</h3><div class="notes-text">' + esc(dev.notes) + '</div></div>';
+    }
+
+    html += '<div class="drawer-section"><h3>Uptime</h3><div class="uptime-row" id="drawer-uptime">Loading...</div></div>';
+
+    // Performance charts section
+    html += '<div class="drawer-section"><h3>Performance</h3>';
+    html += '<div class="perf-period-btns">';
+    html += '<button class="btn btn-ghost btn-sm' + (_perfPeriod===1?' active':'') + '" onclick="setPerfPeriod(1,\'' + escAttr(deviceName) + '\')">1h</button>';
+    html += '<button class="btn btn-ghost btn-sm' + (_perfPeriod===6?' active':'') + '" onclick="setPerfPeriod(6,\'' + escAttr(deviceName) + '\')">6h</button>';
+    html += '<button class="btn btn-ghost btn-sm' + (_perfPeriod===24?' active':'') + '" onclick="setPerfPeriod(24,\'' + escAttr(deviceName) + '\')">24h</button>';
+    html += '<button class="btn btn-ghost btn-sm' + (_perfPeriod===168?' active':'') + '" onclick="setPerfPeriod(168,\'' + escAttr(deviceName) + '\')">7d</button>';
+    html += '</div>';
+    html += '<div id="perf-charts-area">Loading charts...</div>';
+    html += '</div>';
+
+    html += '<div class="drawer-section"><h3>Recent Check History</h3><div id="drawer-history">Loading...</div></div>';
+
+    document.getElementById('drawer-content').innerHTML = html;
+    document.getElementById('drawer-overlay').classList.add('open');
+    document.getElementById('detail-drawer').classList.add('open');
+
+    // Destroy old charts
+    Object.keys(_perfCharts).forEach(function(k) { _perfCharts[k].destroy(); });
+    _perfCharts = {};
+
+    loadDrawerUptime(deviceName);
+    loadDrawerPerf(deviceName);
+    loadDrawerHistory(deviceName);
+}
+
+function loadDrawerUptime(deviceName) {
+    fetch('/api/devices/' + encodeURIComponent(deviceName) + '/uptime')
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+        var uhtml = '';
+        [['24h', data['24h']], ['7d', data['7d']], ['30d', data['30d']]].forEach(function(pair) {
+            var label = pair[0], val = pair[1];
+            var cls = 'na', txt = 'N/A';
+            if (val !== null) { txt = val + '%'; cls = val >= 99 ? '' : (val >= 95 ? 'warn' : 'crit'); }
+            uhtml += '<div class="uptime-item"><div class="val ' + cls + '">' + txt + '</div><div class="per">' + label + '</div></div>';
+        });
+        var el = document.getElementById('drawer-uptime');
+        if (el) el.innerHTML = uhtml;
+    });
+}
+
+function loadDrawerPerf(deviceName) {
+    fetch('/api/devices/' + encodeURIComponent(deviceName) + '/perf?hours=' + _perfPeriod)
+    .then(function(r){
+        if (r.status === 403) {
+            var area = document.getElementById('perf-charts-area');
+            if (area) area.innerHTML = '<span style="color:#94a3b8;">Performance charts require a Pro license.</span>';
+            return null;
+        }
+        return r.json();
+    })
+    .then(function(data) {
+        if (!data) return;
+        var area = document.getElementById('perf-charts-area');
+        if (!area) return;
+        var labels = Object.keys(data);
+        if (!labels.length) { area.innerHTML = '<span style="color:#555;">No performance data yet</span>'; return; }
+        var html = '';
+        labels.forEach(function(label) {
+            html += '<div class="perf-chart-wrap"><h4>' + esc(label) + '</h4><canvas id="perf-chart-' + escAttr(label).replace(/\s/g,'_') + '"></canvas></div>';
+        });
+        area.innerHTML = html;
+        labels.forEach(function(label) {
+            var points = data[label];
+            if (!points || !points.length) return;
+            var canvasId = 'perf-chart-' + escAttr(label).replace(/\s/g,'_');
+            var canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            var times = points.map(function(p){ return (p.timestamp||'').replace('T',' ').substring(11,19); });
+            var values = points.map(function(p){ return p.response_ms; });
+            var colors = points.map(function(p){ return p.status === 'OK' ? '#2ecc71' : (p.status === 'WARNING' ? '#f39c12' : '#e74c3c'); });
+            var bgColors = points.map(function(p){ return p.status === 'OK' ? 'rgba(46,204,113,0.15)' : (p.status === 'WARNING' ? 'rgba(243,156,18,0.15)' : 'rgba(231,76,60,0.15)'); });
+            var chart = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: times,
+                    datasets: [{
+                        label: 'Response (ms)',
+                        data: values,
+                        borderColor: '#5b9aff',
+                        backgroundColor: 'rgba(91,154,255,0.1)',
+                        borderWidth: 1.5,
+                        pointRadius: values.length > 50 ? 0 : 2,
+                        pointBackgroundColor: colors,
+                        fill: true,
+                        tension: 0.3,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: true, ticks: { color: '#555', maxTicksLimit: 8, font: {size: 10} }, grid: { color: '#1e2130' } },
+                        y: { display: true, ticks: { color: '#555', font: {size: 10} }, grid: { color: '#1e2130' }, beginAtZero: true,
+                             title: { display: true, text: 'ms', color: '#555', font: {size: 10} } }
+                    },
+                    interaction: { mode: 'index', intersect: false },
+                }
+            });
+            _perfCharts[label] = chart;
+        });
+    });
+}
+
+function setPerfPeriod(hours, deviceName) {
+    _perfPeriod = hours;
+    Object.keys(_perfCharts).forEach(function(k) { _perfCharts[k].destroy(); });
+    _perfCharts = {};
+    // Update button states
+    document.querySelectorAll('.perf-period-btns button').forEach(function(btn) {
+        btn.classList.remove('active');
+        if (btn.textContent.trim() === (hours <= 1 ? '1h' : (hours <= 6 ? '6h' : (hours <= 24 ? '24h' : '7d')))) btn.classList.add('active');
+    });
+    loadDrawerPerf(deviceName);
+}
+
+function loadDrawerHistory(deviceName) {
+    fetch('/api/devices/' + encodeURIComponent(deviceName) + '/history?limit=20')
+    .then(function(r){ return r.json(); })
+    .then(function(rows) {
+        var el = document.getElementById('drawer-history');
+        if (!el) return;
+        if (!rows.length) { el.innerHTML = '<span style="color:#555;">No history yet</span>'; return; }
+        var h = '<table><thead><tr><th>Time</th><th>Check</th><th>Status</th><th>ms</th><th>Message</th></tr></thead><tbody>';
+        rows.forEach(function(r) {
+            var s = r.status.toLowerCase();
+            var ms = r.response_ms !== null ? r.response_ms.toFixed(1) : '--';
+            var ts = (r.timestamp||'').replace('T',' ').substring(11,19);
+            h += '<tr><td>' + ts + '</td><td>' + esc(r.check_label||'') + '</td>'
+                + '<td><span class="badge ' + s + '">' + esc(r.status) + '</span></td>'
+                + '<td>' + ms + '</td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;">' + esc(r.message||'') + '</td></tr>';
+        });
+        h += '</tbody></table>';
+        el.innerHTML = h;
+    });
+}
+
+function closeDrawer() {
+    document.getElementById('drawer-overlay').classList.remove('open');
+    document.getElementById('detail-drawer').classList.remove('open');
+    Object.keys(_perfCharts).forEach(function(k) { _perfCharts[k].destroy(); });
+    _perfCharts = {};
+}
+
+function toggleMaint(name, enable) {
+    fetch('/api/devices/' + encodeURIComponent(name) + '/maintenance', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({enabled: enable})
+    }).then(function(r){ return r.json(); }).then(function() { closeDrawer(); loadStatus(); loadDevices(); });
+}
+
+// ===== Alerts Tab =====
+function loadAlerts() {
+    fetch('/api/alerts?hours=48').then(function(r){ return r.json(); }).then(function(data) {
+        var tbody = document.getElementById('alerts-body');
+        if (!data.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#555;padding:40px;">No alerts in the last 48 hours</td></tr>'; return; }
+        var html = '';
+        data.forEach(function(a) {
+            var s = a.status.toLowerCase();
+            var ts = (a.timestamp||'').replace('T', ' ').substring(0,19);
+            var acked = a.acknowledged;
+            var ackInfo = acked ? (a.acknowledged_by || '') + ' ' + ((a.acknowledged_at||'').replace('T',' ').substring(0,19)) : '';
+            html += '<tr' + (acked ? ' style="opacity:0.6;"' : '') + '>'
+                + '<td>' + ts + '</td><td>' + esc(a.device_name) + '</td>'
+                + '<td>' + esc(a.check_label || '') + '</td>'
+                + '<td><span class="badge ' + s + '">' + esc(a.status) + '</span></td>'
+                + '<td>' + esc(a.message || '') + '</td>'
+                + '<td>' + (a.email_sent ? 'Yes' : 'No') + '</td>'
+                + '<td>' + (acked ? '<span class="badge acked" title="' + escAttr(ackInfo) + '">ACK</span>' : '') + '</td>'
+                + '<td>' + (acked ? '' : '<button class="btn btn-ghost btn-sm" onclick="ackAlert(' + a.id + ')">Ack</button>') + '</td>'
+                + '</tr>';
+        });
+        tbody.innerHTML = html;
+    });
+}
+
+function ackAlert(id) {
+    fetch('/api/alerts/' + id + '/acknowledge', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({by: 'dashboard'})
+    }).then(function(r){ return r.json(); }).then(function() { loadAlerts(); });
+}
+
+function ackAllAlerts() {
+    if (!confirm('Acknowledge all unacknowledged alerts?')) return;
+    fetch('/api/alerts/acknowledge-all', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({by: 'dashboard'})
+    }).then(function(r){ return r.json(); }).then(function() { loadAlerts(); });
+}
+
+// ===== History Tab =====
+function loadHistory() {
+    fetch('/api/history?hours=24').then(function(r){ return r.json(); }).then(function(data) {
+        var tbody = document.getElementById('history-body');
+        if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#555;padding:40px;">No history yet</td></tr>'; return; }
+        var html = '';
+        data.forEach(function(r) {
+            var s = r.status.toLowerCase();
+            var ms = r.response_ms !== null ? r.response_ms.toFixed(1) + ' ms' : 'N/A';
+            var ts = (r.timestamp||'').replace('T', ' ').substring(0,19);
+            html += '<tr><td>' + ts + '</td><td>' + esc(r.device_name) + '</td>'
+                + '<td>' + esc(r.check_label || '') + '</td>'
+                + '<td><span class="badge ' + s + '">' + esc(r.status) + '</span></td>'
+                + '<td>' + ms + '</td><td>' + esc(r.message || '') + '</td></tr>';
+        });
+        tbody.innerHTML = html;
+    });
+}
+
+// ===== Downtime Tab =====
+function loadDowntimes() {
+    fetch('/api/downtime').then(function(r){
+        if (r.status === 403) { document.getElementById('tab-downtime').innerHTML = upgradeHTML('Scheduled Downtime'); return null; }
+        return r.json();
+    }).then(function(data) {
+        if (!data) return;
+        var el = document.getElementById('downtime-list');
+        if (!data.length) { el.innerHTML = '<div class="empty-state"><p>No scheduled downtimes.</p><p style="font-size:13px;color:#666;">Click "+ Schedule Downtime" to plan a maintenance window.</p></div>'; return; }
+        var now = new Date().toISOString();
+        var html = '';
+        data.forEach(function(dt) {
+            var stClass = 'expired';
+            var stLabel = 'Expired';
+            if (!dt.active) { stClass = 'expired'; stLabel = 'Cancelled'; }
+            else if (dt.start_time <= now && dt.end_time >= now) { stClass = 'active'; stLabel = 'Active'; }
+            else if (dt.start_time > now) { stClass = 'upcoming'; stLabel = 'Upcoming'; }
+            var start = (dt.start_time||'').replace('T',' ').substring(0,16);
+            var end = (dt.end_time||'').replace('T',' ').substring(0,16);
+            html += '<div class="downtime-card">'
+                + '<div class="dt-info">'
+                + '  <div class="dt-device">' + esc(dt.device_name) + '</div>'
+                + '  <div class="dt-times">' + start + ' &rarr; ' + end + ' UTC</div>'
+                + (dt.reason ? '  <div class="dt-reason">' + esc(dt.reason) + '</div>' : '')
+                + '</div>'
+                + '<div style="display:flex;align-items:center;gap:10px;">'
+                + '  <span class="dt-status ' + stClass + '">' + stLabel + '</span>';
+            if (dt.active && stClass !== 'expired') {
+                html += '  <button class="btn btn-ghost btn-sm" onclick="cancelDowntime(' + dt.id + ')">Cancel</button>';
+            }
+            if (stClass === 'expired' || !dt.active) {
+                html += '  <button class="btn btn-ghost btn-sm" onclick="deleteDowntime(' + dt.id + ')">Remove</button>';
+            }
+            html += '</div></div>';
+        });
+        el.innerHTML = html;
+    });
+}
+
+function openDowntimeModal() {
+    // Populate device dropdown
+    var sel = document.getElementById('dt-device');
+    sel.innerHTML = '';
+    _devicesCache.forEach(function(d) {
+        sel.innerHTML += '<option value="' + escAttr(d.name) + '">' + esc(d.name) + ' (' + esc(d.host) + ')</option>';
+    });
+    document.getElementById('dt-start').value = '';
+    document.getElementById('dt-end').value = '';
+    document.getElementById('dt-reason').value = '';
+    // If no devices loaded yet, load them
+    if (!_devicesCache.length) {
+        fetch('/api/devices').then(function(r){ return r.json(); }).then(function(devs) {
+            _devicesCache = devs;
+            sel.innerHTML = '';
+            devs.forEach(function(d) { sel.innerHTML += '<option value="' + escAttr(d.name) + '">' + esc(d.name) + '</option>'; });
+        });
+    }
+    document.getElementById('downtime-modal').classList.add('open');
+}
+
+function closeDowntimeModal() { document.getElementById('downtime-modal').classList.remove('open'); }
+
+function saveDowntime() {
+    var device = document.getElementById('dt-device').value;
+    var start = document.getElementById('dt-start').value;
+    var end = document.getElementById('dt-end').value;
+    var reason = document.getElementById('dt-reason').value.trim();
+    if (!device || !start || !end) { alert('Device, start time and end time are required.'); return; }
+    // Convert local datetime-local to ISO string
+    var startISO = new Date(start).toISOString();
+    var endISO = new Date(end).toISOString();
+    fetch('/api/downtime', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({device_name: device, start_time: startISO, end_time: endISO, reason: reason})
+    }).then(function(r) {
+        if (!r.ok) return r.json().then(function(e){ throw new Error(e.description || 'Error'); });
+        return r.json();
+    }).then(function() { closeDowntimeModal(); loadDowntimes(); })
+    .catch(function(e) { alert('Error: ' + e.message); });
+}
+
+function cancelDowntime(id) {
+    fetch('/api/downtime/' + id + '/cancel', { method: 'POST' })
+    .then(function(r){ return r.json(); }).then(function() { loadDowntimes(); });
+}
+
+function deleteDowntime(id) {
+    fetch('/api/downtime/' + id, { method: 'DELETE' })
+    .then(function(r){ return r.json(); }).then(function() { loadDowntimes(); });
+}
+
+// ===== Devices Tab =====
+function loadDevices() {
+    fetch('/api/devices').then(function(r){ return r.json(); }).then(function(devices) {
+        _devicesCache = devices;
+        var tbody = document.getElementById('devices-body');
+        var empty = document.getElementById('devices-empty');
+        if (!devices.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+        empty.style.display = 'none';
+        var html = '';
+        devices.forEach(function(d) {
+            var checksHtml = '';
+            (d.checks || []).forEach(function(c) { checksHtml += '<span class="chip">' + esc(c.label || c.type.toUpperCase()) + '</span>'; });
+            var notesSnip = (d.notes || '').substring(0, 40);
+            if ((d.notes || '').length > 40) notesSnip += '...';
+            var maintLabel = d.maintenance ? ' <span class="maint-badge" style="margin-left:6px;">Maint</span>' : '';
+            html += '<tr>'
+                + '<td><strong style="color:#fff;">' + esc(d.name) + '</strong>' + maintLabel + '</td>'
+                + '<td>' + esc(d.host) + '</td>'
+                + '<td>' + esc(d.group || 'Default') + '</td>'
+                + '<td>' + esc(d.parent || '--') + '</td>'
+                + '<td><div class="device-checks-list">' + checksHtml + '</div></td>'
+                + '<td style="color:#888;font-size:12px;">' + esc(notesSnip) + '</td>'
+                + '<td class="actions">'
+                + '  <button class="btn btn-ghost btn-sm" onclick="openEditDevice(\'' + escAttr(d.name) + '\')">Edit</button>'
+                + '  <button class="btn btn-danger btn-sm" onclick="openDeleteModal(\'' + escAttr(d.name) + '\')">Delete</button>'
+                + '</td></tr>';
+        });
+        tbody.innerHTML = html;
+    });
+}
+
+function populateParentDropdown(excludeName) {
+    var sel = document.getElementById('dev-parent');
+    sel.innerHTML = '<option value="">-- None (root) --</option>';
+    _devicesCache.forEach(function(d) {
+        if (d.name !== excludeName) {
+            sel.innerHTML += '<option value="' + escAttr(d.name) + '">' + esc(d.name) + '</option>';
+        }
+    });
+}
+
+function openAddDevice(prefillHost, prefillName, prefillPorts) {
+    document.getElementById('modal-title').textContent = 'Add Device';
+    document.getElementById('modal-mode').value = 'add';
+    document.getElementById('modal-original-name').value = '';
+    document.getElementById('dev-name').value = prefillName || '';
+    document.getElementById('dev-host').value = prefillHost || '';
+    document.getElementById('dev-group').value = 'Default';
+    document.getElementById('dev-notes').value = '';
+    document.getElementById('links-container').innerHTML = '';
+    document.getElementById('checks-container').innerHTML = '';
+    populateParentDropdown('');
+    document.getElementById('dev-parent').value = '';
+
+    if (prefillPorts && prefillPorts.length) {
+        addCheckRow({type: 'ping', label: 'ICMP'});
+        prefillPorts.forEach(function(p) {
+            var pname = PORT_NAMES[p] || ('Port ' + p);
+            if (p === 80) addCheckRow({type: 'http', label: 'HTTP', url: 'http://' + (prefillHost || '')});
+            else if (p === 443) addCheckRow({type: 'http', label: 'HTTPS', url: 'https://' + (prefillHost || ''), expected_code: 200});
+            else if (p === 161) addCheckRow({type: 'snmp', label: 'SNMP'});
+            else addCheckRow({type: 'port', label: pname, port: p});
+        });
+    } else { addCheckRow(); }
+    document.getElementById('device-modal').classList.add('open');
+}
+
+function openEditDevice(name) {
+    fetch('/api/devices/' + encodeURIComponent(name)).then(function(r){ return r.json(); }).then(function(d) {
+        document.getElementById('modal-title').textContent = 'Edit Device';
+        document.getElementById('modal-mode').value = 'edit';
+        document.getElementById('modal-original-name').value = d.name;
+        document.getElementById('dev-name').value = d.name;
+        document.getElementById('dev-host').value = d.host;
+        document.getElementById('dev-group').value = d.group || 'Default';
+        document.getElementById('dev-notes').value = d.notes || '';
+        populateParentDropdown(d.name);
+        document.getElementById('dev-parent').value = d.parent || '';
+        document.getElementById('links-container').innerHTML = '';
+        (d.links || []).forEach(function(lnk) { addLinkRow(lnk); });
+        document.getElementById('checks-container').innerHTML = '';
+        (d.checks || []).forEach(function(c) { addCheckRow(c); });
+        if (!d.checks || !d.checks.length) addCheckRow();
+        document.getElementById('device-modal').classList.add('open');
+    });
+}
+
+function closeModal() { document.getElementById('device-modal').classList.remove('open'); }
+
+function addLinkRow(data) {
+    data = data || {};
+    var container = document.getElementById('links-container');
+    var div = document.createElement('div');
+    div.className = 'link-item';
+    div.innerHTML = '<input type="text" class="lnk-label" placeholder="Label" value="' + escAttr(data.label || '') + '">'
+        + '<input type="text" class="lnk-url" placeholder="https://..." value="' + escAttr(data.url || '') + '">'
+        + '<button class="remove-link" onclick="this.parentElement.remove()">&times;</button>';
+    container.appendChild(div);
+}
+
+function addCheckRow(data) {
+    data = data || {};
+    var container = document.getElementById('checks-container');
+    var div = document.createElement('div');
+    div.className = 'check-item';
+    var typeVal = data.type || 'ping';
+    div.innerHTML = '<button class="remove-check" onclick="this.parentElement.remove()">&times;</button>'
+        + '<div class="form-row">'
+        + '  <div class="form-group"><label>Type</label><select class="ck-type" onchange="toggleCheckFields(this)">'
+        + '    <option value="ping"' + (typeVal==='ping'?' selected':'') + '>Ping</option>'
+        + '    <option value="port"' + (typeVal==='port'?' selected':'') + '>TCP Port</option>'
+        + '    <option value="http"' + (typeVal==='http'?' selected':'') + '>HTTP</option>'
+        + '    <option value="snmp"' + (typeVal==='snmp'?' selected':'') + '>SNMP</option>'
+        + '  </select></div>'
+        + '  <div class="form-group"><label>Label</label><input type="text" class="ck-label" placeholder="e.g. SSH" value="' + escAttr(data.label || '') + '"></div></div>'
+        + '<div class="form-row">'
+        + '  <div class="form-group"><label>Warning (ms)</label><input type="number" class="ck-warning" placeholder="50" value="' + escAttr(data.warning_ms || '') + '"></div>'
+        + '  <div class="form-group"><label>Critical (ms)</label><input type="number" class="ck-critical" placeholder="200" value="' + escAttr(data.critical_ms || '') + '"></div>'
+        + '  <div class="form-group"><label>Timeout (ms)</label><input type="number" class="ck-timeout" placeholder="5000" value="' + escAttr(data.timeout_ms || '') + '"></div>'
+        + '  <div class="form-group"><label>Retries</label><input type="number" class="ck-retries" placeholder="2" value="' + escAttr(data.retries || '') + '"></div></div>'
+        + '<div class="form-row ck-port-row" style="' + (typeVal==='port'?'':'display:none') + '">'
+        + '  <div class="form-group"><label>Port</label><input type="number" class="ck-port" placeholder="22" value="' + escAttr(data.port || '') + '"></div></div>'
+        + '<div class="ck-http-row" style="' + (typeVal==='http'?'':'display:none') + '"><div class="form-row">'
+        + '  <div class="form-group"><label>URL</label><input type="text" class="ck-url" placeholder="https://..." value="' + escAttr(data.url || '') + '"></div>'
+        + '  <div class="form-group" style="max-width:120px;"><label>Expected Code</label><input type="number" class="ck-expected-code" placeholder="200" value="' + escAttr(data.expected_code || '') + '"></div></div></div>'
+        + '<div class="ck-snmp-row" style="' + (typeVal==='snmp'?'':'display:none') + '"><div class="form-row">'
+        + '  <div class="form-group"><label>Community</label><input type="text" class="ck-community" placeholder="public" value="' + escAttr(data.community || '') + '"></div>'
+        + '  <div class="form-group"><label>OID</label><input type="text" class="ck-oid" placeholder="1.3.6.1.2.1.1.3.0" value="' + escAttr(data.oid || '') + '"></div></div></div>';
+    container.appendChild(div);
+}
+
+function toggleCheckFields(select) {
+    var item = select.closest('.check-item');
+    var v = select.value;
+    item.querySelector('.ck-port-row').style.display = (v === 'port') ? '' : 'none';
+    item.querySelector('.ck-http-row').style.display = (v === 'http') ? '' : 'none';
+    item.querySelector('.ck-snmp-row').style.display = (v === 'snmp') ? '' : 'none';
+}
+
+function saveDevice() {
+    var name = document.getElementById('dev-name').value.trim();
+    var host = document.getElementById('dev-host').value.trim();
+    var group = document.getElementById('dev-group').value.trim() || 'Default';
+    var parent = document.getElementById('dev-parent').value;
+    var notes = document.getElementById('dev-notes').value.trim();
+    if (!name || !host) { alert('Device name and host are required.'); return; }
+
+    var links = [];
+    document.querySelectorAll('#links-container .link-item').forEach(function(item) {
+        var url = item.querySelector('.lnk-url').value.trim();
+        var label = item.querySelector('.lnk-label').value.trim();
+        if (url) links.push({url: url, label: label || url});
+    });
+
+    var checks = [];
+    document.querySelectorAll('#checks-container .check-item').forEach(function(item) {
+        var c = { type: item.querySelector('.ck-type').value };
+        var label = item.querySelector('.ck-label').value.trim(); if (label) c.label = label;
+        var w = item.querySelector('.ck-warning').value; if (w) c.warning_ms = parseInt(w);
+        var cr = item.querySelector('.ck-critical').value; if (cr) c.critical_ms = parseInt(cr);
+        var t = item.querySelector('.ck-timeout').value; if (t) c.timeout_ms = parseInt(t);
+        var rt = item.querySelector('.ck-retries').value; if (rt) c.retries = parseInt(rt);
+        if (c.type === 'port') { var p = item.querySelector('.ck-port').value; if (p) c.port = parseInt(p); }
+        if (c.type === 'http') {
+            var url = item.querySelector('.ck-url').value.trim(); if (url) c.url = url;
+            var ec = item.querySelector('.ck-expected-code').value; if (ec) c.expected_code = parseInt(ec);
+        }
+        if (c.type === 'snmp') {
+            var com = item.querySelector('.ck-community').value.trim(); if (com) c.community = com;
+            var oid = item.querySelector('.ck-oid').value.trim(); if (oid) c.oid = oid;
+        }
+        checks.push(c);
+    });
+
+    var maintenance = false;
+    var origName = document.getElementById('modal-original-name').value;
+    if (origName) { _devicesCache.forEach(function(d) { if (d.name === origName) maintenance = d.maintenance || false; }); }
+
+    var payload = { name: name, host: host, group: group, parent: parent, notes: notes, links: links, checks: checks, maintenance: maintenance };
+    var mode = document.getElementById('modal-mode').value;
+    var url2 = mode === 'edit' ? '/api/devices/' + encodeURIComponent(origName) : '/api/devices';
+    var method = mode === 'edit' ? 'PUT' : 'POST';
+
+    fetch(url2, { method: method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) })
+    .then(function(r) { if (!r.ok) return r.json().then(function(e){ throw new Error(e.description || 'Error'); }); return r.json(); })
+    .then(function() { closeModal(); loadDevices(); loadStatus(); })
+    .catch(function(e) { alert('Error: ' + e.message); });
+}
+
+function openDeleteModal(name) {
+    _deleteTarget = name;
+    document.getElementById('delete-device-name').textContent = name;
+    document.getElementById('delete-modal').classList.add('open');
+}
+function closeDeleteModal() { document.getElementById('delete-modal').classList.remove('open'); _deleteTarget = null; }
+function confirmDelete() {
+    if (!_deleteTarget) return;
+    fetch('/api/devices/' + encodeURIComponent(_deleteTarget), { method: 'DELETE' })
+    .then(function(r) { if (!r.ok) return r.json().then(function(e){ throw new Error(e.description||'Error'); }); return r.json(); })
+    .then(function() { closeDeleteModal(); loadDevices(); loadStatus(); })
+    .catch(function(e) { alert('Error: ' + e.message); });
+}
+
+// ===== Discovery Scanner =====
+function startScan() {
+    var rangeVal = document.getElementById('scan-range').value.trim();
+    if (!rangeVal) { alert('Enter an IP range'); return; }
+    document.getElementById('scan-btn').disabled = true;
+    document.getElementById('scan-btn').textContent = 'Scanning...';
+    document.getElementById('scan-progress').style.display = 'block';
+    document.getElementById('scan-results').innerHTML = '';
+    document.getElementById('scan-results-filter').style.display = 'none';
+    fetch('/api/scan', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({range: rangeVal}) })
+    .then(function(r) { if (!r.ok) return r.json().then(function(e){ throw new Error(e.description || e.error || 'Error'); }); return r.json(); })
+    .then(function(data) {
+        document.getElementById('scan-total').textContent = data.total_ips;
+        document.getElementById('scan-target').textContent = data.target;
+        startScanPolling();
+    }).catch(function(e) { alert('Scan error: ' + e.message); document.getElementById('scan-btn').disabled = false; document.getElementById('scan-btn').textContent = 'Start Scan'; });
+}
+
+function loadDiscoveryTab() {
+    fetch('/api/scan/history').then(function(r){
+        if (r.status === 403) { document.getElementById('tab-discovery').innerHTML = upgradeHTML('Network Discovery'); return; }
+        return r.json();
+    }).then(function(data) {
+        if (!data) return;
+        loadScanHistory();
+        pollScanStatus();
+    });
+}
+function startScanPolling() { if (_scanPollTimer) clearInterval(_scanPollTimer); _scanPollTimer = setInterval(pollScanStatus, 1500); }
+
+function pollScanStatus() {
+    fetch('/api/scan/status').then(function(r){ return r.json(); }).then(function(s) {
+        document.getElementById('scan-scanned').textContent = s.scanned;
+        document.getElementById('scan-total').textContent = s.total;
+        document.getElementById('scan-alive').textContent = s.alive;
+        document.getElementById('scan-target').textContent = s.target;
+        var pct = s.total > 0 ? Math.round(100 * s.scanned / s.total) : 0;
+        document.getElementById('scan-progress-bar').style.width = pct + '%';
+        if (s.running) { document.getElementById('scan-progress-text').textContent = 'Scanning... ' + pct + '%'; document.getElementById('scan-progress').style.display = 'block'; }
+        else if (s.finished_at) {
+            document.getElementById('scan-progress-text').textContent = 'Scan complete';
+            document.getElementById('scan-progress-bar').style.width = '100%';
+            document.getElementById('scan-btn').disabled = false; document.getElementById('scan-btn').textContent = 'Start Scan';
+            if (_scanPollTimer) { clearInterval(_scanPollTimer); _scanPollTimer = null; }
+            loadScanResults(); loadScanHistory();
+        }
+    });
+}
+
+function loadScanResults() {
+    fetch('/api/scan/results').then(function(r){ return r.json(); }).then(function(data) {
+        _scanResults = data; document.getElementById('scan-results-filter').style.display = 'flex'; renderScanResults();
+    });
+}
+
+function renderScanResults() {
+    var hideMonitored = document.getElementById('scan-filter-hide-monitored').checked;
+    var filtered = _scanResults.filter(function(r) { if (hideMonitored && r.is_monitored) return false; return true; });
+    if (!filtered.length) { document.getElementById('scan-results').innerHTML = '<div class="empty-state"><p>No results matching filters.</p></div>'; return; }
+    var html = '<table><thead><tr><th>Status</th><th>IP</th><th>Hostname</th><th>Ping (ms)</th><th>Open Ports</th><th>Action</th></tr></thead><tbody>';
+    filtered.forEach(function(r) {
+        var ms = r.response_ms !== null ? r.response_ms.toFixed(1) : '--';
+        var portsHtml = '';
+        (r.open_ports || []).forEach(function(p) { portsHtml += '<span class="port-chip">' + (PORT_NAMES[p] || p) + ' (' + p + ')</span>'; });
+        if (!(r.open_ports||[]).length && r.is_alive) portsHtml = '<span style="color:#555;">None</span>';
+        var actionHtml = '';
+        if (r.is_alive && !r.is_monitored) {
+            actionHtml = '<button class="btn btn-success btn-sm" onclick="addFromScan(\'' + escAttr(r.ip) + '\',\'' + escAttr(r.hostname || r.ip) + '\',\'' + escAttr(JSON.stringify(r.open_ports||[])) + '\')">+ Add</button>';
+        } else if (r.is_monitored) { actionHtml = '<span class="monitored-badge">Monitored</span>'; }
+        html += '<tr><td><span class="alive-dot up"></span>Up</td><td style="font-family:monospace;">' + esc(r.ip) + '</td><td>' + esc(r.hostname || '') + '</td><td>' + ms + '</td><td>' + portsHtml + '</td><td>' + actionHtml + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('scan-results').innerHTML = html;
+}
+
+function addFromScan(ip, hostname, portsJson) { var ports = []; try { ports = JSON.parse(portsJson); } catch(e) {} openAddDevice(ip, hostname || ('Device ' + ip), ports); }
+
+function loadScanHistory() {
+    fetch('/api/scan/history').then(function(r){ return r.json(); }).then(function(scans) {
+        var el = document.getElementById('scan-history');
+        if (!scans.length) { el.innerHTML = '<span style="color:#555;font-size:13px;">No previous scans</span>'; return; }
+        var html = '<table><thead><tr><th>Scan ID</th><th>Time</th><th>Total</th><th>Alive</th><th>Action</th></tr></thead><tbody>';
+        scans.forEach(function(s) {
+            html += '<tr><td style="font-family:monospace;">' + esc(s.scan_id) + '</td><td>' + (s.started||'').replace('T',' ').substring(0,19) + '</td><td>' + s.total_ips + '</td><td style="color:#2ecc71;">' + s.alive_count + '</td><td><button class="btn btn-ghost btn-sm" onclick="loadPastScan(\'' + escAttr(s.scan_id) + '\')">View</button></td></tr>';
+        });
+        html += '</tbody></table>'; el.innerHTML = html;
+    });
+}
+
+function loadPastScan(scanId) {
+    fetch('/api/scan/' + encodeURIComponent(scanId) + '/results').then(function(r){ return r.json(); }).then(function(data) {
+        _scanResults = data; document.getElementById('scan-results-filter').style.display = 'flex'; renderScanResults();
+        document.getElementById('scan-results').scrollIntoView({behavior:'smooth'});
+    });
+}
+
+// ===== Network Map =====
+function loadNetworkMap() {
+    fetch('/api/map/data').then(function(r){
+        if (r.status === 403) { document.getElementById('tab-map').innerHTML = upgradeHTML('Network Map'); return null; }
+        return r.json();
+    }).then(function(data) { if (data) renderNetworkMap(data); });
+}
+
+function renderNetworkMap(data) {
+    var container = document.getElementById('network-map');
+    var statusColors = { 'hub':'#5b9aff', 'OK':'#2ecc71', 'WARNING':'#f39c12', 'CRITICAL':'#e74c3c', 'MAINTENANCE':'#9b59b6', 'PARENT_DOWN':'#e67e22', 'PENDING':'#555555', 'discovered':'#888888' };
+    var nodes = [], edges = [];
+    data.nodes.forEach(function(n) {
+        var color = statusColors[n.status] || '#555';
+        var nodeOpts = { id: n.id, label: n.label, title: n.host ? (n.label + '\n' + n.host) : n.label, group: n.group || 'Default' };
+        if (n.type === 'hub') {
+            nodeOpts.shape = 'diamond'; nodeOpts.size = 30;
+            nodeOpts.color = { background: '#5b9aff', border: '#4a89ee', highlight: { background: '#6faeff', border: '#5b9aff' }};
+            nodeOpts.font = { color: '#fff', size: 14, bold: true };
+        } else if (n.type === 'discovered') {
+            nodeOpts.shape = 'dot'; nodeOpts.size = 14;
+            nodeOpts.color = { background: '#1a1d2b', border: color, highlight: { background: '#2a2d3a', border: '#aaa' }};
+            nodeOpts.borderWidth = 2; nodeOpts.borderWidthSelected = 3;
+            nodeOpts.shapeProperties = { borderDashes: [5, 5] };
+            nodeOpts.font = { color: '#888', size: 11 };
+        } else {
+            nodeOpts.shape = 'dot'; nodeOpts.size = 18;
+            nodeOpts.color = { background: color, border: color, highlight: { background: color, border: '#fff' }};
+            nodeOpts.font = { color: '#ccc', size: 12 };
+            if (n.maintenance || n.in_downtime) { nodeOpts.borderWidth = 3; }
+        }
+        nodes.push(nodeOpts);
+    });
+    data.edges.forEach(function(e) {
+        edges.push({ from: e.from, to: e.to, color: { color: '#2a2d3a', highlight: '#5b9aff' }, width: 1, smooth: { type: 'continuous' }, arrows: { to: { enabled: true, scaleFactor: 0.5 }} });
+    });
+    var visData = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+    var options = {
+        physics: { enabled: true, solver: 'forceAtlas2Based', forceAtlas2Based: { gravitationalConstant: -40, centralGravity: 0.008, springLength: 120, springConstant: 0.04, damping: 0.4 }, stabilization: { iterations: 150 } },
+        interaction: { hover: true, tooltipDelay: 200, zoomView: true, dragView: true },
+        layout: { improvedLayout: true, hierarchical: false }
+    };
+    if (_networkGraph) _networkGraph.destroy();
+    _networkGraph = new vis.Network(container, visData, options);
+    _networkGraph.on('click', function(params) {
+        if (params.nodes.length === 1) {
+            var nodeId = params.nodes[0];
+            if (nodeId.indexOf('dev_') === 0) openDrawer(nodeId.substring(4));
+            else if (nodeId.indexOf('disc_') === 0) {
+                var ip = nodeId.substring(5);
+                var found = null; _scanResults.forEach(function(r) { if (r.ip === ip) found = r; });
+                if (found) addFromScan(found.ip, found.hostname || found.ip, JSON.stringify(found.open_ports || []));
+            }
+        }
+    });
+}
+
+// ===== Settings =====
+function loadSettings() {
+    fetch('/api/settings').then(function(r){ return r.json(); }).then(function(s) {
+        document.getElementById('set-interval').value = s.check_interval_seconds || 60;
+        document.getElementById('set-dash-host').value = s.dashboard_host || '0.0.0.0';
+        document.getElementById('set-dash-port').value = s.dashboard_port || 8080;
+        document.getElementById('set-smtp-host').value = s.smtp_host || '';
+        document.getElementById('set-smtp-port').value = s.smtp_port || 587;
+        document.getElementById('set-smtp-tls').checked = s.use_tls !== false;
+        document.getElementById('set-smtp-user').value = s.smtp_username || '';
+        document.getElementById('set-smtp-pass').value = s.smtp_password || '';
+        document.getElementById('set-from-addr').value = s.from_addr || '';
+        document.getElementById('set-recipients').value = (s.recipients || []).join(', ');
+        document.getElementById('set-cooldown').value = s.cooldown_minutes || 15;
+        document.getElementById('settings-saved-msg').style.display = 'none';
+        document.getElementById('settings-error-msg').style.display = 'none';
+    });
+    // Load license info into settings
+    fetch('/api/license').then(function(r){ return r.json(); }).then(function(lic) {
+        _currentTier = lic.tier;
+        _tierFeatures = lic.features || {};
+        var badge = document.getElementById('license-tier-badge');
+        var usage = document.getElementById('license-usage');
+        var tierColors = { community: '#888', pro: '#22c55e', enterprise: '#a78bfa' };
+        var tierLabels = { community: 'Community (Free)', pro: 'Pro', enterprise: 'Enterprise' };
+        badge.textContent = tierLabels[lic.tier] || lic.tier;
+        badge.style.background = (tierColors[lic.tier] || '#888') + '22';
+        badge.style.color = tierColors[lic.tier] || '#888';
+        badge.style.border = '1px solid ' + (tierColors[lic.tier] || '#888');
+        var u = lic.usage || {};
+        var maxD = u.max_devices === 0 ? 'Unlimited' : u.max_devices;
+        var maxS = u.max_sensors === 0 ? 'Unlimited' : u.max_sensors;
+        usage.innerHTML = 'Devices: ' + u.devices + ' / ' + maxD + ' &middot; Sensors: ' + u.sensors + ' / ' + maxS;
+        document.getElementById('set-license-key').value = '';
+        loadEntSettings();
+    }).catch(function(){});
+}
+
+function activateLicense() {
+    var key = document.getElementById('set-license-key').value.trim();
+    var res = document.getElementById('license-result');
+    if (!key) { res.textContent = 'Please enter a license key.'; res.style.color = '#f39c12'; return; }
+    var btn = document.getElementById('activate-license-btn');
+    btn.disabled = true; btn.textContent = 'Activating...';
+    fetch('/api/license', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({license_key: key}) })
+    .then(function(r){ return r.json().then(function(d){ d._status = r.status; return d; }); })
+    .then(function(d) {
+        btn.disabled = false; btn.textContent = 'Activate';
+        if (d._status === 200) {
+            res.innerHTML = 'License activated! Tier: <strong>' + esc(d.tier) + '</strong>. Refresh the page to unlock all features.';
+            res.style.color = '#22c55e';
+            _currentTier = d.tier;
+            loadSettings();
+        } else {
+            res.textContent = d.error || 'Invalid license key.';
+            res.style.color = '#e74c3c';
+        }
+    }).catch(function(e) {
+        btn.disabled = false; btn.textContent = 'Activate';
+        res.textContent = 'Error: ' + e.message; res.style.color = '#e74c3c';
+    });
+}
+
+// ===== Webhook Management (Enterprise) =====
+var _webhookData = [];
+function loadWebhooks() {
+    fetch('/api/webhooks').then(function(r) {
+        if (r.status === 403) return [];
+        return r.json();
+    }).then(function(data) {
+        if (!data) return;
+        _webhookData = data || [];
+        renderWebhooks();
+    }).catch(function(){});
+}
+
+function renderWebhooks() {
+    var el = document.getElementById('webhook-list');
+    if (!el) return;
+    if (!_webhookData.length) {
+        el.innerHTML = '<div style="font-size:12px;color:#64748b;padding:8px 0;">No webhooks configured.</div>';
+        return;
+    }
+    var html = '';
+    _webhookData.forEach(function(w, i) {
+        html += '<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">'
+            + '<select onchange="_webhookData[' + i + '].type=this.value" style="background:#0a0e17;border:1px solid #2a2d3a;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:12px;width:100px;">'
+            + '<option value="slack"' + (w.type === 'slack' ? ' selected' : '') + '>Slack</option>'
+            + '<option value="teams"' + (w.type === 'teams' ? ' selected' : '') + '>Teams</option>'
+            + '<option value="pagerduty"' + (w.type === 'pagerduty' ? ' selected' : '') + '>PagerDuty</option>'
+            + '<option value="generic"' + (w.type === 'generic' ? ' selected' : '') + '>Generic</option>'
+            + '</select>'
+            + '<input type="text" value="' + escAttr(w.url || w.routing_key || '') + '" '
+            + 'onchange="_webhookData[' + i + '].url=this.value" '
+            + 'placeholder="Webhook URL" style="flex:1;background:#0a0e17;border:1px solid #2a2d3a;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:12px;">'
+            + '<button onclick="_webhookData.splice(' + i + ',1);renderWebhooks();" '
+            + 'style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;" title="Remove">&times;</button>'
+            + '</div>';
+    });
+    el.innerHTML = html;
+}
+
+function addWebhookRow() {
+    _webhookData.push({ type: 'slack', url: '' });
+    renderWebhooks();
+}
+
+function saveWebhooks() {
+    fetch('/api/webhooks', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(_webhookData) })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        var res = document.getElementById('webhook-save-result');
+        if (res) { res.textContent = 'Saved!'; setTimeout(function(){ res.textContent = ''; }, 3000); }
+    });
+}
+
+function loadPluginList() {
+    fetch('/api/plugins').then(function(r) {
+        if (r.status === 403) return [];
+        return r.json();
+    }).then(function(data) {
+        if (!data) return;
+        var el = document.getElementById('plugin-list');
+        if (!el) return;
+        if (!data.length) { el.textContent = 'No plugins found in plugins/ folder.'; return; }
+        var html = '';
+        data.forEach(function(p) { html += '<div style="padding:2px 0;">' + esc(p.name) + ' <span style="color:#475569;">(' + p.size + ' bytes)</span></div>'; });
+        el.innerHTML = html;
+    }).catch(function(){ });
+}
+
+function loadEntSettings() {
+    var el = document.getElementById('ent-settings');
+    if (!el) return;
+    if (_currentTier === 'enterprise') {
+        el.style.display = 'block';
+        loadWebhooks();
+        loadPluginList();
+    } else {
+        el.style.display = 'none';
+    }
+}
+
+function saveSettings() {
+    var payload = {
+        check_interval_seconds: parseInt(document.getElementById('set-interval').value) || 60,
+        dashboard_host: document.getElementById('set-dash-host').value.trim(),
+        dashboard_port: parseInt(document.getElementById('set-dash-port').value) || 8080,
+        smtp_host: document.getElementById('set-smtp-host').value.trim(),
+        smtp_port: parseInt(document.getElementById('set-smtp-port').value) || 587,
+        use_tls: document.getElementById('set-smtp-tls').checked,
+        smtp_username: document.getElementById('set-smtp-user').value.trim(),
+        smtp_password: document.getElementById('set-smtp-pass').value,
+        from_addr: document.getElementById('set-from-addr').value.trim(),
+        recipients: document.getElementById('set-recipients').value,
+        cooldown_minutes: parseInt(document.getElementById('set-cooldown').value) || 15
+    };
+    fetch('/api/settings', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) })
+    .then(function(r) { if (!r.ok) return r.json().then(function(e){ throw new Error(e.error || 'Error'); }); return r.json(); })
+    .then(function() { document.getElementById('settings-saved-msg').style.display = 'block'; document.getElementById('settings-error-msg').style.display = 'none'; setTimeout(function(){ document.getElementById('settings-saved-msg').style.display = 'none'; }, 4000); })
+    .catch(function(e) { document.getElementById('settings-error-msg').textContent = 'Error: ' + e.message; document.getElementById('settings-error-msg').style.display = 'block'; });
+}
+
+function testEmail() {
+    var btn = document.getElementById('test-email-btn');
+    var res = document.getElementById('test-email-result');
+    btn.disabled = true; btn.textContent = 'Sending...'; res.textContent = '';
+    saveSettings();
+    setTimeout(function() {
+        fetch('/api/settings/test-email', { method: 'POST' })
+        .then(function(r){ return r.json().then(function(d){ d._status = r.status; return d; }); })
+        .then(function(d) { btn.disabled = false; btn.textContent = 'Send Test Email'; if (d.ok) { res.textContent = 'Sent!'; res.style.color = '#2ecc71'; } else { res.textContent = d.error || 'Failed'; res.style.color = '#e74c3c'; } setTimeout(function(){ res.textContent = ''; }, 8000); })
+        .catch(function(e) { btn.disabled = false; btn.textContent = 'Send Test Email'; res.textContent = e.message; res.style.color = '#e74c3c'; });
+    }, 500);
+}
+
+// ===== Inventory =====
+function loadInventory() {
+    Promise.all([ safeFetch('/api/inventory', null), safeFetch('/api/inventory/stats', null) ])
+    .then(function(both) {
+        if (!both[0] || !both[1]) { document.getElementById('tab-inventory').innerHTML = upgradeHTML('Asset Inventory'); return; }
+        _inventoryCache = both[0]; renderInvStats(both[1]); buildInvTypeFilter(); filterInventory();
+    });
+}
+
+function renderInvStats(stats) {
+    var html = '<div class="inv-stat"><div class="val">' + stats.total + '</div><div class="lbl">Total</div></div>';
+    html += '<div class="inv-stat"><div class="val" style="color:#2ecc71;">' + stats.active + '</div><div class="lbl">Active</div></div>';
+    if (stats.retired) html += '<div class="inv-stat"><div class="val" style="color:#888;">' + stats.retired + '</div><div class="lbl">Retired</div></div>';
+    html += '<div class="inv-stat"><div class="val" style="color:#f39c12;">' + stats.monitored_count + '</div><div class="lbl">Monitored</div></div>';
+    document.getElementById('inv-stats').innerHTML = html;
+}
+
+function buildInvTypeFilter() {
+    var types = {}; _inventoryCache.forEach(function(a) { if (a.device_type) types[a.device_type] = true; });
+    var sel = document.getElementById('inv-type-filter'); var cur = sel.value;
+    sel.innerHTML = '<option value="">All Types</option>';
+    Object.keys(types).sort().forEach(function(t) { sel.innerHTML += '<option value="' + escAttr(t) + '">' + esc(t) + '</option>'; });
+    sel.value = cur;
+}
+
+function filterInventory() {
+    var search = (document.getElementById('inv-search').value || '').toLowerCase();
+    var typeF = document.getElementById('inv-type-filter').value;
+    var statusF = document.getElementById('inv-status-filter').value;
+    var filtered = _inventoryCache.filter(function(a) {
+        if (search) { var hay = (a.ip + ' ' + a.hostname + ' ' + a.vendor + ' ' + a.model + ' ' + a.location + ' ' + a.notes + ' ' + a.mac_address).toLowerCase(); if (hay.indexOf(search) === -1) return false; }
+        if (typeF && a.device_type !== typeF) return false;
+        if (statusF && a.status !== statusF) return false;
+        return true;
+    });
+    var wrap = document.getElementById('inv-table-wrap');
+    if (!filtered.length) { wrap.innerHTML = '<div class="empty-state"><p>No assets found.</p></div>'; updateInvSelBtn(); return; }
+    var html = '<table><thead><tr>'
+        + '<th style="width:36px;"><input type="checkbox" id="inv-select-all" onchange="toggleAllInvCheckboxes(this)" style="accent-color:#5b9aff;width:16px;height:16px;cursor:pointer;"></th>'
+        + '<th>IP</th><th>Hostname</th><th>Type</th><th>Vendor / Model</th><th>Location</th><th>Ports</th><th>Status</th><th>Last Seen</th><th style="width:180px;">Actions</th></tr></thead><tbody>';
+    filtered.forEach(function(a) {
+        var portsHtml = ''; (a.open_ports_list || []).slice(0,6).forEach(function(p) { portsHtml += '<span class="port-chip">' + (PORT_NAMES[p]||p) + '</span>'; });
+        if ((a.open_ports_list||[]).length > 6) portsHtml += '<span style="color:#555;font-size:11px;">+' + ((a.open_ports_list||[]).length-6) + '</span>';
+        if (!portsHtml) portsHtml = '<span style="color:#444;">--</span>';
+        var stCls = a.status === 'active' ? 'inv-status-active' : 'inv-status-retired';
+        var monBadge = a.is_monitored ? ' <span class="monitored-badge">Monitored</span>' : '';
+        html += '<tr><td><input type="checkbox" class="inv-row-cb" value="' + a.id + '" onchange="updateInvSelBtn()" style="accent-color:#5b9aff;width:16px;height:16px;cursor:pointer;"></td>'
+            + '<td style="font-family:monospace;">' + esc(a.ip) + monBadge + '</td><td>' + esc(a.hostname || '') + '</td>'
+            + '<td>' + (a.device_type ? '<span class="inv-type-chip">' + esc(a.device_type) + '</span>' : '--') + '</td>'
+            + '<td>' + esc([a.vendor,a.model].filter(function(x){return x;}).join(' ') || '--') + '</td>'
+            + '<td>' + esc(a.location || '--') + '</td><td>' + portsHtml + '</td>'
+            + '<td><span class="badge ' + stCls + '">' + esc(a.status) + '</span></td>'
+            + '<td>' + (a.last_seen||'').replace('T',' ').substring(0,16) + '</td>'
+            + '<td class="actions"><button class="btn btn-ghost btn-sm" onclick="openEditAsset(' + a.id + ')">Edit</button>'
+            + ' <button class="btn btn-danger btn-sm" onclick="openAssetDeleteModal(' + a.id + ',\'' + escAttr(a.ip) + '\')">Delete</button>';
+        if (!a.is_monitored) html += ' <button class="btn btn-success btn-sm" onclick="addAssetToMonitor(\'' + escAttr(a.ip) + '\',\'' + escAttr(a.hostname||a.ip) + '\',\'' + escAttr(JSON.stringify(a.open_ports_list||[])) + '\')">Monitor</button>';
+        html += '</td></tr>';
+    });
+    html += '</tbody></table>'; wrap.innerHTML = html; updateInvSelBtn();
+}
+
+function toggleAllInvCheckboxes(cb) { document.querySelectorAll('.inv-row-cb').forEach(function(c){ c.checked = cb.checked; }); updateInvSelBtn(); }
+function updateInvSelBtn() { var n = document.querySelectorAll('.inv-row-cb:checked').length; var btn = document.getElementById('inv-remove-sel-btn'); btn.style.display = n > 0 ? '' : 'none'; document.getElementById('inv-sel-count').textContent = n; }
+function batchDeleteAssets() {
+    var cbs = document.querySelectorAll('.inv-row-cb:checked'); if (!cbs.length) return;
+    var ids = []; cbs.forEach(function(cb){ ids.push(parseInt(cb.value)); });
+    if (!confirm('Delete ' + ids.length + ' asset(s)?')) return;
+    fetch('/api/inventory/batch-delete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ids:ids}) })
+    .then(function(r){ if(!r.ok) return r.json().then(function(e){throw new Error(e.description||'Error');}); return r.json(); })
+    .then(function(){ loadInventory(); }).catch(function(e){ alert('Error: '+e.message); });
+}
+
+function openAddAsset() {
+    document.getElementById('asset-modal-title').textContent = 'Add Asset';
+    document.getElementById('asset-modal-mode').value = 'add'; document.getElementById('asset-modal-id').value = '';
+    ['asset-ip','asset-hostname','asset-mac','asset-vendor','asset-model','asset-os','asset-location','asset-serial','asset-ports','asset-notes'].forEach(function(id){ document.getElementById(id).value = ''; });
+    document.getElementById('asset-ip').removeAttribute('readonly');
+    document.getElementById('asset-type').value = ''; document.getElementById('asset-status').value = 'active'; document.getElementById('asset-purchase').value = '';
+    document.getElementById('asset-modal').classList.add('open');
+}
+
+function openEditAsset(id) {
+    fetch('/api/inventory/' + id).then(function(r){ return r.json(); }).then(function(a) {
+        document.getElementById('asset-modal-title').textContent = 'Edit Asset';
+        document.getElementById('asset-modal-mode').value = 'edit'; document.getElementById('asset-modal-id').value = a.id;
+        document.getElementById('asset-ip').value = a.ip || ''; document.getElementById('asset-ip').setAttribute('readonly', 'readonly');
+        document.getElementById('asset-hostname').value = a.hostname || ''; document.getElementById('asset-mac').value = a.mac_address || '';
+        document.getElementById('asset-type').value = a.device_type || ''; document.getElementById('asset-vendor').value = a.vendor || '';
+        document.getElementById('asset-model').value = a.model || ''; document.getElementById('asset-os').value = a.os_info || '';
+        document.getElementById('asset-location').value = a.location || ''; document.getElementById('asset-serial').value = a.serial_number || '';
+        document.getElementById('asset-purchase').value = a.purchase_date || ''; document.getElementById('asset-status').value = a.status || 'active';
+        document.getElementById('asset-ports').value = a.open_ports || ''; document.getElementById('asset-notes').value = a.notes || '';
+        document.getElementById('asset-modal').classList.add('open');
+    });
+}
+
+function closeAssetModal() { document.getElementById('asset-modal').classList.remove('open'); }
+
+function saveAsset() {
+    var mode = document.getElementById('asset-modal-mode').value;
+    var id = document.getElementById('asset-modal-id').value;
+    var payload = { ip: document.getElementById('asset-ip').value.trim(), hostname: document.getElementById('asset-hostname').value.trim(),
+        mac_address: document.getElementById('asset-mac').value.trim(), device_type: document.getElementById('asset-type').value,
+        vendor: document.getElementById('asset-vendor').value.trim(), model: document.getElementById('asset-model').value.trim(),
+        os_info: document.getElementById('asset-os').value.trim(), location: document.getElementById('asset-location').value.trim(),
+        serial_number: document.getElementById('asset-serial').value.trim(), purchase_date: document.getElementById('asset-purchase').value,
+        status: document.getElementById('asset-status').value, notes: document.getElementById('asset-notes').value.trim() };
+    if (!payload.ip) { alert('IP required.'); return; }
+    var url3 = mode === 'edit' ? '/api/inventory/' + id : '/api/inventory';
+    fetch(url3, { method: mode === 'edit' ? 'PUT' : 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) })
+    .then(function(r) { if (!r.ok) return r.json().then(function(e){ throw new Error(e.description || 'Error'); }); return r.json(); })
+    .then(function() { closeAssetModal(); loadInventory(); }).catch(function(e) { alert('Error: ' + e.message); });
+}
+
+function openAssetDeleteModal(id, ip) { _assetDeleteTarget = id; document.getElementById('asset-delete-ip').textContent = ip; document.getElementById('asset-delete-modal').classList.add('open'); }
+function closeAssetDeleteModal() { document.getElementById('asset-delete-modal').classList.remove('open'); _assetDeleteTarget = null; }
+function confirmDeleteAsset() {
+    if (!_assetDeleteTarget) return;
+    fetch('/api/inventory/' + _assetDeleteTarget, { method: 'DELETE' }).then(function(r){ if(!r.ok) throw new Error('Error'); return r.json(); })
+    .then(function(){ closeAssetDeleteModal(); loadInventory(); }).catch(function(e){ alert('Error: '+e.message); });
+}
+function addAssetToMonitor(ip, hostname, portsJson) { var ports = []; try { ports = JSON.parse(portsJson); } catch(e) {} openAddDevice(ip, hostname || ('Device ' + ip), ports); }
+function importLatestScan() {
+    fetch('/api/inventory/import-scan', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({}) })
+    .then(function(r){ if(!r.ok) return r.json().then(function(e){throw new Error(e.description||'Error');}); return r.json(); })
+    .then(function(d){ alert('Imported ' + d.imported + ' new, updated ' + d.updated + '.'); loadInventory(); })
+    .catch(function(e){ alert('Error: '+e.message); });
+}
+
+// ===== Helpers =====
+// ===== SLA Reports =====
+function loadReportsTab() {
+    fetch('/api/reports/sla?hours=24').then(function(r) {
+        if (r.status === 403) {
+            document.getElementById('reports-content').style.display = 'none';
+            document.getElementById('reports-upgrade').style.display = 'block';
+            document.getElementById('reports-upgrade').innerHTML = upgradeHTML('SLA & Uptime Reports');
+            return;
+        }
+        document.getElementById('reports-content').style.display = 'block';
+        document.getElementById('reports-upgrade').style.display = 'none';
+    });
+}
+
+function loadSLAReport() {
+    var hours = document.getElementById('report-period').value;
+    fetch('/api/reports/sla?hours=' + hours).then(function(r) {
+        if (r.status === 403) { document.getElementById('tab-reports').innerHTML = upgradeHTML('SLA & Uptime Reports'); return null; }
+        return r.json();
+    }).then(function(data) {
+        if (!data) return;
+        // Summary
+        var devs = data.devices || [];
+        var totalUp = 0, totalDev = devs.length, incidents = 0;
+        devs.forEach(function(d) { if (d.uptime_pct !== null) totalUp += d.uptime_pct; incidents += d.incident_count; });
+        var avgUp = totalDev > 0 ? (totalUp / totalDev).toFixed(2) : 'N/A';
+        var sumHtml = '<div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:16px 24px;text-align:center;">'
+            + '<div style="font-size:28px;font-weight:700;color:#22c55e;">' + avgUp + '%</div>'
+            + '<div style="font-size:11px;color:#64748b;text-transform:uppercase;">Avg Uptime</div></div>'
+            + '<div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:16px 24px;text-align:center;">'
+            + '<div style="font-size:28px;font-weight:700;color:#94a3b8;">' + totalDev + '</div>'
+            + '<div style="font-size:11px;color:#64748b;text-transform:uppercase;">Devices</div></div>'
+            + '<div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:16px 24px;text-align:center;">'
+            + '<div style="font-size:28px;font-weight:700;color:#f59e0b;">' + incidents + '</div>'
+            + '<div style="font-size:11px;color:#64748b;text-transform:uppercase;">Incidents</div></div>';
+        document.getElementById('sla-summary').innerHTML = sumHtml;
+
+        // Table
+        var html = '';
+        devs.forEach(function(d) {
+            var up = d.uptime_pct !== null ? d.uptime_pct.toFixed(3) + '%' : 'N/A';
+            var slaClass = 'ok', slaLabel = 'Met';
+            if (d.uptime_pct !== null && d.uptime_pct < 99.9) { slaClass = 'warning'; slaLabel = 'At Risk'; }
+            if (d.uptime_pct !== null && d.uptime_pct < 99.0) { slaClass = 'critical'; slaLabel = 'Breached'; }
+            var dt = d.downtime_minutes < 60 ? d.downtime_minutes + ' min' : (d.downtime_minutes / 60).toFixed(1) + ' hrs';
+            var mttr = d.mttr_minutes < 60 ? d.mttr_minutes + ' min' : (d.mttr_minutes / 60).toFixed(1) + ' hrs';
+            html += '<tr><td>' + esc(d.device_name) + '</td><td>' + esc(d.group) + '</td>'
+                + '<td style="font-weight:600;">' + up + '</td><td>' + dt + '</td>'
+                + '<td>' + d.incident_count + '</td><td>' + mttr + '</td>'
+                + '<td><span class="badge ' + slaClass + '">' + slaLabel + '</span></td></tr>';
+        });
+        if (!html) html = '<tr><td colspan="7" style="text-align:center;color:#555;padding:40px;">No data for this period</td></tr>';
+        document.getElementById('sla-body').innerHTML = html;
+    });
+}
+
+function downloadSLACSV() {
+    var hours = document.getElementById('report-period').value;
+    window.open('/api/reports/sla?hours=' + hours + '&format=csv', '_blank');
+}
+
+// ===== Security Scanner Tab =====
+var _secFindings = [];
+var _secScanPolling = null;
+
+function loadSecurityTab() {
+    safeFetch('/api/security/scans', []).then(function(scans) {
+        if (scans.error) {
+            document.getElementById('security-upgrade').innerHTML = upgradeHTML('Security Scanner');
+            document.getElementById('security-upgrade').style.display = '';
+            document.getElementById('security-content').style.display = 'none';
+            return;
+        }
+        document.getElementById('security-upgrade').style.display = 'none';
+        document.getElementById('security-content').style.display = '';
+        renderSecHistory(scans);
+        // If most recent scan has results, show them
+        if (scans.length > 0 && scans[0].status === 'completed') {
+            loadSecScanResults(scans[0].scan_id);
+        }
+    });
+}
+
+function startSecurityScan() {
+    var targetsStr = document.getElementById('sec-targets').value.trim();
+    var targets = targetsStr ? targetsStr.split(',').map(function(t){ return t.trim(); }).filter(Boolean) : [];
+    var scanTypes = [];
+    if (document.getElementById('sec-type-ports').checked) scanTypes.push('ports');
+    if (document.getElementById('sec-type-ssl').checked) scanTypes.push('ssl');
+    if (document.getElementById('sec-type-http').checked) scanTypes.push('http');
+    if (document.getElementById('sec-type-services').checked) scanTypes.push('services');
+    if (document.getElementById('sec-type-snmp').checked) scanTypes.push('snmp');
+    if (document.getElementById('sec-type-dns').checked) scanTypes.push('dns');
+    if (scanTypes.length === 0) { alert('Select at least one scan type'); return; }
+
+    document.getElementById('sec-scan-btn').disabled = true;
+    document.getElementById('sec-scan-btn').textContent = 'Scanning...';
+    document.getElementById('sec-stop-btn').style.display = '';
+    document.getElementById('sec-progress').style.display = '';
+    document.getElementById('sec-summary').style.display = 'none';
+    document.getElementById('sec-results').style.display = 'none';
+
+    fetch('/api/security/scan', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({targets: targets, scan_types: scanTypes})
+    }).then(function(r){ return r.json(); }).then(function(d) {
+        if (d.error) {
+            alert(d.error);
+            document.getElementById('sec-scan-btn').disabled = false;
+            document.getElementById('sec-scan-btn').textContent = 'Start Scan';
+            document.getElementById('sec-stop-btn').style.display = 'none';
+            document.getElementById('sec-progress').style.display = 'none';
+            return;
+        }
+        // Poll for progress
+        _secScanPolling = setInterval(function() {
+            fetch('/api/security/status').then(function(r){ return r.json(); }).then(function(st) {
+                document.getElementById('sec-progress-pct').textContent = (st.progress || 0) + '%';
+                document.getElementById('sec-progress-bar').style.width = (st.progress || 0) + '%';
+                var label = 'Scanning';
+                if (st.current_target) label += ' ' + st.current_target;
+                if (st.current_test) label += ' - ' + st.current_test;
+                label += '...';
+                document.getElementById('sec-progress-label').textContent = label;
+
+                if (st.status === 'completed' || st.status === 'cancelled') {
+                    clearInterval(_secScanPolling);
+                    _secScanPolling = null;
+                    document.getElementById('sec-scan-btn').disabled = false;
+                    document.getElementById('sec-scan-btn').textContent = 'Start Scan';
+                    document.getElementById('sec-stop-btn').style.display = 'none';
+                    document.getElementById('sec-stop-btn').disabled = false;
+                    document.getElementById('sec-stop-btn').textContent = 'Stop Scan';
+                    document.getElementById('sec-progress').style.display = 'none';
+                    if (st.status === 'cancelled') {
+                        document.getElementById('sec-progress-label').textContent = 'Scan cancelled.';
+                    }
+                    loadSecScanResults(st.scan_id || d.scan_id);
+                    loadSecurityTab();
+                }
+            });
+        }, 1500);
+    });
+}
+
+function loadSecScanResults(scanId) {
+    fetch('/api/security/scans/' + scanId).then(function(r){ return r.json(); }).then(function(scan) {
+        if (scan.error) return;
+        _secFindings = scan.findings || [];
+
+        // Summary cards
+        var s = scan.summary || {};
+        var counts = s.severity_counts || {};
+        var summaryHtml = ''
+            + sevCard('Critical', counts.critical || 0, '#ef4444')
+            + sevCard('High', counts.high || 0, '#f97316')
+            + sevCard('Medium', counts.medium || 0, '#eab308')
+            + sevCard('Low', counts.low || 0, '#3b82f6')
+            + sevCard('Info', counts.info || 0, '#64748b');
+        var sumEl = document.getElementById('sec-summary');
+        sumEl.innerHTML = summaryHtml;
+        sumEl.style.display = 'flex';
+
+        // Show findings
+        document.getElementById('sec-results').style.display = '';
+        renderSecFindings(_secFindings);
+    });
+}
+
+function sevCard(label, count, color) {
+    return '<div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:16px 24px;text-align:center;min-width:100px;">'
+        + '<div style="font-size:24px;font-weight:700;color:' + color + ';">' + count + '</div>'
+        + '<div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">' + esc(label) + '</div></div>';
+}
+
+function sevBadge(severity) {
+    var colors = {critical:'#ef4444',high:'#f97316',medium:'#eab308',low:'#3b82f6',info:'#64748b'};
+    var c = colors[severity] || '#64748b';
+    return '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;'
+        + 'background:' + c + '20;color:' + c + ';text-transform:uppercase;">' + esc(severity) + '</span>';
+}
+
+function catBadge(cat) {
+    return '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;'
+        + 'background:#22222b;color:#94a3b8;">' + esc(cat) + '</span>';
+}
+
+function renderSecFindings(findings) {
+    var html = '';
+    findings.forEach(function(f) {
+        html += '<tr>'
+            + '<td>' + sevBadge(f.severity) + '</td>'
+            + '<td style="font-family:monospace;font-size:12px;">' + esc(f.target) + '</td>'
+            + '<td>' + catBadge(f.category) + '</td>'
+            + '<td><div style="color:#e2e8f0;font-weight:500;font-size:13px;">' + esc(f.title) + '</div>'
+            + '<div style="color:#64748b;font-size:11px;margin-top:2px;">' + esc(f.description) + '</div></td>'
+            + '<td style="color:#94a3b8;font-size:12px;">' + esc(f.remediation || '-') + '</td>'
+            + '</tr>';
+    });
+    if (!html) html = '<tr><td colspan="5" style="text-align:center;color:#555;padding:40px;">No findings</td></tr>';
+    document.getElementById('sec-findings-body').innerHTML = html;
+}
+
+function filterSecFindings() {
+    var sev = document.getElementById('sec-filter-severity').value;
+    var cat = document.getElementById('sec-filter-category').value;
+    var filtered = _secFindings.filter(function(f) {
+        if (sev && f.severity !== sev) return false;
+        if (cat && f.category !== cat) return false;
+        return true;
+    });
+    renderSecFindings(filtered);
+}
+
+function renderSecHistory(scans) {
+    if (!scans || scans.length === 0) {
+        document.getElementById('sec-history-body').innerHTML = '<tr><td colspan="9" style="text-align:center;color:#555;padding:40px;">No security scans yet. Launch one above.</td></tr>';
+        return;
+    }
+    var html = '';
+    scans.forEach(function(s) {
+        var summary = s.summary || {};
+        var counts = summary.severity_counts || {};
+        var targets = s.targets || [];
+        var targetStr = targets.length > 3 ? targets.slice(0,3).join(', ') + ' +' + (targets.length - 3) : targets.join(', ');
+        var types = s.scan_types || [];
+        html += '<tr>'
+            + '<td style="font-family:monospace;font-size:12px;">' + esc(s.scan_id) + '</td>'
+            + '<td style="font-size:12px;">' + esc(s.started_at || '') + '</td>'
+            + '<td style="font-size:12px;" title="' + escAttr(targets.join(', ')) + '">' + esc(targetStr) + '</td>'
+            + '<td style="font-size:12px;">' + esc(types.join(', ')) + '</td>'
+            + '<td style="color:#ef4444;font-weight:600;">' + (counts.critical || 0) + '</td>'
+            + '<td style="color:#f97316;font-weight:600;">' + (counts.high || 0) + '</td>'
+            + '<td style="color:#eab308;">' + (counts.medium || 0) + '</td>'
+            + '<td style="color:#3b82f6;">' + (counts.low || 0) + '</td>'
+            + '<td><button class="btn btn-ghost btn-sm" onclick="loadSecScanResults(\'' + escAttr(s.scan_id) + '\')">View</button> '
+            + '<button class="btn btn-ghost btn-sm" onclick="deleteSecScan(\'' + escAttr(s.scan_id) + '\')" style="color:#ef4444;">Del</button></td>'
+            + '</tr>';
+    });
+    document.getElementById('sec-history-body').innerHTML = html;
+}
+
+function deleteSecScan(scanId) {
+    if (!confirm('Delete this security scan and all findings?')) return;
+    fetch('/api/security/scans/' + scanId, {method:'DELETE'}).then(function(){ loadSecurityTab(); });
+}
+
+function stopSecurityScan() {
+    document.getElementById('sec-stop-btn').disabled = true;
+    document.getElementById('sec-stop-btn').textContent = 'Stopping...';
+    fetch('/api/security/cancel', {method:'POST'}).then(function(r){ return r.json(); }).then(function(d) {
+        document.getElementById('sec-progress-label').textContent = 'Cancelling scan...';
+        // Polling loop will pick up the cancelled status and clean up
+    }).catch(function() {
+        document.getElementById('sec-stop-btn').disabled = false;
+        document.getElementById('sec-stop-btn').textContent = 'Stop Scan';
+    });
+}
+
+// ===== Help Tab =====
+function toggleHelp(el) {
+    var section = el.parentElement;
+    section.classList.toggle('open');
+}
+
+function filterHelp() {
+    var q = (document.getElementById('help-search').value || '').toLowerCase().trim();
+    var sections = document.querySelectorAll('.help-section');
+    for (var i = 0; i < sections.length; i++) {
+        var s = sections[i];
+        if (!q) { s.classList.remove('hidden'); continue; }
+        var kw = (s.getAttribute('data-keywords') || '').toLowerCase();
+        var heading = (s.querySelector('.help-heading') || {}).textContent || '';
+        var body = (s.querySelector('.help-body') || {}).textContent || '';
+        var match = kw.indexOf(q) !== -1 || heading.toLowerCase().indexOf(q) !== -1 || body.toLowerCase().indexOf(q) !== -1;
+        if (match) { s.classList.remove('hidden'); s.classList.add('open'); }
+        else { s.classList.add('hidden'); }
+    }
+}
+
+function esc(s) { if (s === null || s === undefined) return ''; var d = document.createElement('div'); d.appendChild(document.createTextNode(String(s))); return d.innerHTML; }
+function escAttr(s) { return esc(String(s === null || s === undefined ? '' : s)).replace(/"/g, '&quot;'); }
+
+// ===== Auto-refresh =====
+function refreshAll() { loadStatus(); loadAlerts(); loadHistory(); }
+refreshAll();
+setInterval(refreshAll, 30000);
+</script>
+</body>
+</html>
