@@ -289,6 +289,12 @@ tr:hover { background: #1a1d2b; }
     display: inline-block; background: rgba(91,154,255,0.1); border: 1px solid rgba(91,154,255,0.2);
     border-radius: 3px; padding: 1px 6px; font-size: 11px; color: #5b9aff; margin: 1px 2px;
 }
+a.port-link {
+    text-decoration: none; cursor: pointer; transition: background 0.2s, border-color 0.2s;
+}
+a.port-link:hover {
+    background: rgba(91,154,255,0.25); border-color: rgba(91,154,255,0.5); color: #8cb8ff;
+}
 .alive-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
 .alive-dot.up { background: #2ecc71; }
 .alive-dot.down { background: #555; }
@@ -1525,6 +1531,26 @@ var _perfPeriod = 24;
 
 var PORT_NAMES = {22:"SSH",23:"Telnet",53:"DNS",80:"HTTP",443:"HTTPS",161:"SNMP",445:"SMB",3389:"RDP",5900:"VNC",8080:"HTTP-Alt",8443:"HTTPS-Alt"};
 
+// Build a clickable service link from port number and host IP
+function portServiceLink(port, ip) {
+    var name = PORT_NAMES[port] || port;
+    var urlMap = {
+        80:  'http://' + ip,
+        443: 'https://' + ip,
+        8080:'http://' + ip + ':8080',
+        8443:'https://' + ip + ':8443',
+        22:  'ssh://' + ip,
+        23:  'telnet://' + ip,
+        3389:'rdp://' + ip,
+        5900:'vnc://' + ip
+    };
+    var url = urlMap[port];
+    if (url) {
+        return '<a href="' + url + '" target="_blank" rel="noopener" class="port-chip port-link" title="Connect to ' + name + ' on ' + esc(ip) + '">' + name + '</a>';
+    }
+    return '<span class="port-chip">' + name + '</span>';
+}
+
 var _currentTier = 'community';
 var _tierFeatures = {};
 function loadLicense() {
@@ -2364,7 +2390,7 @@ function renderScanResults() {
     filtered.forEach(function(r) {
         var ms = r.response_ms !== null ? r.response_ms.toFixed(1) : '--';
         var portsHtml = '';
-        (r.open_ports || []).forEach(function(p) { portsHtml += '<span class="port-chip">' + (PORT_NAMES[p] || p) + ' (' + p + ')</span>'; });
+        (r.open_ports || []).forEach(function(p) { portsHtml += portServiceLink(p, r.ip); });
         if (!(r.open_ports||[]).length && r.is_alive) portsHtml = '<span style="color:#555;">None</span>';
         var actionHtml = '';
         if (r.is_alive && !r.is_monitored) {
@@ -2671,7 +2697,7 @@ function filterInventory() {
         + '<th style="width:36px;"><input type="checkbox" id="inv-select-all" onchange="toggleAllInvCheckboxes(this)" style="accent-color:#5b9aff;width:16px;height:16px;cursor:pointer;"></th>'
         + '<th>IP</th><th>Hostname</th><th>Type</th><th>Vendor / Model</th><th>Location</th><th>Ports</th><th>Status</th><th>Last Seen</th><th style="width:180px;">Actions</th></tr></thead><tbody>';
     filtered.forEach(function(a) {
-        var portsHtml = ''; (a.open_ports_list || []).slice(0,6).forEach(function(p) { portsHtml += '<span class="port-chip">' + (PORT_NAMES[p]||p) + '</span>'; });
+        var portsHtml = ''; (a.open_ports_list || []).slice(0,6).forEach(function(p) { portsHtml += portServiceLink(p, a.ip); });
         if ((a.open_ports_list||[]).length > 6) portsHtml += '<span style="color:#555;font-size:11px;">+' + ((a.open_ports_list||[]).length-6) + '</span>';
         if (!portsHtml) portsHtml = '<span style="color:#444;">--</span>';
         var stCls = a.status === 'active' ? 'inv-status-active' : 'inv-status-retired';
