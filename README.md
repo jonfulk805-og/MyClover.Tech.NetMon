@@ -346,4 +346,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-**Built by [Clover Technologies LLC](https://myclover.tech)** 🍀
+**Built by [MyClover.Tech](https://myclover.tech)** 🍀
