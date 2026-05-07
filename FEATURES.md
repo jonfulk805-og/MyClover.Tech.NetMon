@@ -182,7 +182,10 @@ MyClover.Tech.netmon is a lightweight, self-hosted network monitoring system bui
 | v2 | 2026-05 | Device CRUD via web, REST API, live config |
 | v3 | 2026-05 | Links/Notes, maintenance mode, detail drawer, filters |
 | v4 | 2026-05 | Discovery scanner, network map, settings, inventory, alive-only scans, batch delete, Windows ping fix |
-| **v5** | **2026-05** | **Host dependencies, performance graphing, alert acknowledgment, scheduled downtime, renamed to MyClover.Tech.netmon** |
+| **v5** | **2026-05** | **Host dependencies, performance graphing, alert acknowledgment, scheduled downtime** |
+| **v5.1** | **2026-05** | **License key gating, tier-based feature access (Free/Pro/Enterprise)** |
+| **v5.2** | **2026-05** | **NOC display, multi-channel notifications, SLA reports, RBAC, custom plugins, SNMP deep polling** |
+| **v5.3** | **2026-05** | **Security scanner (6 modules), built-in help system (17 topics), Stripe payment integration** |
 
 ---
 

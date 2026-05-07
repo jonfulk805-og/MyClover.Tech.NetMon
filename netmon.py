@@ -3392,7 +3392,7 @@ def create_app():
 # ---------------------------------------------------------------------------
 
 def main():
-    log.info("MyClover.Tech.netmon v5 starting...")
+    log.info("MyClover.Tech.netmon v5.3 starting...")
     _reload_config()
 
     with _config_lock:

@@ -1,8 +1,8 @@
-# 🍀 MyClover.Tech.netmon
+# 🍀 MyClover.Tech.netmon v5.3
 
 **Lightweight, self-hosted network monitoring — up and running in 60 seconds.**
 
-MyClover.Tech.netmon is a Python-based network monitoring system with a modern dark-themed web dashboard, multi-protocol checks, real-time alerting, network discovery, security scanning, and enterprise features like host dependencies, performance graphing, and role-based access control.
+MyClover.Tech.netmon v5.3 is a Python-based network monitoring system with a modern dark-themed web dashboard, multi-protocol checks, real-time alerting, network discovery, security scanning, and enterprise features like host dependencies, performance graphing, and role-based access control.
 
 🌐 **Website:** [myclover.tech](https://myclover.tech)
 
@@ -346,4 +346,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-**Built by [Clover LLC](https://myclover.tech)** 🍀
+**Built by [Clover Technologies LLC](https://myclover.tech)** 🍀
