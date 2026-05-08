@@ -9,7 +9,7 @@
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 
-/* ===== SKIN / THEME ENGINE (v5.4) ===== */
+/* ===== SKIN / THEME ENGINE (v5.5) ===== */
 :root {
     /* Base backgrounds */
     --bg-body: #0f1117;
@@ -564,7 +564,7 @@ tr:hover { background: var(--bg-card); }
 <div class="header">
     <div style="display:flex;align-items:baseline;">
         <h1>Clover<span class="brand-dot">.</span>tech<span class="brand-dot">.</span>netmon</h1>
-        <span class="subtitle">Network Monitoring System v5.4</span>
+        <span class="subtitle">Network Monitoring System v5.5</span>
     </div>
     <span class="refresh-info" id="refresh-info">Auto-refresh: 30s</span>
 </div>
@@ -2401,7 +2401,7 @@ function esc(s) { if (s === null || s === undefined) return ''; var d = document
 function escAttr(s) { return esc(String(s === null || s === undefined ? '' : s)).replace(/"/g, '&quot;'); }
 
 
-// ===== Skin & Customization Engine (v5.4) =====
+// ===== Skin & Customization Engine (v5.5) =====
 var _refreshTimer = null;
 var _refreshMs = 30000;
 
