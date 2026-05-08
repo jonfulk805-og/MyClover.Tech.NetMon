@@ -431,7 +431,7 @@ def get_latest_per_check():
 def get_alerts(hours=48):
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
-    since = (datetime.datetime.utcnow() - datetime.timedelta(hours=hours)).isoformat()
+    since = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - datetime.timedelta(hours=hours)).isoformat()
     rows = conn.execute(
         "SELECT * FROM alerts WHERE timestamp >= ? ORDER BY timestamp DESC LIMIT 500",
         (since,)).fetchall()
@@ -442,7 +442,7 @@ def get_alerts(hours=48):
 def get_history(hours=24):
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
-    since = (datetime.datetime.utcnow() - datetime.timedelta(hours=hours)).isoformat()
+    since = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - datetime.timedelta(hours=hours)).isoformat()
     rows = conn.execute(
         "SELECT * FROM check_results WHERE timestamp >= ? ORDER BY timestamp DESC LIMIT 1000",
         (since,)).fetchall()
@@ -469,7 +469,7 @@ def get_device_history(device_name, check_label=None, limit=50):
 
 def get_device_uptime(device_name, hours=24):
     conn = sqlite3.connect(str(DB_PATH))
-    since = (datetime.datetime.utcnow() - datetime.timedelta(hours=hours)).isoformat()
+    since = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - datetime.timedelta(hours=hours)).isoformat()
     total = conn.execute(
         "SELECT COUNT(*) FROM check_results WHERE device_name=? AND timestamp>=?",
         (device_name, since)).fetchone()[0]
@@ -486,7 +486,7 @@ def get_perf_data(device_name, check_label, hours=24, max_points=200):
     """Get performance time-series data for graphing."""
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
-    since = (datetime.datetime.utcnow() - datetime.timedelta(hours=hours)).isoformat()
+    since = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - datetime.timedelta(hours=hours)).isoformat()
     rows = conn.execute(
         "SELECT timestamp, status, response_ms FROM perf_data "
         "WHERE device_name=? AND check_label=? AND timestamp>=? "
@@ -507,7 +507,7 @@ def get_perf_data(device_name, check_label, hours=24, max_points=200):
 
 def get_active_downtimes():
     """Return list of device names currently in scheduled downtime."""
-    now = datetime.datetime.utcnow().isoformat()
+    now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     rows = conn.execute(
@@ -579,7 +579,7 @@ def is_parent_down(device_name, parent_map, status_map):
 
 def import_scan_to_inventory(scan_id):
     """Import alive hosts from a scan into the inventory table."""
-    now = datetime.datetime.utcnow().isoformat()
+    now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     rows = conn.execute(
@@ -780,7 +780,7 @@ def run_check(device, check):
     elif ctype == "plugin":
         pr = run_plugin_check(device, check)
         return {
-            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "timestamp": datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat(),
             "device_name": device["name"],
             "host": host,
             "check_type": ctype,
@@ -802,7 +802,7 @@ def run_check(device, check):
         status = "OK"
 
     return {
-        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "timestamp": datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat(),
         "device_name": device["name"],
         "host": host,
         "check_type": ctype,
@@ -1137,7 +1137,7 @@ def generate_sla_report(hours=720, device_filter=None):
     """
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
-    since = (datetime.datetime.utcnow() - datetime.timedelta(hours=hours)).isoformat()
+    since = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - datetime.timedelta(hours=hours)).isoformat()
 
     # Get all device names
     with _config_lock:
@@ -1437,11 +1437,11 @@ def run_scan(ip_range_str, scan_port_list=None, port_timeout=1000, max_threads=5
     except ValueError as e:
         with _scan_lock:
             _scan_state["running"] = False
-            _scan_state["finished_at"] = datetime.datetime.utcnow().isoformat()
+            _scan_state["finished_at"] = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
         log.error("Scan parse error: %s", e)
         return
 
-    scan_id = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    scan_id = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).strftime("%Y%m%d_%H%M%S")
 
     with _scan_lock:
         _scan_state["running"] = True
@@ -1450,7 +1450,7 @@ def run_scan(ip_range_str, scan_port_list=None, port_timeout=1000, max_threads=5
         _scan_state["scanned"] = 0
         _scan_state["alive"] = 0
         _scan_state["target"] = ip_range_str
-        _scan_state["started_at"] = datetime.datetime.utcnow().isoformat()
+        _scan_state["started_at"] = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
         _scan_state["finished_at"] = None
         _scan_state["results"] = []
 
@@ -1485,7 +1485,7 @@ def run_scan(ip_range_str, scan_port_list=None, port_timeout=1000, max_threads=5
         conn.execute(
             "INSERT INTO scan_results (scan_id,timestamp,ip,hostname,is_alive,open_ports,response_ms,added_to_devices) "
             "VALUES (?,?,?,?,?,?,?,0)",
-            (scan_id, datetime.datetime.utcnow().isoformat(), r["ip"], r["hostname"],
+            (scan_id, datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat(), r["ip"], r["hostname"],
              int(r["is_alive"]), ",".join(str(p) for p in r["open_ports"]),
              r["response_ms"]))
     conn.commit()
@@ -1493,7 +1493,7 @@ def run_scan(ip_range_str, scan_port_list=None, port_timeout=1000, max_threads=5
 
     with _scan_lock:
         _scan_state["running"] = False
-        _scan_state["finished_at"] = datetime.datetime.utcnow().isoformat()
+        _scan_state["finished_at"] = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
         _scan_state["results"] = alive_results
 
     if auto_inventory:
@@ -1649,7 +1649,7 @@ def create_app():
         """Acknowledge an alert to suppress repeat notifications."""
         data = request.get_json(force=True) if request.data else {}
         ack_by = str(data.get("by", "dashboard")).strip() or "dashboard"
-        now = datetime.datetime.utcnow().isoformat()
+        now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
         conn = sqlite3.connect(str(DB_PATH))
         row = conn.execute("SELECT device_name, check_label FROM alerts WHERE id=?",
                            (alert_id,)).fetchone()
@@ -1669,7 +1669,7 @@ def create_app():
     @app.route("/api/alerts/acknowledge-all", methods=["POST"])
     def api_acknowledge_all():
         """Acknowledge all unacknowledged alerts."""
-        now = datetime.datetime.utcnow().isoformat()
+        now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
         data = request.get_json(force=True) if request.data else {}
         ack_by = str(data.get("by", "dashboard")).strip() or "dashboard"
         conn = sqlite3.connect(str(DB_PATH))
@@ -1838,7 +1838,7 @@ def create_app():
             found = any(d["name"] == device_name for d in _config.get("devices", []))
         if not found:
             abort(404, description="Device not found")
-        now = datetime.datetime.utcnow().isoformat()
+        now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
         conn = sqlite3.connect(str(DB_PATH))
         conn.execute(
             "INSERT INTO scheduled_downtime (device_name,start_time,end_time,reason,created_by,created_at,active) "
@@ -2230,7 +2230,7 @@ def create_app():
                          "critical": crit},
             "devices": dev_list,
             "alerts": alerts,
-            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "timestamp": datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat(),
         })
 
     # --- SLA / Uptime Reports (Enterprise) ---
@@ -2253,7 +2253,7 @@ def create_app():
 
         return jsonify({
             "period_hours": hours,
-            "generated_at": datetime.datetime.utcnow().isoformat(),
+            "generated_at": datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat(),
             "devices": reports,
         })
 
@@ -2399,7 +2399,7 @@ def create_app():
     def api_test_webhook():
         data = request.get_json(force=True) if request.data else {}
         test_result = {
-            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "timestamp": datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat(),
             "device_name": "Test Device",
             "host": "127.0.0.1",
             "check_type": "test",
@@ -2477,7 +2477,7 @@ def create_app():
         ip = str(data.get("ip", "")).strip()
         if not ip:
             abort(400, description="IP address is required")
-        now = datetime.datetime.utcnow().isoformat()
+        now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
         conn = sqlite3.connect(str(DB_PATH))
         existing = conn.execute("SELECT id FROM inventory WHERE ip=?", (ip,)).fetchone()
         if existing:
@@ -2608,7 +2608,7 @@ def create_app():
 # ---------------------------------------------------------------------------
 
 def main():
-    log.info("Clover.tech.netmon v5 starting...")
+    log.info("Clover.tech.netmon v5.6 starting...")
     _reload_config()
 
     with _config_lock:
