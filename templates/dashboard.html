@@ -1146,8 +1146,8 @@ document.querySelectorAll('.tab').forEach(function(tab) {
 // ===== Status Tab =====
 function loadStatus() {
     Promise.all([
-        fetch('/api/devices').then(function(r){ return r.json(); }),
-        fetch('/api/status').then(function(r){ return r.json(); }),
+        fetch('/api/devices').then(function(r){ if(!r.ok) throw new Error('devices: '+r.status); return r.json(); }),
+        fetch('/api/status').then(function(r){ if(!r.ok) throw new Error('status: '+r.status); return r.json(); }),
         safeFetch('/api/dependencies', [])
     ]).then(function(all) {
         _devicesCache = all[0];
@@ -1164,6 +1164,10 @@ function loadStatus() {
         });
         buildStatusData(parentMap, statusMap);
         applyFilters();
+    }).catch(function(err) {
+        console.error('loadStatus error:', err);
+        var c = document.getElementById('status-cards');
+        if (c) c.innerHTML = '<div class="empty-state"><p style="color:var(--text-dim);">Failed to load devices: ' + err.message + '</p><p style="font-size:12px;color:var(--text-dim);">Check the console (F12) for details.</p></div>';
     });
 }
 
