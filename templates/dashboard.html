@@ -556,6 +556,12 @@ tr:hover { background: var(--bg-card); }
     display: inline-block; background: var(--accent-bg); border: 1px solid var(--accent-border);
     border-radius: 3px; padding: 1px 6px; font-size: 11px; color: var(--accent); margin: 1px 2px;
 }
+a.port-link {
+    text-decoration: none; cursor: pointer; transition: background 0.2s, border-color 0.2s;
+}
+a.port-link:hover {
+    background: rgba(91,154,255,0.25); border-color: var(--accent); color: var(--accent);
+}
 .alive-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
 .alive-dot.up { background: var(--status-ok); }
 .alive-dot.down { background: var(--text-faint); }
@@ -659,6 +665,7 @@ tr:hover { background: var(--bg-card); }
     <div class="tab" data-tab="downtime" draggable="true"><span class="tab-grip">&#9776;</span>Downtime</div>
     <div class="tab" data-tab="devices" draggable="true"><span class="tab-grip">&#9776;</span>Manage Devices</div>
     <div class="tab" data-tab="reports" draggable="true"><span class="tab-grip">&#9776;</span>Reports</div>
+    <div class="tab" data-tab="security" draggable="true"><span class="tab-grip">&#9776;</span>Security</div>
     <div class="tab" data-tab="settings" draggable="true"><span class="tab-grip">&#9776;</span>Settings</div>
     <div class="tab-hidden-indicator" id="hidden-tabs-indicator" onclick="showHiddenTabsMenu(this)" title="Show hidden tabs"></div>
 </div>
@@ -850,6 +857,100 @@ tr:hover { background: var(--bg-card); }
                     <th>Incidents</th><th>MTTR</th><th>SLA Status</th>
                 </tr></thead>
                 <tbody id="sla-body"><tr><td colspan="7" style="text-align:center;color:var(--text-faint);padding:40px;">Click "Generate Report" to view SLA data</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<div class="content tab-content" id="tab-security">
+    <h2 style="color:var(--text-primary);font-size:16px;margin-bottom:20px;">Security Scanner</h2>
+    <div id="security-upgrade" style="display:none;"></div>
+    <div id="security-content">
+        <!-- Scan launcher -->
+        <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px;">
+            <h3 style="color:var(--text-primary);font-size:14px;margin-bottom:12px;">Launch Security Scan</h3>
+            <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+                <div style="flex:1;min-width:200px;">
+                    <label style="color:var(--text-dim);font-size:12px;display:block;margin-bottom:4px;">Targets (comma-separated IPs, or blank for all devices)</label>
+                    <input type="text" id="sec-targets" placeholder="e.g. 192.168.1.1, 192.168.1.10" style="width:100%;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:6px;font-size:13px;">
+                </div>
+                <div>
+                    <label style="color:var(--text-dim);font-size:12px;display:block;margin-bottom:4px;">Scan Types</label>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <label style="color:var(--text-secondary);font-size:12px;cursor:pointer;"><input type="checkbox" id="sec-type-ports" checked style="margin-right:3px;">Ports</label>
+                        <label style="color:var(--text-secondary);font-size:12px;cursor:pointer;"><input type="checkbox" id="sec-type-ssl" checked style="margin-right:3px;">SSL/TLS</label>
+                        <label style="color:var(--text-secondary);font-size:12px;cursor:pointer;"><input type="checkbox" id="sec-type-http" checked style="margin-right:3px;">HTTP Headers</label>
+                        <label style="color:var(--text-secondary);font-size:12px;cursor:pointer;"><input type="checkbox" id="sec-type-services" checked style="margin-right:3px;">Services</label>
+                        <label style="color:var(--text-secondary);font-size:12px;cursor:pointer;"><input type="checkbox" id="sec-type-snmp" style="margin-right:3px;">SNMP</label>
+                        <label style="color:var(--text-secondary);font-size:12px;cursor:pointer;"><input type="checkbox" id="sec-type-dns" style="margin-right:3px;">DNS</label>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="startSecurityScan()" id="sec-scan-btn">Start Scan</button>
+                <button class="btn" onclick="stopSecurityScan()" id="sec-stop-btn" style="display:none;background:var(--status-critical);color:#fff;">Stop Scan</button>
+            </div>
+            <!-- Progress -->
+            <div id="sec-progress" style="display:none;margin-top:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                    <span style="color:var(--text-dim);font-size:12px;" id="sec-progress-label">Scanning...</span>
+                    <span style="color:var(--text-primary);font-size:12px;font-weight:600;" id="sec-progress-pct">0%</span>
+                </div>
+                <div style="background:var(--bg-primary);border-radius:4px;height:8px;overflow:hidden;">
+                    <div id="sec-progress-bar" style="background:var(--status-ok);height:100%;width:0%;transition:width 0.3s;border-radius:4px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary cards (shown after scan) -->
+        <div id="sec-summary" style="display:none;gap:12px;margin-bottom:20px;flex-wrap:wrap;"></div>
+
+        <!-- Findings table -->
+        <div id="sec-results" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <h3 style="color:var(--text-primary);font-size:14px;margin:0;">Findings</h3>
+                <div style="display:flex;gap:8px;">
+                    <select id="sec-filter-severity" onchange="filterSecFindings()" style="background:var(--card-bg);border:1px solid var(--border);color:var(--text-primary);padding:4px 10px;border-radius:6px;font-size:12px;">
+                        <option value="">All Severities</option>
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                        <option value="info">Info</option>
+                    </select>
+                    <select id="sec-filter-category" onchange="filterSecFindings()" style="background:var(--card-bg);border:1px solid var(--border);color:var(--text-primary);padding:4px 10px;border-radius:6px;font-size:12px;">
+                        <option value="">All Categories</option>
+                        <option value="ports">Ports</option>
+                        <option value="ssl">SSL/TLS</option>
+                        <option value="http">HTTP</option>
+                        <option value="services">Services</option>
+                        <option value="snmp">SNMP</option>
+                        <option value="dns">DNS</option>
+                    </select>
+                </div>
+            </div>
+            <table class="data-table" id="sec-findings-table">
+                <thead><tr>
+                    <th style="width:90px;">Severity</th>
+                    <th>Target</th>
+                    <th style="width:90px;">Category</th>
+                    <th>Finding</th>
+                    <th>Remediation</th>
+                </tr></thead>
+                <tbody id="sec-findings-body"></tbody>
+            </table>
+        </div>
+
+        <!-- Scan history -->
+        <div style="margin-top:24px;">
+            <h3 style="color:var(--text-primary);font-size:14px;margin-bottom:12px;">Scan History</h3>
+            <table class="data-table">
+                <thead><tr>
+                    <th>Scan ID</th><th>Date</th><th>Targets</th><th>Types</th>
+                    <th>Critical</th><th>High</th><th>Medium</th><th>Low</th><th>Actions</th>
+                </tr></thead>
+                <tbody id="sec-history-body">
+                    <tr><td colspan="9" style="text-align:center;color:var(--text-faint);padding:40px;">No security scans yet. Launch one above.</td></tr>
+                </tbody>
             </table>
         </div>
     </div>
@@ -1245,6 +1346,41 @@ var _perfPeriod = 24;
 
 var PORT_NAMES = {22:"SSH",23:"Telnet",53:"DNS",80:"HTTP",443:"HTTPS",161:"SNMP",445:"SMB",3389:"RDP",5900:"VNC",8080:"HTTP-Alt",8443:"HTTPS-Alt"};
 
+
+// Download a .rdp file to launch Remote Desktop Connection
+function downloadRdpFile(ip) {
+    var content = 'full address:s:' + ip + '\r\nprompt for credentials:i:1\r\nscreen mode id:i:2\r\n';
+    var blob = new Blob([content], {type: 'application/x-rdp'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = ip.replace(/\./g, '_') + '.rdp';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+}
+
+// Build a clickable service link from port number and host IP
+function portServiceLink(port, ip) {
+    var name = PORT_NAMES[port] || port;
+    // RDP: generate a downloadable .rdp file instead of rdp:// protocol
+    if (port === 3389) {
+        return '<a href="javascript:void(0)" onclick="downloadRdpFile(\'' + escAttr(ip) + '\')" class="port-chip port-link" title="Download .rdp file for ' + esc(ip) + '">' + name + '</a>';
+    }
+    var urlMap = {
+        80:  'http://' + ip,
+        443: 'https://' + ip,
+        8080:'http://' + ip + ':8080',
+        8443:'https://' + ip + ':8443',
+        22:  'ssh://' + ip,
+        23:  'telnet://' + ip,
+        5900:'vnc://' + ip
+    };
+    var url = urlMap[port];
+    if (url) {
+        return '<a href="' + url + '" target="_blank" rel="noopener" class="port-chip port-link" title="Connect to ' + name + ' on ' + esc(ip) + '">' + name + '</a>';
+    }
+    return '<span class="port-chip">' + name + '</span>';
+}
+
 var _currentTier = 'community';
 var _tierFeatures = {};
 function loadLicense() {
@@ -1280,6 +1416,7 @@ document.querySelectorAll('.tab').forEach(function(tab) {
         if (tab.dataset.tab === 'discovery') { loadDiscoveryTab(); }
         if (tab.dataset.tab === 'map') loadNetworkMap();
         if (tab.dataset.tab === 'reports') loadReportsTab();
+        if (tab.dataset.tab === 'security') loadSecurityTab();
         if (tab.dataset.tab === 'settings') loadSettings();
         if (tab.dataset.tab === 'inventory') loadInventory();
         if (tab.dataset.tab === 'downtime') loadDowntimes();
@@ -2109,7 +2246,7 @@ function renderScanResults() {
     filtered.forEach(function(r) {
         var ms = r.response_ms !== null ? r.response_ms.toFixed(1) : '--';
         var portsHtml = '';
-        (r.open_ports || []).forEach(function(p) { portsHtml += '<span class="port-chip">' + (PORT_NAMES[p] || p) + ' (' + p + ')</span>'; });
+        (r.open_ports || []).forEach(function(p) { portsHtml += portServiceLink(p, r.ip); });
         if (!(r.open_ports||[]).length && r.is_alive) portsHtml = '<span style="color:#555;">None</span>';
         var actionHtml = '';
         if (r.is_alive && !r.is_monitored) {
@@ -2416,7 +2553,7 @@ function filterInventory() {
         + '<th style="width:36px;"><input type="checkbox" id="inv-select-all" onchange="toggleAllInvCheckboxes(this)" style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer;"></th>'
         + '<th>IP</th><th>Hostname</th><th>Type</th><th>Vendor / Model</th><th>Location</th><th>Ports</th><th>Status</th><th>Last Seen</th><th style="width:180px;">Actions</th></tr></thead><tbody>';
     filtered.forEach(function(a) {
-        var portsHtml = ''; (a.open_ports_list || []).slice(0,6).forEach(function(p) { portsHtml += '<span class="port-chip">' + (PORT_NAMES[p]||p) + '</span>'; });
+        var portsHtml = ''; (a.open_ports_list || []).slice(0,6).forEach(function(p) { portsHtml += portServiceLink(p, a.ip); });
         if ((a.open_ports_list||[]).length > 6) portsHtml += '<span style="color:var(--text-faint);font-size:11px;">+' + ((a.open_ports_list||[]).length-6) + '</span>';
         if (!portsHtml) portsHtml = '<span style="color:#444;">--</span>';
         var stCls = a.status === 'active' ? 'inv-status-active' : 'inv-status-retired';
@@ -2928,8 +3065,8 @@ setTimeout(function() {
 
 // ===== Tier 2: Tab Reorder, Visibility & Accent (v5.5) =====
 
-var DEFAULT_TAB_ORDER = ['status','map','discovery','inventory','alerts','history','downtime','devices','reports','settings'];
-var TAB_LABELS = {status:'Status',map:'Network Map',discovery:'Discovery',inventory:'Inventory',alerts:'Alerts',history:'History',downtime:'Downtime',devices:'Manage Devices',reports:'Reports',settings:'Settings'};
+var DEFAULT_TAB_ORDER = ['status','map','discovery','inventory','alerts','history','downtime','devices','reports','security','settings'];
+var TAB_LABELS = {status:'Status',map:'Network Map',discovery:'Discovery',inventory:'Inventory',alerts:'Alerts',history:'History',downtime:'Downtime',devices:'Manage Devices',reports:'Reports',settings:'Settings', security:'Security'};
 
 // --- Accent Color ---
 function setAccent(color) {
@@ -2968,6 +3105,199 @@ function adjustBrightness(hex, amount) {
     var g = Math.min(255, Math.max(0, parseInt(hex.substring(2,4), 16) + amount));
     var b = Math.min(255, Math.max(0, parseInt(hex.substring(4,6), 16) + amount));
     return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+
+// ===== Security Scanner Tab =====
+var _secFindings = [];
+var _secScanPolling = null;
+
+function loadSecurityTab() {
+    safeFetch('/api/security/scans', []).then(function(scans) {
+        if (scans.error) {
+            document.getElementById('security-upgrade').innerHTML = upgradeHTML('Security Scanner');
+            document.getElementById('security-upgrade').style.display = '';
+            document.getElementById('security-content').style.display = 'none';
+            return;
+        }
+        document.getElementById('security-upgrade').style.display = 'none';
+        document.getElementById('security-content').style.display = '';
+        renderSecHistory(scans);
+        if (scans.length > 0 && scans[0].status === 'completed') {
+            loadSecScanResults(scans[0].scan_id);
+        }
+    });
+}
+
+function startSecurityScan() {
+    var targetsStr = document.getElementById('sec-targets').value.trim();
+    var targets = targetsStr ? targetsStr.split(',').map(function(t){ return t.trim(); }).filter(Boolean) : [];
+    var scanTypes = [];
+    if (document.getElementById('sec-type-ports').checked) scanTypes.push('ports');
+    if (document.getElementById('sec-type-ssl').checked) scanTypes.push('ssl');
+    if (document.getElementById('sec-type-http').checked) scanTypes.push('http');
+    if (document.getElementById('sec-type-services').checked) scanTypes.push('services');
+    if (document.getElementById('sec-type-snmp').checked) scanTypes.push('snmp');
+    if (document.getElementById('sec-type-dns').checked) scanTypes.push('dns');
+    if (scanTypes.length === 0) { alert('Select at least one scan type'); return; }
+
+    document.getElementById('sec-scan-btn').disabled = true;
+    document.getElementById('sec-scan-btn').textContent = 'Scanning...';
+    document.getElementById('sec-stop-btn').style.display = '';
+    document.getElementById('sec-progress').style.display = '';
+    document.getElementById('sec-summary').style.display = 'none';
+    document.getElementById('sec-results').style.display = 'none';
+
+    fetch('/api/security/scan', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({targets: targets, scan_types: scanTypes})
+    }).then(function(r){ return r.json(); }).then(function(d) {
+        if (d.error) {
+            alert(d.error);
+            document.getElementById('sec-scan-btn').disabled = false;
+            document.getElementById('sec-scan-btn').textContent = 'Start Scan';
+            document.getElementById('sec-stop-btn').style.display = 'none';
+            document.getElementById('sec-progress').style.display = 'none';
+            return;
+        }
+        _secScanPolling = setInterval(function() {
+            fetch('/api/security/status').then(function(r){ return r.json(); }).then(function(st) {
+                document.getElementById('sec-progress-pct').textContent = (st.progress || 0) + '%';
+                document.getElementById('sec-progress-bar').style.width = (st.progress || 0) + '%';
+                var label = 'Scanning';
+                if (st.current_target) label += ' ' + st.current_target;
+                if (st.current_test) label += ' - ' + st.current_test;
+                label += '...';
+                document.getElementById('sec-progress-label').textContent = label;
+
+                if (st.status === 'completed' || st.status === 'cancelled') {
+                    clearInterval(_secScanPolling);
+                    _secScanPolling = null;
+                    document.getElementById('sec-scan-btn').disabled = false;
+                    document.getElementById('sec-scan-btn').textContent = 'Start Scan';
+                    document.getElementById('sec-stop-btn').style.display = 'none';
+                    document.getElementById('sec-stop-btn').disabled = false;
+                    document.getElementById('sec-stop-btn').textContent = 'Stop Scan';
+                    document.getElementById('sec-progress').style.display = 'none';
+                    if (st.status === 'cancelled') {
+                        document.getElementById('sec-progress-label').textContent = 'Scan cancelled.';
+                    }
+                    loadSecScanResults(st.scan_id || d.scan_id);
+                    loadSecurityTab();
+                }
+            });
+        }, 1500);
+    });
+}
+
+function loadSecScanResults(scanId) {
+    fetch('/api/security/scans/' + scanId).then(function(r){ return r.json(); }).then(function(scan) {
+        if (scan.error) return;
+        _secFindings = scan.findings || [];
+        var s = scan.summary || {};
+        var counts = s.severity_counts || {};
+        var summaryHtml = ''
+            + sevCard('Critical', counts.critical || 0, 'var(--status-critical)')
+            + sevCard('High', counts.high || 0, '#f97316')
+            + sevCard('Medium', counts.medium || 0, 'var(--status-warn)')
+            + sevCard('Low', counts.low || 0, 'var(--accent)')
+            + sevCard('Info', counts.info || 0, 'var(--text-dim)');
+        var sumEl = document.getElementById('sec-summary');
+        sumEl.innerHTML = summaryHtml;
+        sumEl.style.display = 'flex';
+        document.getElementById('sec-results').style.display = '';
+        renderSecFindings(_secFindings);
+    });
+}
+
+function sevCard(label, count, color) {
+    return '<div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:16px 24px;text-align:center;min-width:100px;">'
+        + '<div style="font-size:24px;font-weight:700;color:' + color + ';">' + count + '</div>'
+        + '<div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;">' + esc(label) + '</div></div>';
+}
+
+function sevBadge(severity) {
+    var colors = {critical:'var(--status-critical)',high:'#f97316',medium:'var(--status-warn)',low:'var(--accent)',info:'var(--text-dim)'};
+    var c = colors[severity] || 'var(--text-dim)';
+    return '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;'
+        + 'background:color-mix(in srgb, ' + c + ' 15%, transparent);color:' + c + ';text-transform:uppercase;">' + esc(severity) + '</span>';
+}
+
+function catBadge(cat) {
+    return '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;'
+        + 'background:var(--bg-primary);color:var(--text-dim);">' + esc(cat) + '</span>';
+}
+
+function renderSecFindings(findings) {
+    var html = '';
+    findings.forEach(function(f) {
+        html += '<tr>'
+            + '<td>' + sevBadge(f.severity) + '</td>'
+            + '<td style="font-family:monospace;font-size:12px;">' + esc(f.target) + '</td>'
+            + '<td>' + catBadge(f.category) + '</td>'
+            + '<td><div style="color:var(--text-primary);font-weight:500;font-size:13px;">' + esc(f.title) + '</div>'
+            + '<div style="color:var(--text-faint);font-size:11px;margin-top:2px;">' + esc(f.description) + '</div></td>'
+            + '<td style="color:var(--text-dim);font-size:12px;">' + esc(f.remediation || '-') + '</td>'
+            + '</tr>';
+    });
+    if (!html) html = '<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:40px;">No findings</td></tr>';
+    document.getElementById('sec-findings-body').innerHTML = html;
+}
+
+function filterSecFindings() {
+    var sev = document.getElementById('sec-filter-severity').value;
+    var cat = document.getElementById('sec-filter-category').value;
+    var filtered = _secFindings.filter(function(f) {
+        if (sev && f.severity !== sev) return false;
+        if (cat && f.category !== cat) return false;
+        return true;
+    });
+    renderSecFindings(filtered);
+}
+
+function renderSecHistory(scans) {
+    if (!scans || scans.length === 0) {
+        document.getElementById('sec-history-body').innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-faint);padding:40px;">No security scans yet. Launch one above.</td></tr>';
+        return;
+    }
+    var html = '';
+    scans.forEach(function(s) {
+        var summary = s.summary || {};
+        var counts = summary.severity_counts || {};
+        var targets = s.targets || [];
+        var targetStr = targets.length > 3 ? targets.slice(0,3).join(', ') + ' +' + (targets.length - 3) : targets.join(', ');
+        var types = s.scan_types || [];
+        html += '<tr>'
+            + '<td style="font-family:monospace;font-size:12px;">' + esc(s.scan_id) + '</td>'
+            + '<td style="font-size:12px;">' + esc(s.started_at || '') + '</td>'
+            + '<td style="font-size:12px;" title="' + escAttr(targets.join(', ')) + '">' + esc(targetStr) + '</td>'
+            + '<td style="font-size:12px;">' + esc(types.join(', ')) + '</td>'
+            + '<td style="color:var(--status-critical);font-weight:600;">' + (counts.critical || 0) + '</td>'
+            + '<td style="color:#f97316;font-weight:600;">' + (counts.high || 0) + '</td>'
+            + '<td style="color:var(--status-warn);">' + (counts.medium || 0) + '</td>'
+            + '<td style="color:var(--accent);">' + (counts.low || 0) + '</td>'
+            + '<td><button class="btn btn-ghost btn-sm" onclick="loadSecScanResults(\'' + escAttr(s.scan_id) + '\')">View</button> '
+            + '<button class="btn btn-ghost btn-sm" onclick="deleteSecScan(\'' + escAttr(s.scan_id) + '\')" style="color:var(--status-critical);">Del</button></td>'
+            + '</tr>';
+    });
+    document.getElementById('sec-history-body').innerHTML = html;
+}
+
+function deleteSecScan(scanId) {
+    if (!confirm('Delete this security scan and all findings?')) return;
+    fetch('/api/security/scans/' + scanId, {method:'DELETE'}).then(function(){ loadSecurityTab(); });
+}
+
+function stopSecurityScan() {
+    document.getElementById('sec-stop-btn').disabled = true;
+    document.getElementById('sec-stop-btn').textContent = 'Stopping...';
+    fetch('/api/security/cancel', {method:'POST'}).then(function(r){ return r.json(); }).then(function(d) {
+        document.getElementById('sec-progress-label').textContent = 'Cancelling scan...';
+    }).catch(function() {
+        document.getElementById('sec-stop-btn').disabled = false;
+        document.getElementById('sec-stop-btn').textContent = 'Stop Scan';
+    });
 }
 
 // --- Tab Visibility ---
