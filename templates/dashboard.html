@@ -313,6 +313,86 @@ body {
 .card .response { color: var(--text-muted); font-size: 13px; }
 .card .message  { color: var(--text-muted); font-size: 12px; margin-top: 6px; }
 .card .timestamp{ color: var(--text-faint); font-size: 11px; margin-top: 4px; }
+
+/* === Tier 3: Pinned Devices, List View, Widgets === */
+.card .pin-star {
+    position: absolute; top: 8px; right: 10px; cursor: pointer; font-size: 16px;
+    color: var(--text-faint); opacity: 0.4; transition: all 0.2s; z-index: 2;
+    background: none; border: none; padding: 2px; line-height: 1;
+}
+.card .pin-star:hover { opacity: 1; color: var(--status-warning); }
+.card .pin-star.pinned { opacity: 1; color: var(--status-warning); }
+.card { position: relative; }
+
+/* List view */
+.cards.list-view {
+    display: flex !important; flex-direction: column; gap: 4px;
+}
+.cards.list-view .card {
+    display: grid; grid-template-columns: 200px 100px 1fr 80px 160px;
+    align-items: center; padding: 8px 14px; border-radius: 4px; gap: 12px;
+}
+.cards.list-view .card .card-top { display: contents; }
+.cards.list-view .card .card-top > div { display: flex; align-items: center; gap: 6px; }
+.cards.list-view .card .host { margin: 0; font-size: 12px; }
+.cards.list-view .card .status-row { margin: 0; }
+.cards.list-view .card .message { display: none; }
+.cards.list-view .card .timestamp { display: none; }
+.cards.list-view .card .pin-star { position: static; font-size: 14px; margin-right: 4px; }
+
+/* Group header with view toggle */
+.group-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin: 20px 0 10px 0;
+}
+.group-header:first-child { margin-top: 0; }
+.group-header .group-title { margin: 0; }
+.view-toggle {
+    display: flex; gap: 2px; background: var(--bg-deep); border-radius: 4px; padding: 2px;
+}
+.view-toggle button {
+    background: none; border: none; color: var(--text-faint); cursor: pointer;
+    padding: 3px 8px; border-radius: 3px; font-size: 12px; line-height: 1;
+}
+.view-toggle button.active { background: var(--bg-card); color: var(--text-primary); }
+.view-toggle button:hover:not(.active) { color: var(--text-muted); }
+
+/* Widgets panel */
+.widgets-bar {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px; margin-bottom: 16px;
+}
+.widgets-bar.hidden { display: none; }
+.widget-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; position: relative;
+}
+.widget-card h4 {
+    font-size: 12px; color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: 0.5px; margin: 0 0 10px 0;
+}
+.widget-card .widget-body { font-size: 13px; color: var(--text-body); }
+.widget-card .widget-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 0; border-bottom: 1px solid var(--border-light);
+}
+.widget-card .widget-item:last-child { border-bottom: none; }
+.widget-card .widget-item .name { color: var(--text-primary); font-size: 12px; }
+.widget-card .widget-item .value { font-size: 12px; font-weight: 600; }
+.widget-card .widget-item .value.ok { color: var(--status-ok); }
+.widget-card .widget-item .value.warning { color: var(--status-warning); }
+.widget-card .widget-item .value.critical { color: var(--status-critical); }
+.widget-card .widget-big-number {
+    font-size: 28px; font-weight: 700; color: var(--accent); line-height: 1;
+}
+.widget-card .widget-sublabel { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+.widgets-toggle-btn {
+    background: none; border: 1px solid var(--border); color: var(--text-dim);
+    padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;
+    margin-bottom: 8px;
+}
+.widgets-toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+
 table { width: 100%; border-collapse: collapse; }
 th {
     text-align: left; padding: 10px 12px; color: var(--text-muted); font-size: 12px;
@@ -564,7 +644,7 @@ tr:hover { background: var(--bg-card); }
 <div class="header">
     <div style="display:flex;align-items:baseline;">
         <h1>Clover<span class="brand-dot">.</span>tech<span class="brand-dot">.</span>netmon</h1>
-        <span class="subtitle">Network Monitoring System v5.5</span>
+        <span class="subtitle">Network Monitoring System v5.6</span>
     </div>
     <span class="refresh-info" id="refresh-info">Auto-refresh: 30s</span>
 </div>
@@ -601,6 +681,27 @@ tr:hover { background: var(--bg-card); }
             <option value="maint">Maintenance</option>
             <option value="parent-down">Parent Down</option>
         </select>
+    </div>
+    <div style="margin-bottom:8px;">
+        <button class="widgets-toggle-btn" id="widgets-toggle" onclick="toggleWidgets()">Show Widgets</button>
+    </div>
+    <div class="widgets-bar hidden" id="widgets-bar">
+        <div class="widget-card" id="widget-worst-uptime">
+            <h4>Worst Response Times</h4>
+            <div class="widget-body" id="widget-worst-body">--</div>
+        </div>
+        <div class="widget-card" id="widget-status-breakdown">
+            <h4>Status Breakdown</h4>
+            <div class="widget-body" id="widget-breakdown-body">--</div>
+        </div>
+        <div class="widget-card" id="widget-recent-alerts">
+            <h4>Recent Alerts</h4>
+            <div class="widget-body" id="widget-alerts-body">--</div>
+        </div>
+        <div class="widget-card" id="widget-check-stats">
+            <h4>Check Stats</h4>
+            <div class="widget-body" id="widget-stats-body">--</div>
+        </div>
     </div>
     <div id="status-cards">Loading...</div>
 </div>
@@ -848,6 +949,21 @@ tr:hover { background: var(--bg-card); }
                     <button onclick="resetTabOrder()" style="background:none;border:1px solid var(--border);color:var(--text-dim);padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;">Reset Order</button>
                     <button onclick="resetTabVisibility()" style="background:none;border:1px solid var(--border);color:var(--text-dim);padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;">Show All</button>
                 </div>
+            </div>
+            <div class="form-group" style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px;">
+                <label>Status Tab Widgets</label>
+                <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">Show quick-stats widgets above device cards.</div>
+                <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;margin-bottom:6px;">
+                    <input type="checkbox" id="pref-show-widgets" onchange="savePref('showWidgets', this.checked); applyWidgetVisibility()" style="accent-color:var(--accent);width:16px;height:16px;"> Enable dashboard widgets
+                </label>
+            </div>
+            <div class="form-group" style="margin-top:12px;">
+                <label>Card Layout</label>
+                <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">Default view for device card groups.</div>
+                <select id="pref-card-layout" onchange="savePref('cardLayout', this.value); applyAllGroupViews()">
+                    <option value="grid">Grid (default)</option>
+                    <option value="list">List / Compact</option>
+                </select>
             </div>
         </div>
     </div>
@@ -1317,10 +1433,29 @@ function applyFilters() {
     if (!filtered.length) {
         html = '<div class="empty-state"><p>No devices match your filters.</p></div>';
     } else {
+        var pinnedDevices = getPinnedDevices();
+        var defaultLayout = localStorage.getItem('netmon-cardLayout') || 'grid';
         Object.keys(byGroup).sort().forEach(function(grp) {
-            html += '<div class="group-title">' + esc(grp) + '</div><div class="cards">';
-            byGroup[grp].forEach(function(item) {
+            var groupViewKey = 'netmon-groupView-' + grp;
+            var viewMode = localStorage.getItem(groupViewKey) || defaultLayout;
+            var listCls = viewMode === 'list' ? ' list-view' : '';
+            html += '<div class="group-header"><div class="group-title">' + esc(grp) + '</div>'
+                + '<div class="view-toggle" data-group="' + escAttr(grp) + '">'
+                + '<button class="' + (viewMode === 'grid' ? 'active' : '') + '" onclick="setGroupView(\'' + escAttr(grp) + '\', \'grid\')" title="Grid view">&#9638;</button>'
+                + '<button class="' + (viewMode === 'list' ? 'active' : '') + '" onclick="setGroupView(\'' + escAttr(grp) + '\', \'list\')" title="List view">&#9776;</button>'
+                + '</div></div>';
+            // Sort: pinned devices first
+            var sorted = byGroup[grp].slice().sort(function(a, b) {
+                var aPinned = pinnedDevices.indexOf(a.deviceName) >= 0 ? 0 : 1;
+                var bPinned = pinnedDevices.indexOf(b.deviceName) >= 0 ? 0 : 1;
+                return aPinned - bPinned;
+            });
+            html += '<div class="cards' + listCls + '">';
+            sorted.forEach(function(item) {
+                var isPinned = pinnedDevices.indexOf(item.deviceName) >= 0;
+                var starCls = isPinned ? ' pinned' : '';
                 html += '<div class="card ' + item.statusClass + '" onclick="openDrawer(\'' + escAttr(item.deviceName) + '\')">'
+                    + '<button class="pin-star' + starCls + '" onclick="event.stopPropagation(); togglePin(\'' + escAttr(item.deviceName) + '\')" title="' + (isPinned ? 'Unpin' : 'Pin to top') + '">&#9733;</button>'
                     + '<div class="card-top"><div>'
                     + '<span class="device-name">' + esc(item.deviceName) + '</span>'
                     + '<span class="check-label">' + esc(item.checkLabel) + '</span>'
@@ -2518,6 +2653,23 @@ function loadPrefs() {
     applyTabOrder();
     applyTabVisibility();
     renderTabOrderSettings();
+
+    // Widgets
+    var showWidgets = localStorage.getItem('netmon-showWidgets') === 'true';
+    var widgetsCb = document.getElementById('pref-show-widgets');
+    if (widgetsCb) widgetsCb.checked = showWidgets;
+    var wBar = document.getElementById('widgets-bar');
+    var wBtn = document.getElementById('widgets-toggle');
+    if (wBar && wBtn) {
+        if (showWidgets) { wBar.classList.remove('hidden'); wBtn.textContent = 'Hide Widgets'; }
+        else { wBar.classList.add('hidden'); wBtn.textContent = 'Show Widgets'; }
+    }
+
+    // Card layout default
+    var cardLayout = localStorage.getItem('netmon-cardLayout') || 'grid';
+    var layoutSel = document.getElementById('pref-card-layout');
+    if (layoutSel) layoutSel.value = cardLayout;
+
     highlightActiveSkin();
 }
 
@@ -2530,8 +2682,157 @@ function cssVar(name) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
+
+// ===== Tier 3: Pinned Devices, Layout Modes, Widgets (v5.6) =====
+
+// --- Pinned / Favorite Devices ---
+function getPinnedDevices() {
+    try { return JSON.parse(localStorage.getItem('netmon-pinned')) || []; } catch(e) { return []; }
+}
+
+function togglePin(deviceName) {
+    var pinned = getPinnedDevices();
+    var idx = pinned.indexOf(deviceName);
+    if (idx >= 0) pinned.splice(idx, 1);
+    else pinned.push(deviceName);
+    localStorage.setItem('netmon-pinned', JSON.stringify(pinned));
+    applyFilters();
+}
+
+// --- Per-Group View Mode ---
+function setGroupView(group, mode) {
+    localStorage.setItem('netmon-groupView-' + group, mode);
+    applyFilters();
+}
+
+function applyAllGroupViews() {
+    // Re-render to apply default layout changes
+    applyFilters();
+}
+
+// --- Dashboard Widgets ---
+function toggleWidgets() {
+    var bar = document.getElementById('widgets-bar');
+    var btn = document.getElementById('widgets-toggle');
+    if (!bar) return;
+    var hidden = bar.classList.contains('hidden');
+    if (hidden) {
+        bar.classList.remove('hidden');
+        btn.textContent = 'Hide Widgets';
+        localStorage.setItem('netmon-showWidgets', 'true');
+        updateWidgets();
+    } else {
+        bar.classList.add('hidden');
+        btn.textContent = 'Show Widgets';
+        localStorage.setItem('netmon-showWidgets', 'false');
+    }
+    // Sync checkbox in settings
+    var cb = document.getElementById('pref-show-widgets');
+    if (cb) cb.checked = !bar.classList.contains('hidden');
+}
+
+function applyWidgetVisibility() {
+    var cb = document.getElementById('pref-show-widgets');
+    var bar = document.getElementById('widgets-bar');
+    var btn = document.getElementById('widgets-toggle');
+    if (!bar || !btn) return;
+    var show = cb ? cb.checked : false;
+    if (show) {
+        bar.classList.remove('hidden');
+        btn.textContent = 'Hide Widgets';
+        localStorage.setItem('netmon-showWidgets', 'true');
+        updateWidgets();
+    } else {
+        bar.classList.add('hidden');
+        btn.textContent = 'Show Widgets';
+        localStorage.setItem('netmon-showWidgets', 'false');
+    }
+}
+
+function updateWidgets() {
+    if (!_statusCache || !_devicesCache) return;
+    var bar = document.getElementById('widgets-bar');
+    if (!bar || bar.classList.contains('hidden')) return;
+
+    // Widget 1: Worst response times (top 5)
+    var withRT = _statusCache.filter(function(s) { return s.response_ms !== null && s.response_ms !== undefined && s.status !== 'MAINTENANCE'; });
+    withRT.sort(function(a, b) { return (b.response_ms || 0) - (a.response_ms || 0); });
+    var worstBody = document.getElementById('widget-worst-body');
+    if (worstBody) {
+        if (withRT.length === 0) {
+            worstBody.innerHTML = '<div style="color:var(--text-faint);font-size:12px;">No data yet</div>';
+        } else {
+            var whtml = '';
+            withRT.slice(0, 5).forEach(function(s) {
+                var cls = s.status === 'CRITICAL' ? 'critical' : (s.status === 'WARNING' ? 'warning' : 'ok');
+                whtml += '<div class="widget-item"><span class="name">' + esc(s.device_name) + ' / ' + esc(s.check_label || '') + '</span><span class="value ' + cls + '">' + (s.response_ms ? s.response_ms.toFixed(1) + ' ms' : 'N/A') + '</span></div>';
+            });
+            worstBody.innerHTML = whtml;
+        }
+    }
+
+    // Widget 2: Status breakdown
+    var breakdownBody = document.getElementById('widget-breakdown-body');
+    if (breakdownBody) {
+        var statusCounts = {};
+        _statusCache.forEach(function(s) {
+            statusCounts[s.status] = (statusCounts[s.status] || 0) + 1;
+        });
+        // Also count pending (devices with no results)
+        var devicesWithResults = {};
+        _statusCache.forEach(function(s) { devicesWithResults[s.device_name] = true; });
+        var pendingCount = 0;
+        _devicesCache.forEach(function(d) {
+            if (!devicesWithResults[d.name]) pendingCount++;
+        });
+        if (pendingCount > 0) statusCounts['PENDING'] = (statusCounts['PENDING'] || 0) + pendingCount;
+
+        var bhtml = '';
+        var statusOrder = ['OK', 'WARNING', 'CRITICAL', 'PENDING', 'MAINTENANCE'];
+        statusOrder.forEach(function(st) {
+            if (statusCounts[st]) {
+                var cls = st === 'OK' ? 'ok' : (st === 'CRITICAL' ? 'critical' : (st === 'WARNING' ? 'warning' : ''));
+                bhtml += '<div class="widget-item"><span class="name">' + st + '</span><span class="value ' + cls + '">' + statusCounts[st] + '</span></div>';
+            }
+        });
+        breakdownBody.innerHTML = bhtml || '<div style="color:var(--text-faint);font-size:12px;">No data yet</div>';
+    }
+
+    // Widget 3: Recent alerts (from cached alerts data)
+    var alertsBody = document.getElementById('widget-alerts-body');
+    if (alertsBody) {
+        safeFetch('/api/alerts?limit=5', []).then(function(alerts) {
+            if (!alerts || !alerts.length) {
+                alertsBody.innerHTML = '<div style="color:var(--text-faint);font-size:12px;">No recent alerts</div>';
+                return;
+            }
+            var ahtml = '';
+            alerts.slice(0, 5).forEach(function(a) {
+                var cls = a.status === 'CRITICAL' ? 'critical' : (a.status === 'WARNING' ? 'warning' : 'ok');
+                var ts = (a.timestamp || '').replace('T',' ').substring(11, 16);
+                ahtml += '<div class="widget-item"><span class="name">' + esc(a.device_name || '') + '</span><span class="value ' + cls + '">' + (ts || a.status) + '</span></div>';
+            });
+            alertsBody.innerHTML = ahtml;
+        });
+    }
+
+    // Widget 4: Check stats summary
+    var statsBody = document.getElementById('widget-stats-body');
+    if (statsBody) {
+        var totalChecks = 0, okChecks = 0;
+        _statusCache.forEach(function(s) {
+            totalChecks++;
+            if (s.status === 'OK') okChecks++;
+        });
+        var pct = totalChecks > 0 ? Math.round(100 * okChecks / totalChecks) : 0;
+        statsBody.innerHTML = '<div class="widget-big-number">' + pct + '%</div>'
+            + '<div class="widget-sublabel">checks passing (' + okChecks + ' / ' + totalChecks + ')</div>'
+            + '<div style="margin-top:8px;font-size:11px;color:var(--text-dim);">' + _devicesCache.length + ' devices monitored</div>';
+    }
+}
+
 // ===== Auto-refresh =====
-function refreshAll() { loadStatus(); loadAlerts(); loadHistory(); }
+function refreshAll() { loadStatus(); loadAlerts(); loadHistory(); setTimeout(updateWidgets, 1500); }
 refreshAll();
 
 // ===== Tier 2: Tab Reorder, Visibility & Accent (v5.5) =====
