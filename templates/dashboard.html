@@ -1031,6 +1031,25 @@ tr:hover { background: var(--bg-card); }
             <div style="margin-top:8px;"><a href="https://myclover.tech/#pricing" target="_blank" style="font-size:12px;color:var(--accent);text-decoration:none;">Purchase a license at myclover.tech &rarr;</a></div>
         </div>
     </div>
+    <div style="margin-top:20px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+            <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Backup &amp; Restore</h3>
+            <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px;">Download a full backup (database, config, plugins) or restore from a previous backup zip.</p>
+            <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+                <div>
+                    <button class="btn btn-primary btn-sm" onclick="downloadBackup()" id="backup-btn">&#128229; Download Backup</button>
+                    <div id="backup-status" style="font-size:11px;color:var(--text-dim);margin-top:6px;"></div>
+                </div>
+                <div style="border-left:1px solid var(--border);padding-left:12px;">
+                    <label style="display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:var(--bg-deep);border:1px dashed var(--border);border-radius:6px;cursor:pointer;font-size:12px;color:var(--text-muted);transition:border-color 0.2s;">
+                        &#128228; Choose Backup to Restore...
+                        <input type="file" id="restore-file" accept=".zip" style="display:none;" onchange="handleRestoreFile(this)">
+                    </label>
+                    <div id="restore-status" style="font-size:11px;color:var(--text-dim);margin-top:6px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
     <div id="ent-settings" style="display:none;margin-top:20px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
             <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
@@ -1203,6 +1222,14 @@ tr:hover { background: var(--bg-card); }
 </div>
 
 <script>
+window.onerror = function(msg, url, line, col, err) {
+    console.error('[NetMon] Uncaught error:', msg, 'at line', line, ':', err);
+    var sc = document.getElementById('status-cards');
+    if (sc && sc.textContent.trim() === 'Loading...') {
+        sc.innerHTML = '<div class="empty-state"><p style="color:var(--status-critical);">JS Error at line ' + line + ': ' + msg + '</p><p style="font-size:12px;color:var(--text-dim);">Press F12 &gt; Console for details. Attempting recovery...</p></div>';
+        setTimeout(function() { try { loadStatus(); } catch(e2) { console.error('[NetMon] Recovery failed:', e2); } }, 2000);
+    }
+};
 var _allCards = [];
 var _allGroups = [];
 var _devicesCache = [];
@@ -1261,16 +1288,18 @@ document.querySelectorAll('.tab').forEach(function(tab) {
 
 // ===== Status Tab =====
 function loadStatus() {
+    console.log('[NetMon] loadStatus() called');
     Promise.all([
-        fetch('/api/devices').then(function(r){ if(!r.ok) throw new Error('devices: '+r.status); return r.json(); }),
-        fetch('/api/status').then(function(r){ if(!r.ok) throw new Error('status: '+r.status); return r.json(); }),
+        fetch('/api/devices').then(function(r){ console.log('[NetMon] /api/devices:', r.status); if(!r.ok) throw new Error('devices: '+r.status); return r.json(); }),
+        fetch('/api/status').then(function(r){ console.log('[NetMon] /api/status:', r.status); if(!r.ok) throw new Error('status: '+r.status); return r.json(); }),
         safeFetch('/api/dependencies', [])
     ]).then(function(all) {
+        console.log('[NetMon] loadStatus data:', all[0].length, 'devices,', all[1].length, 'results');
         _devicesCache = all[0];
         _statusCache = all[1];
         var deps = all[2];
         var parentMap = {};
-        deps.forEach(function(d) { if (d.parent) parentMap[d.name] = d.parent; });
+        if (Array.isArray(deps)) deps.forEach(function(d) { if (d.parent) parentMap[d.name] = d.parent; });
         var statusMap = {};
         _statusCache.forEach(function(s) {
             var cur = statusMap[s.device_name] || 'OK';
@@ -1280,8 +1309,9 @@ function loadStatus() {
         });
         buildStatusData(parentMap, statusMap);
         applyFilters();
+        console.log('[NetMon] loadStatus complete');
     }).catch(function(err) {
-        console.error('loadStatus error:', err);
+        console.error('[NetMon] loadStatus error:', err);
         var c = document.getElementById('status-cards');
         if (c) c.innerHTML = '<div class="empty-state"><p style="color:var(--text-dim);">Failed to load devices: ' + err.message + '</p><p style="font-size:12px;color:var(--text-dim);">Check the console (F12) for details.</p></div>';
     });
@@ -2583,14 +2613,15 @@ function setRefreshInterval(seconds) {
     if (_refreshTimer) { clearInterval(_refreshTimer); _refreshTimer = null; }
     if (seconds > 0) {
         _refreshTimer = setInterval(refreshAll, _refreshMs);
-        document.getElementById('refresh-info').textContent = 'Auto-refresh: ' + seconds + 's';
+        var ri1 = document.getElementById('refresh-info'); if (ri1) ri1.textContent = 'Auto-refresh: ' + seconds + 's';
     } else {
-        document.getElementById('refresh-info').textContent = 'Auto-refresh: off';
+        var ri2 = document.getElementById('refresh-info'); if (ri2) ri2.textContent = 'Auto-refresh: off';
     }
 }
 
 function toggleSummaryBar() {
-    var show = document.getElementById('pref-show-summary').checked;
+    var el = document.getElementById('pref-show-summary');
+    var show = el ? el.checked : true;
     var bar = document.getElementById('summary-bar');
     if (bar) bar.style.display = show ? 'flex' : 'none';
 }
@@ -2674,7 +2705,7 @@ function loadPrefs() {
 }
 
 // Load prefs on startup
-loadPrefs();
+try { loadPrefs(); } catch(e) { console.error('[NetMon] loadPrefs error:', e); }
 
 
 // Helper to read computed CSS variable values
@@ -2831,9 +2862,69 @@ function updateWidgets() {
     }
 }
 
+
+// ===== Backup & Restore =====
+function downloadBackup() {
+    var btn = document.getElementById('backup-btn');
+    var st = document.getElementById('backup-status');
+    btn.disabled = true; btn.innerHTML = '&#9203; Creating backup...';
+    st.textContent = '';
+    fetch('/api/backup')
+    .then(function(r) {
+        if (!r.ok) throw new Error('Backup failed (HTTP ' + r.status + ')');
+        return r.blob().then(function(blob) {
+            var cd = r.headers.get('Content-Disposition') || '';
+            var match = cd.match(/filename[^;=\n]*="?([^";\n]+)/);
+            var fname = match ? match[1] : 'netmon_backup.zip';
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fname;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+            st.style.color = 'var(--status-ok)';
+            st.textContent = 'Backup downloaded: ' + fname;
+        });
+    })
+    .catch(function(e) { st.style.color = 'var(--status-critical)'; st.textContent = e.message; })
+    .finally(function() { btn.disabled = false; btn.innerHTML = '&#128229; Download Backup'; });
+}
+
+function handleRestoreFile(input) {
+    if (!input.files || !input.files[0]) return;
+    var file = input.files[0];
+    var st = document.getElementById('restore-status');
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+        st.style.color = 'var(--status-critical)'; st.textContent = 'Please select a .zip backup file.';
+        input.value = ''; return;
+    }
+    if (!confirm('Restore from "' + file.name + '"?\n\nThis will overwrite the current database and config. A restart is recommended after restore.')) {
+        input.value = ''; return;
+    }
+    st.style.color = 'var(--status-warning)'; st.textContent = 'Uploading and restoring...';
+    var fd = new FormData();
+    fd.append('file', file);
+    fetch('/api/restore', { method: 'POST', body: fd })
+    .then(function(r) { return r.json().then(function(d) { d._status = r.status; return d; }); })
+    .then(function(d) {
+        if (d._status >= 400) { st.style.color = 'var(--status-critical)'; st.textContent = d.description || 'Restore failed.'; }
+        else { st.style.color = 'var(--status-ok)'; st.textContent = 'Restored ' + (d.files||[]).length + ' file(s): ' + (d.files||[]).join(', ') + '. Restart recommended.'; loadSettings(); }
+    })
+    .catch(function(e) { st.style.color = 'var(--status-critical)'; st.textContent = e.message; })
+    .finally(function() { input.value = ''; });
+}
+
 // ===== Auto-refresh =====
 function refreshAll() { loadStatus(); loadAlerts(); loadHistory(); setTimeout(updateWidgets, 1500); }
-refreshAll();
+try { refreshAll(); } catch(e) { console.error('[NetMon] refreshAll init error:', e); }
+
+// Failsafe: if status-cards is still "Loading..." after 8 seconds, retry once
+setTimeout(function() {
+    var sc = document.getElementById('status-cards');
+    if (sc && sc.textContent.trim() === 'Loading...') {
+        console.warn('[NetMon] Failsafe: status-cards still Loading after 8s, retrying...');
+        loadStatus();
+    }
+}, 8000);
 
 // ===== Tier 2: Tab Reorder, Visibility & Accent (v5.5) =====
 
