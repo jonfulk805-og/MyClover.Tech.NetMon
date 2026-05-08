@@ -517,6 +517,46 @@ tr:hover { background: var(--bg-card); }
 .downtime-card .dt-status.active { background: var(--status-parent-down-bg); color: var(--status-parent-down); }
 .downtime-card .dt-status.upcoming { background: var(--accent-bg); color: var(--accent); }
 .downtime-card .dt-status.expired { background: var(--status-unknown-bg); color: var(--text-dim); }
+
+/* === Tier 2: Tab Reorder & Visibility === */
+.tabs { position: relative; }
+.tab { user-select: none; position: relative; }
+.tab.dragging { opacity: 0.4; }
+.tab.drag-over { border-bottom: 2px solid var(--accent) !important; }
+.tab .tab-grip {
+    display: none; cursor: grab; font-size: 10px; color: var(--text-dim);
+    margin-right: 4px; vertical-align: middle;
+}
+.tabs.reorder-mode .tab-grip { display: inline; }
+.tabs.reorder-mode .tab { cursor: grab; }
+.tabs.reorder-mode .tab:active { cursor: grabbing; }
+.tab-hidden-indicator { display: none; align-items: center; color: var(--text-dim);
+    font-size: 12px; padding: 12px 12px; cursor: pointer; white-space: nowrap; }
+.tab-hidden-indicator:hover { color: var(--text-muted); }
+.tab-hidden-indicator.visible { display: flex; }
+
+/* Accent color picker */
+.accent-picker-row { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.accent-preset {
+    width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border);
+    cursor: pointer; transition: transform 0.15s, border-color 0.15s;
+}
+.accent-preset:hover { transform: scale(1.15); }
+.accent-preset.active { border-color: var(--text-primary); box-shadow: 0 0 0 2px var(--bg-deep); }
+.accent-custom-input {
+    width: 36px; height: 28px; border: none; background: none; cursor: pointer;
+    padding: 0; border-radius: 4px;
+}
+
+/* Tab visibility checklist in settings */
+.tab-visibility-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.tab-visibility-item {
+    display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-body);
+    padding: 4px 0;
+}
+.tab-visibility-item input { accent-color: var(--accent); width: 15px; height: 15px; }
+.tab-visibility-item.disabled-tab { opacity: 0.5; }
+
 </style>
 </head>
 <body>
@@ -530,16 +570,17 @@ tr:hover { background: var(--bg-card); }
 </div>
 
 <div class="tabs">
-    <div class="tab active" data-tab="status">Status</div>
-    <div class="tab" data-tab="map">Network Map</div>
-    <div class="tab" data-tab="discovery">Discovery</div>
-    <div class="tab" data-tab="inventory">Inventory</div>
-    <div class="tab" data-tab="alerts">Alerts</div>
-    <div class="tab" data-tab="history">History</div>
-    <div class="tab" data-tab="downtime">Downtime</div>
-    <div class="tab" data-tab="devices">Manage Devices</div>
-    <div class="tab" data-tab="reports">Reports</div>
-    <div class="tab" data-tab="settings">Settings</div>
+    <div class="tab active" data-tab="status" draggable="true"><span class="tab-grip">&#9776;</span>Status</div>
+    <div class="tab" data-tab="map" draggable="true"><span class="tab-grip">&#9776;</span>Network Map</div>
+    <div class="tab" data-tab="discovery" draggable="true"><span class="tab-grip">&#9776;</span>Discovery</div>
+    <div class="tab" data-tab="inventory" draggable="true"><span class="tab-grip">&#9776;</span>Inventory</div>
+    <div class="tab" data-tab="alerts" draggable="true"><span class="tab-grip">&#9776;</span>Alerts</div>
+    <div class="tab" data-tab="history" draggable="true"><span class="tab-grip">&#9776;</span>History</div>
+    <div class="tab" data-tab="downtime" draggable="true"><span class="tab-grip">&#9776;</span>Downtime</div>
+    <div class="tab" data-tab="devices" draggable="true"><span class="tab-grip">&#9776;</span>Manage Devices</div>
+    <div class="tab" data-tab="reports" draggable="true"><span class="tab-grip">&#9776;</span>Reports</div>
+    <div class="tab" data-tab="settings" draggable="true"><span class="tab-grip">&#9776;</span>Settings</div>
+    <div class="tab-hidden-indicator" id="hidden-tabs-indicator" onclick="showHiddenTabsMenu(this)" title="Show hidden tabs"></div>
 </div>
 
 <!-- ========== STATUS TAB ========== -->
@@ -743,6 +784,21 @@ tr:hover { background: var(--bg-card); }
                     </button>
                 </div>
             </div>
+
+            <div class="form-group" style="margin-top:12px;">
+                <label>Accent Color</label>
+                <div class="accent-picker-row">
+                    <div class="accent-preset" style="background:#5b9aff;" data-accent="#5b9aff" onclick="setAccent('#5b9aff')" title="Default Blue"></div>
+                    <div class="accent-preset" style="background:#22c55e;" data-accent="#22c55e" onclick="setAccent('#22c55e')" title="Green"></div>
+                    <div class="accent-preset" style="background:#f59e0b;" data-accent="#f59e0b" onclick="setAccent('#f59e0b')" title="Amber"></div>
+                    <div class="accent-preset" style="background:#ef4444;" data-accent="#ef4444" onclick="setAccent('#ef4444')" title="Red"></div>
+                    <div class="accent-preset" style="background:#a78bfa;" data-accent="#a78bfa" onclick="setAccent('#a78bfa')" title="Purple"></div>
+                    <div class="accent-preset" style="background:#ec4899;" data-accent="#ec4899" onclick="setAccent('#ec4899')" title="Pink"></div>
+                    <div class="accent-preset" style="background:#14b8a6;" data-accent="#14b8a6" onclick="setAccent('#14b8a6')" title="Teal"></div>
+                    <input type="color" class="accent-custom-input" id="accent-custom" value="#5b9aff" onchange="setAccent(this.value)" title="Custom color">
+                    <button onclick="resetAccent()" style="background:none;border:1px solid var(--border);color:var(--text-dim);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;" title="Reset to skin default">Reset</button>
+                </div>
+            </div>
         </div>
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
             <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Dashboard Customization</h3>
@@ -783,6 +839,15 @@ tr:hover { background: var(--bg-card); }
                 <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;">
                     <input type="checkbox" id="pref-show-summary" checked onchange="savePref('showSummary', this.checked); toggleSummaryBar()" style="accent-color:var(--accent);width:16px;height:16px;"> Show summary bar on Status tab
                 </label>
+            </div>
+            <div class="form-group" style="margin-top:12px;">
+                <label>Tab Visibility &amp; Order</label>
+                <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">Uncheck to hide tabs. Drag to reorder. Settings is always visible.</div>
+                <div id="tab-order-list" style="margin-top:4px;"></div>
+                <div style="margin-top:8px;display:flex;gap:8px;">
+                    <button onclick="resetTabOrder()" style="background:none;border:1px solid var(--border);color:var(--text-dim);padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;">Reset Order</button>
+                    <button onclick="resetTabVisibility()" style="background:none;border:1px solid var(--border);color:var(--text-dim);padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;">Show All</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2435,6 +2500,20 @@ function loadPrefs() {
     if (sumCb) sumCb.checked = showSummary;
     toggleSummaryBar();
 
+
+    // Accent color
+    var accent = localStorage.getItem('netmon-accent');
+    if (accent) {
+        setAccent(accent);
+        var ci = document.getElementById('accent-custom');
+        if (ci) ci.value = accent;
+    }
+    highlightActiveAccent();
+
+    // Tab order + visibility
+    applyTabOrder();
+    applyTabVisibility();
+    renderTabOrderSettings();
     highlightActiveSkin();
 }
 
@@ -2450,6 +2529,349 @@ function cssVar(name) {
 // ===== Auto-refresh =====
 function refreshAll() { loadStatus(); loadAlerts(); loadHistory(); }
 refreshAll();
+
+// ===== Tier 2: Tab Reorder, Visibility & Accent (v5.5) =====
+
+var DEFAULT_TAB_ORDER = ['status','map','discovery','inventory','alerts','history','downtime','devices','reports','settings'];
+var TAB_LABELS = {status:'Status',map:'Network Map',discovery:'Discovery',inventory:'Inventory',alerts:'Alerts',history:'History',downtime:'Downtime',devices:'Manage Devices',reports:'Reports',settings:'Settings'};
+
+// --- Accent Color ---
+function setAccent(color) {
+    if (!color) { resetAccent(); return; }
+    document.documentElement.style.setProperty('--accent', color);
+    // Also compute a hover shade (slightly lighter/darker)
+    document.documentElement.style.setProperty('--accent-hover', adjustBrightness(color, 20));
+    localStorage.setItem('netmon-accent', color);
+    highlightActiveAccent();
+}
+
+function resetAccent() {
+    document.documentElement.style.removeProperty('--accent');
+    document.documentElement.style.removeProperty('--accent-hover');
+    localStorage.removeItem('netmon-accent');
+    highlightActiveAccent();
+    // Sync the color input
+    var ci = document.getElementById('accent-custom');
+    if (ci) ci.value = cssVar('--accent') || '#5b9aff';
+}
+
+function highlightActiveAccent() {
+    var current = localStorage.getItem('netmon-accent') || '';
+    document.querySelectorAll('.accent-preset').forEach(function(el) {
+        if (el.getAttribute('data-accent') === current) {
+            el.classList.add('active');
+        } else {
+            el.classList.remove('active');
+        }
+    });
+}
+
+function adjustBrightness(hex, amount) {
+    hex = hex.replace('#', '');
+    var r = Math.min(255, Math.max(0, parseInt(hex.substring(0,2), 16) + amount));
+    var g = Math.min(255, Math.max(0, parseInt(hex.substring(2,4), 16) + amount));
+    var b = Math.min(255, Math.max(0, parseInt(hex.substring(4,6), 16) + amount));
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+// --- Tab Visibility ---
+function getHiddenTabs() {
+    try { return JSON.parse(localStorage.getItem('netmon-hiddenTabs')) || []; } catch(e) { return []; }
+}
+
+function setHiddenTabs(arr) {
+    localStorage.setItem('netmon-hiddenTabs', JSON.stringify(arr));
+    applyTabVisibility();
+    renderTabOrderSettings();
+}
+
+function applyTabVisibility() {
+    var hidden = getHiddenTabs();
+    var hiddenCount = 0;
+    document.querySelectorAll('.tabs .tab').forEach(function(tab) {
+        var name = tab.getAttribute('data-tab');
+        if (!name) return;
+        if (name === 'settings') { tab.style.display = ''; return; } // Always show settings
+        if (hidden.indexOf(name) !== -1) {
+            tab.style.display = 'none';
+            hiddenCount++;
+        } else {
+            tab.style.display = '';
+        }
+    });
+    // Update hidden indicator
+    var indicator = document.getElementById('hidden-tabs-indicator');
+    if (indicator) {
+        if (hiddenCount > 0) {
+            indicator.textContent = '+' + hiddenCount + ' hidden';
+            indicator.classList.add('visible');
+        } else {
+            indicator.classList.remove('visible');
+        }
+    }
+}
+
+function toggleTabVisibility(tabName) {
+    if (tabName === 'settings') return;
+    var hidden = getHiddenTabs();
+    var idx = hidden.indexOf(tabName);
+    if (idx !== -1) {
+        hidden.splice(idx, 1);
+    } else {
+        hidden.push(tabName);
+    }
+    setHiddenTabs(hidden);
+}
+
+function resetTabVisibility() {
+    localStorage.removeItem('netmon-hiddenTabs');
+    applyTabVisibility();
+    renderTabOrderSettings();
+}
+
+function showHiddenTabsMenu(indicatorEl) {
+    // Quick: just show all hidden tabs
+    resetTabVisibility();
+}
+
+// --- Tab Reorder ---
+function getTabOrder() {
+    try {
+        var order = JSON.parse(localStorage.getItem('netmon-tabOrder'));
+        if (order && order.length === DEFAULT_TAB_ORDER.length) return order;
+    } catch(e) {}
+    return DEFAULT_TAB_ORDER.slice();
+}
+
+function setTabOrder(order) {
+    localStorage.setItem('netmon-tabOrder', JSON.stringify(order));
+    applyTabOrder();
+    renderTabOrderSettings();
+}
+
+function applyTabOrder() {
+    var order = getTabOrder();
+    var tabsContainer = document.querySelector('.tabs');
+    if (!tabsContainer) return;
+    var indicator = document.getElementById('hidden-tabs-indicator');
+
+    // Reorder tab elements according to saved order
+    order.forEach(function(name) {
+        var tab = tabsContainer.querySelector('.tab[data-tab="' + name + '"]');
+        if (tab) {
+            tabsContainer.insertBefore(tab, indicator);
+        }
+    });
+
+    // Also reorder tab content sections
+    var contentParent = document.querySelector('.tab-content') ? document.querySelector('.tab-content').parentElement : null;
+    if (contentParent) {
+        order.forEach(function(name) {
+            var content = document.getElementById('tab-' + name);
+            if (content) contentParent.appendChild(content);
+        });
+    }
+
+    // Update default tab dropdown order
+    var dtSel = document.getElementById('pref-default-tab');
+    if (dtSel) {
+        var currentVal = dtSel.value;
+        dtSel.innerHTML = '';
+        order.forEach(function(name) {
+            var opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = TAB_LABELS[name] || name;
+            dtSel.appendChild(opt);
+        });
+        dtSel.value = currentVal;
+    }
+}
+
+function resetTabOrder() {
+    localStorage.removeItem('netmon-tabOrder');
+    applyTabOrder();
+    renderTabOrderSettings();
+}
+
+// --- Drag and Drop for Tab Bar ---
+(function() {
+    var dragSrc = null;
+
+    document.querySelector('.tabs').addEventListener('dragstart', function(e) {
+        if (!e.target.classList.contains('tab')) return;
+        dragSrc = e.target;
+        e.target.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', e.target.getAttribute('data-tab'));
+    });
+
+    document.querySelector('.tabs').addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        var target = e.target.closest('.tab');
+        if (target && target !== dragSrc) {
+            // Remove all drag-over
+            document.querySelectorAll('.tab.drag-over').forEach(function(t){ t.classList.remove('drag-over'); });
+            target.classList.add('drag-over');
+        }
+    });
+
+    document.querySelector('.tabs').addEventListener('dragleave', function(e) {
+        var target = e.target.closest('.tab');
+        if (target) target.classList.remove('drag-over');
+    });
+
+    document.querySelector('.tabs').addEventListener('drop', function(e) {
+        e.preventDefault();
+        document.querySelectorAll('.tab.drag-over').forEach(function(t){ t.classList.remove('drag-over'); });
+        if (!dragSrc) return;
+        var target = e.target.closest('.tab');
+        if (!target || target === dragSrc) { dragSrc.classList.remove('dragging'); dragSrc = null; return; }
+
+        var order = getTabOrder();
+        var fromName = dragSrc.getAttribute('data-tab');
+        var toName = target.getAttribute('data-tab');
+        var fromIdx = order.indexOf(fromName);
+        var toIdx = order.indexOf(toName);
+        if (fromIdx === -1 || toIdx === -1) { dragSrc.classList.remove('dragging'); dragSrc = null; return; }
+
+        // Swap positions
+        order.splice(fromIdx, 1);
+        order.splice(toIdx, 0, fromName);
+        setTabOrder(order);
+
+        dragSrc.classList.remove('dragging');
+        dragSrc = null;
+    });
+
+    document.querySelector('.tabs').addEventListener('dragend', function(e) {
+        if (e.target.classList.contains('tab')) e.target.classList.remove('dragging');
+        document.querySelectorAll('.tab.drag-over').forEach(function(t){ t.classList.remove('drag-over'); });
+    });
+})();
+
+// --- Settings panel: Tab order + visibility drag list ---
+function renderTabOrderSettings() {
+    var container = document.getElementById('tab-order-list');
+    if (!container) return;
+    var order = getTabOrder();
+    var hidden = getHiddenTabs();
+
+    container.innerHTML = '';
+    order.forEach(function(name, idx) {
+        var isHidden = hidden.indexOf(name) !== -1;
+        var isSettings = name === 'settings';
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg-deep);border:1px solid var(--border);border-radius:6px;margin-bottom:4px;' + (isHidden ? 'opacity:0.5;' : '');
+        row.draggable = true;
+        row.setAttribute('data-order-tab', name);
+
+        // Grip
+        var grip = document.createElement('span');
+        grip.style.cssText = 'cursor:grab;color:var(--text-dim);font-size:12px;';
+        grip.innerHTML = '&#9776;';
+        row.appendChild(grip);
+
+        // Checkbox
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !isHidden;
+        cb.disabled = isSettings;
+        cb.style.cssText = 'accent-color:var(--accent);width:14px;height:14px;';
+        cb.onchange = function() { toggleTabVisibility(name); };
+        row.appendChild(cb);
+
+        // Label
+        var lbl = document.createElement('span');
+        lbl.style.cssText = 'font-size:13px;color:var(--text-body);flex:1;';
+        lbl.textContent = TAB_LABELS[name] || name;
+        if (isSettings) {
+            var badge = document.createElement('span');
+            badge.style.cssText = 'font-size:10px;color:var(--text-dim);margin-left:6px;';
+            badge.textContent = '(always visible)';
+            lbl.appendChild(badge);
+        }
+        row.appendChild(lbl);
+
+        // Up/Down arrows
+        if (idx > 0) {
+            var upBtn = document.createElement('button');
+            upBtn.innerHTML = '&#9650;';
+            upBtn.style.cssText = 'background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:10px;padding:2px 4px;';
+            upBtn.title = 'Move up';
+            upBtn.onclick = function() {
+                var o = getTabOrder();
+                var i = o.indexOf(name);
+                if (i > 0) { o.splice(i, 1); o.splice(i-1, 0, name); setTabOrder(o); }
+            };
+            row.appendChild(upBtn);
+        }
+        if (idx < order.length - 1) {
+            var dnBtn = document.createElement('button');
+            dnBtn.innerHTML = '&#9660;';
+            dnBtn.style.cssText = 'background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:10px;padding:2px 4px;';
+            dnBtn.title = 'Move down';
+            dnBtn.onclick = function() {
+                var o = getTabOrder();
+                var i = o.indexOf(name);
+                if (i < o.length - 1) { o.splice(i, 1); o.splice(i+1, 0, name); setTabOrder(o); }
+            };
+            row.appendChild(dnBtn);
+        }
+
+        container.appendChild(row);
+    });
+
+    // Make the settings list itself sortable via drag
+    setupSettingsListDrag(container);
+}
+
+function setupSettingsListDrag(container) {
+    var dragRow = null;
+    container.addEventListener('dragstart', function(e) {
+        var row = e.target.closest('[data-order-tab]');
+        if (!row) return;
+        dragRow = row;
+        row.style.opacity = '0.4';
+        e.dataTransfer.effectAllowed = 'move';
+    });
+    container.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        var row = e.target.closest('[data-order-tab]');
+        if (row && row !== dragRow) {
+            row.style.borderColor = 'var(--accent)';
+        }
+    });
+    container.addEventListener('dragleave', function(e) {
+        var row = e.target.closest('[data-order-tab]');
+        if (row) row.style.borderColor = 'var(--border)';
+    });
+    container.addEventListener('drop', function(e) {
+        e.preventDefault();
+        container.querySelectorAll('[data-order-tab]').forEach(function(r){ r.style.borderColor = 'var(--border)'; });
+        if (!dragRow) return;
+        var target = e.target.closest('[data-order-tab]');
+        if (!target || target === dragRow) { if(dragRow) dragRow.style.opacity='1'; dragRow=null; return; }
+        var order = getTabOrder();
+        var from = dragRow.getAttribute('data-order-tab');
+        var to = target.getAttribute('data-order-tab');
+        var fi = order.indexOf(from);
+        var ti = order.indexOf(to);
+        if (fi !== -1 && ti !== -1) {
+            order.splice(fi, 1);
+            order.splice(ti, 0, from);
+            setTabOrder(order);
+        }
+        dragRow.style.opacity = '1';
+        dragRow = null;
+    });
+    container.addEventListener('dragend', function(e) {
+        container.querySelectorAll('[data-order-tab]').forEach(function(r){ r.style.opacity='1'; r.style.borderColor='var(--border)'; });
+        dragRow = null;
+    });
+}
+
 // Start default refresh timer (loadPrefs may override)
 if (!_refreshTimer) { _refreshTimer = setInterval(refreshAll, _refreshMs); }
 </script>
