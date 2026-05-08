@@ -8,342 +8,523 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
+
+/* ===== SKIN / THEME ENGINE (v5.4) ===== */
+:root {
+    /* Base backgrounds */
+    --bg-body: #0f1117;
+    --bg-panel: #161822;
+    --bg-card: #1a1d2b;
+    --bg-card-hover: #1e2133;
+    --bg-input: #0f1117;
+    --bg-deep: #0a0e17;
+
+    /* Borders */
+    --border: #2a2d3a;
+    --border-hover: #3a3d4a;
+    --border-light: #1e2130;
+
+    /* Text */
+    --text-primary: #fff;
+    --text-body: #e0e0e0;
+    --text-secondary: #aaa;
+    --text-muted: #888;
+    --text-dim: #666;
+    --text-faint: #555;
+
+    /* Accent */
+    --accent: #5b9aff;
+    --accent-hover: #4a89ee;
+    --accent-bg: rgba(91,154,255,0.15);
+    --accent-border: rgba(91,154,255,0.2);
+
+    /* Status colors (shared across all skins) */
+    --status-ok: #2ecc71;
+    --status-ok-bg: rgba(46,204,113,0.15);
+    --status-warning: #f39c12;
+    --status-warning-bg: rgba(243,156,18,0.15);
+    --status-critical: #e74c3c;
+    --status-critical-bg: rgba(231,76,60,0.15);
+    --status-maint: #9b59b6;
+    --status-maint-bg: rgba(155,89,182,0.15);
+    --status-parent-down: #e67e22;
+    --status-parent-down-bg: rgba(230,126,34,0.15);
+    --status-unknown: #888;
+    --status-unknown-bg: rgba(136,136,136,0.15);
+    --status-pending: #444;
+
+    /* Buttons */
+    --btn-danger: #e74c3c;
+    --btn-danger-hover: #c0392b;
+    --btn-success: #2ecc71;
+    --btn-success-hover: #27ae60;
+
+    /* Shadows / Overlays */
+    --modal-overlay: rgba(0,0,0,0.6);
+    --drawer-overlay: rgba(0,0,0,0.4);
+
+    /* Card density */
+    --card-min-width: 320px;
+    --card-padding: 16px;
+    --card-gap: 12px;
+    --card-font-name: 15px;
+    --card-font-check: 12px;
+}
+
+/* ----- Skin: Light ----- */
+[data-skin="light"] {
+    --bg-body: #f0f2f5;
+    --bg-panel: #ffffff;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f7f8fa;
+    --bg-input: #f0f2f5;
+    --bg-deep: #e8eaed;
+    --border: #d1d5db;
+    --border-hover: #b0b5be;
+    --border-light: #e5e7eb;
+    --text-primary: #111827;
+    --text-body: #1f2937;
+    --text-secondary: #4b5563;
+    --text-muted: #6b7280;
+    --text-dim: #9ca3af;
+    --text-faint: #d1d5db;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --accent-bg: rgba(37,99,235,0.1);
+    --accent-border: rgba(37,99,235,0.2);
+    --modal-overlay: rgba(0,0,0,0.3);
+    --drawer-overlay: rgba(0,0,0,0.2);
+}
+
+/* ----- Skin: Corporate Blue ----- */
+[data-skin="corporate"] {
+    --bg-body: #0c1929;
+    --bg-panel: #0f2240;
+    --bg-card: #132b4f;
+    --bg-card-hover: #173463;
+    --bg-input: #0c1929;
+    --bg-deep: #091420;
+    --border: #1e3a5f;
+    --border-hover: #2a5080;
+    --border-light: #162d4a;
+    --text-primary: #e8eef5;
+    --text-body: #c4d3e8;
+    --text-secondary: #8ba4c7;
+    --text-muted: #6889b0;
+    --text-dim: #4a6a8f;
+    --text-faint: #344e6e;
+    --accent: #38bdf8;
+    --accent-hover: #0ea5e9;
+    --accent-bg: rgba(56,189,248,0.12);
+    --accent-border: rgba(56,189,248,0.2);
+}
+
+/* ----- Skin: Matrix / Cyber ----- */
+[data-skin="matrix"] {
+    --bg-body: #000000;
+    --bg-panel: #0a0f0a;
+    --bg-card: #0d140d;
+    --bg-card-hover: #111a11;
+    --bg-input: #050a05;
+    --bg-deep: #000000;
+    --border: #1a2e1a;
+    --border-hover: #2a4a2a;
+    --border-light: #0f1e0f;
+    --text-primary: #33ff33;
+    --text-body: #22dd22;
+    --text-secondary: #1ab31a;
+    --text-muted: #118811;
+    --text-dim: #0a660a;
+    --text-faint: #064406;
+    --accent: #00ff88;
+    --accent-hover: #00dd77;
+    --accent-bg: rgba(0,255,136,0.1);
+    --accent-border: rgba(0,255,136,0.2);
+    --status-ok: #00ff88;
+    --status-ok-bg: rgba(0,255,136,0.15);
+}
+
+/* ----- Skin: Amber NOC ----- */
+[data-skin="amber"] {
+    --bg-body: #0d0a06;
+    --bg-panel: #140f08;
+    --bg-card: #1a1408;
+    --bg-card-hover: #201a0c;
+    --bg-input: #0d0a06;
+    --bg-deep: #080604;
+    --border: #2e2510;
+    --border-hover: #4a3a18;
+    --border-light: #1e1a0e;
+    --text-primary: #ffcc00;
+    --text-body: #e6b800;
+    --text-secondary: #cc9900;
+    --text-muted: #997722;
+    --text-dim: #665511;
+    --text-faint: #443a0a;
+    --accent: #ff9900;
+    --accent-hover: #e68a00;
+    --accent-bg: rgba(255,153,0,0.12);
+    --accent-border: rgba(255,153,0,0.2);
+}
+
+/* ----- Skin: Solarized Dark ----- */
+[data-skin="solarized"] {
+    --bg-body: #002b36;
+    --bg-panel: #073642;
+    --bg-card: #0a3e4a;
+    --bg-card-hover: #0d4856;
+    --bg-input: #002b36;
+    --bg-deep: #001f27;
+    --border: #2a5e6a;
+    --border-hover: #3a7888;
+    --border-light: #094555;
+    --text-primary: #fdf6e3;
+    --text-body: #eee8d5;
+    --text-secondary: #93a1a1;
+    --text-muted: #839496;
+    --text-dim: #657b83;
+    --text-faint: #586e75;
+    --accent: #268bd2;
+    --accent-hover: #1a6da8;
+    --accent-bg: rgba(38,139,210,0.15);
+    --accent-border: rgba(38,139,210,0.2);
+}
+
+
+/* Light mode overrides for native elements */
+[data-skin="light"] { color-scheme: light; }
+[data-skin="light"] input[type="datetime-local"],
+[data-skin="light"] input[type="date"] { color-scheme: light; }
+
+/* ----- Card Density Modes ----- */
+[data-density="compact"] {
+    --card-min-width: 260px;
+    --card-padding: 10px;
+    --card-gap: 8px;
+    --card-font-name: 13px;
+    --card-font-check: 11px;
+}
+[data-density="expanded"] {
+    --card-min-width: 400px;
+    --card-padding: 20px;
+    --card-gap: 16px;
+    --card-font-name: 17px;
+    --card-font-check: 13px;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #0f1117; color: #e0e0e0; min-height: 100vh;
+    background: var(--bg-body); color: var(--text-body); min-height: 100vh;
 }
 .header {
-    background: #161822; border-bottom: 1px solid #2a2d3a;
+    background: var(--bg-panel); border-bottom: 1px solid var(--border);
     padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
 }
-.header h1 { font-size: 20px; color: #fff; }
-.header h1 .brand-dot { color: #5b9aff; }
-.header .subtitle { color: #888; font-size: 13px; margin-left: 12px; }
-.header .refresh-info { color: #666; font-size: 12px; }
+.header h1 { font-size: 20px; color: var(--text-primary); }
+.header h1 .brand-dot { color: var(--accent); }
+.header .subtitle { color: var(--text-muted); font-size: 13px; margin-left: 12px; }
+.header .refresh-info { color: var(--text-dim); font-size: 12px; }
 .tabs {
-    display: flex; background: #161822; border-bottom: 1px solid #2a2d3a; padding: 0 24px;
+    display: flex; background: var(--bg-panel); border-bottom: 1px solid var(--border); padding: 0 24px;
     overflow-x: auto;
 }
 .tab {
-    padding: 12px 20px; cursor: pointer; color: #888;
+    padding: 12px 20px; cursor: pointer; color: var(--text-muted);
     border-bottom: 2px solid transparent; font-size: 14px; transition: all 0.2s;
     white-space: nowrap;
 }
-.tab:hover { color: #ccc; }
-.tab.active { color: #5b9aff; border-bottom-color: #5b9aff; }
+.tab:hover { color: var(--text-body); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 .content { padding: 24px; max-width: 1400px; margin: 0 auto; }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 .summary-bar { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
 .summary-item {
-    background: #1a1d2b; border: 1px solid #2a2d3a; border-radius: 8px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
     padding: 12px 20px; display: flex; align-items: center; gap: 10px; min-width: 120px;
 }
-.summary-item .count { font-size: 28px; font-weight: 700; color: #fff; }
-.summary-item .label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
-.summary-item.ok .count { color: #2ecc71; }
-.summary-item.warning .count { color: #f39c12; }
-.summary-item.critical .count { color: #e74c3c; }
-.summary-item.pending .count { color: #888; }
-.summary-item.maint .count { color: #9b59b6; }
-.summary-item.parent-down .count { color: #e67e22; }
+.summary-item .count { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+.summary-item .label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.summary-item.ok .count { color: var(--status-ok); }
+.summary-item.warning .count { color: var(--status-warning); }
+.summary-item.critical .count { color: var(--status-critical); }
+.summary-item.pending .count { color: var(--status-unknown); }
+.summary-item.maint .count { color: var(--status-maint); }
+.summary-item.parent-down .count { color: var(--status-parent-down); }
 .filter-bar {
     display: flex; gap: 10px; margin-bottom: 18px; align-items: center; flex-wrap: wrap;
 }
 .filter-bar input[type="text"] {
-    padding: 8px 14px; background: #1a1d2b; border: 1px solid #2a2d3a;
-    border-radius: 6px; color: #e0e0e0; font-size: 13px; outline: none; width: 220px;
+    padding: 8px 14px; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text-body); font-size: 13px; outline: none; width: 220px;
 }
-.filter-bar input[type="text"]:focus { border-color: #5b9aff; }
+.filter-bar input[type="text"]:focus { border-color: var(--accent); }
 .filter-bar select {
-    padding: 8px 12px; background: #1a1d2b; border: 1px solid #2a2d3a;
-    border-radius: 6px; color: #e0e0e0; font-size: 13px; outline: none;
+    padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text-body); font-size: 13px; outline: none;
 }
-.filter-bar select:focus { border-color: #5b9aff; }
-.filter-label { color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+.filter-bar select:focus { border-color: var(--accent); }
+.filter-label { color: var(--text-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
 .group-title {
-    font-size: 14px; color: #888; text-transform: uppercase;
+    font-size: 14px; color: var(--text-muted); text-transform: uppercase;
     letter-spacing: 1px; margin: 20px 0 10px 0;
 }
 .group-title:first-child { margin-top: 0; }
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px,1fr)); gap: 12px; margin-bottom: 8px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-min-width),1fr)); gap: var(--card-gap); margin-bottom: 8px; }
 .card {
-    background: #1a1d2b; border: 1px solid #2a2d3a; border-radius: 8px;
-    padding: 16px; border-left: 4px solid #2a2d3a; transition: all 0.2s; cursor: pointer;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    padding: var(--card-padding); border-left: 4px solid var(--border); transition: all 0.2s; cursor: pointer;
 }
-.card:hover { border-color: #3a3d4a; background: #1e2133; }
-.card.ok       { border-left-color: #2ecc71; }
-.card.warning  { border-left-color: #f39c12; }
-.card.critical { border-left-color: #e74c3c; }
-.card.unknown  { border-left-color: #888; }
-.card.pending  { border-left-color: #444; }
-.card.maint    { border-left-color: #9b59b6; }
-.card.parent-down { border-left-color: #e67e22; }
+.card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+.card.ok       { border-left-color: var(--status-ok); }
+.card.warning  { border-left-color: var(--status-warning); }
+.card.critical { border-left-color: var(--status-critical); }
+.card.unknown  { border-left-color: var(--status-unknown); }
+.card.pending  { border-left-color: var(--status-pending); }
+.card.maint    { border-left-color: var(--status-maint); }
+.card.parent-down { border-left-color: var(--status-parent-down); }
 .card .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
-.card .device-name { font-weight: 600; font-size: 15px; color: #fff; }
-.card .check-label { color: #888; font-size: 12px; margin-left: 8px; }
+.card .device-name { font-weight: 600; font-size: var(--card-font-name); color: var(--text-primary); }
+.card .check-label { color: var(--text-muted); font-size: var(--card-font-check); margin-left: 8px; }
 .card .maint-badge {
-    background: rgba(155,89,182,0.2); color: #9b59b6; font-size: 10px;
+    background: var(--status-maint-bg); color: var(--status-maint); font-size: 10px;
     padding: 2px 8px; border-radius: 3px; font-weight: 600; text-transform: uppercase;
 }
 .card .downtime-badge {
-    background: rgba(230,126,34,0.2); color: #e67e22; font-size: 10px;
+    background: var(--status-parent-down-bg); color: var(--status-parent-down); font-size: 10px;
     padding: 2px 8px; border-radius: 3px; font-weight: 600; text-transform: uppercase;
 }
 .card .parent-down-badge {
-    background: rgba(230,126,34,0.2); color: #e67e22; font-size: 10px;
+    background: var(--status-parent-down-bg); color: var(--status-parent-down); font-size: 10px;
     padding: 2px 8px; border-radius: 3px; font-weight: 600; text-transform: uppercase;
 }
-.card .host { color: #666; font-size: 12px; margin-top: 4px; }
+.card .host { color: var(--text-dim); font-size: 12px; margin-top: 4px; }
 .card .status-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
 .card .status-badge {
     padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;
 }
-.card .status-badge.ok       { background: rgba(46,204,113,0.15); color: #2ecc71; }
-.card .status-badge.warning  { background: rgba(243,156,18,0.15); color: #f39c12; }
-.card .status-badge.critical { background: rgba(231,76,60,0.15);  color: #e74c3c; }
-.card .status-badge.unknown  { background: rgba(136,136,136,0.15);color: #888; }
-.card .status-badge.pending  { background: rgba(100,100,100,0.15);color: #666; }
-.card .status-badge.maint    { background: rgba(155,89,182,0.15); color: #9b59b6; }
-.card .status-badge.parent-down { background: rgba(230,126,34,0.15); color: #e67e22; }
-.card .response { color: #888; font-size: 13px; }
-.card .message  { color: #777; font-size: 12px; margin-top: 6px; }
-.card .timestamp{ color: #555; font-size: 11px; margin-top: 4px; }
+.card .status-badge.ok       { background: var(--status-ok-bg); color: var(--status-ok); }
+.card .status-badge.warning  { background: var(--status-warning-bg); color: var(--status-warning); }
+.card .status-badge.critical { background: var(--status-critical-bg); color: var(--status-critical); }
+.card .status-badge.unknown  { background: var(--status-unknown-bg); color: var(--status-unknown); }
+.card .status-badge.pending  { background: var(--status-unknown-bg); color: var(--text-dim); }
+.card .status-badge.maint    { background: var(--status-maint-bg); color: var(--status-maint); }
+.card .status-badge.parent-down { background: var(--status-parent-down-bg); color: var(--status-parent-down); }
+.card .response { color: var(--text-muted); font-size: 13px; }
+.card .message  { color: var(--text-muted); font-size: 12px; margin-top: 6px; }
+.card .timestamp{ color: var(--text-faint); font-size: 11px; margin-top: 4px; }
 table { width: 100%; border-collapse: collapse; }
 th {
-    text-align: left; padding: 10px 12px; color: #888; font-size: 12px;
-    text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #2a2d3a; background: #161822;
+    text-align: left; padding: 10px 12px; color: var(--text-muted); font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); background: var(--bg-panel);
 }
-td { padding: 10px 12px; border-bottom: 1px solid #1e2130; font-size: 13px; }
-tr:hover { background: #1a1d2b; }
+td { padding: 10px 12px; border-bottom: 1px solid var(--border-light); font-size: 13px; }
+tr:hover { background: var(--bg-card); }
 .badge { padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; }
-.badge.ok       { background: rgba(46,204,113,0.15); color: #2ecc71; }
-.badge.warning  { background: rgba(243,156,18,0.15); color: #f39c12; }
-.badge.critical { background: rgba(231,76,60,0.15);  color: #e74c3c; }
-.badge.unknown  { background: rgba(136,136,136,0.15);color: #888; }
-.badge.acked    { background: rgba(91,154,255,0.15); color: #5b9aff; }
+.badge.ok       { background: var(--status-ok-bg); color: var(--status-ok); }
+.badge.warning  { background: var(--status-warning-bg); color: var(--status-warning); }
+.badge.critical { background: var(--status-critical-bg); color: var(--status-critical); }
+.badge.unknown  { background: var(--status-unknown-bg); color: var(--status-unknown); }
+.badge.acked    { background: var(--accent-bg); color: var(--accent); }
 .btn {
     padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;
     font-size: 13px; font-weight: 600; transition: all 0.2s;
 }
-.btn-primary { background: #5b9aff; color: #fff; }
-.btn-primary:hover { background: #4a89ee; }
-.btn-danger  { background: #e74c3c; color: #fff; }
-.btn-danger:hover  { background: #c0392b; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-danger  { background: var(--btn-danger); color: #fff; }
+.btn-danger:hover  { background: var(--btn-danger-hover); }
 .btn-sm { padding: 5px 10px; font-size: 12px; }
-.btn-ghost { background: transparent; color: #888; border: 1px solid #2a2d3a; }
-.btn-ghost:hover { background: #1a1d2b; color: #ccc; }
-.btn-success { background: #2ecc71; color: #fff; }
-.btn-success:hover { background: #27ae60; }
-.btn-maint { background: rgba(155,89,182,0.15); color: #9b59b6; border: 1px solid rgba(155,89,182,0.3); }
+.btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--bg-card); color: var(--text-body); }
+.btn-success { background: var(--status-ok); color: #fff; }
+.btn-success:hover { background: var(--btn-success-hover); }
+.btn-maint { background: var(--status-maint-bg); color: var(--status-maint); border: 1px solid rgba(155,89,182,0.3); }
 .btn-maint:hover { background: rgba(155,89,182,0.25); }
-.btn-maint.active-maint { background: #9b59b6; color: #fff; }
-.btn-warning { background: rgba(230,126,34,0.15); color: #e67e22; border: 1px solid rgba(230,126,34,0.3); }
+.btn-maint.active-maint { background: var(--status-maint); color: #fff; }
+.btn-warning { background: var(--status-parent-down-bg); color: var(--status-parent-down); border: 1px solid rgba(230,126,34,0.3); }
 .btn-warning:hover { background: rgba(230,126,34,0.25); }
 .device-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .device-table td.actions { white-space: nowrap; }
 .device-table td.actions .btn { margin-right: 4px; }
 .device-checks-list { display: flex; flex-wrap: wrap; gap: 4px; }
 .device-checks-list .chip {
-    background: #0f1117; border: 1px solid #2a2d3a; border-radius: 4px;
-    padding: 2px 8px; font-size: 11px; color: #aaa;
+    background: var(--bg-body); border: 1px solid var(--border); border-radius: 4px;
+    padding: 2px 8px; font-size: 11px; color: var(--text-secondary);
 }
-.empty-state { text-align: center; padding: 60px 20px; color: #555; }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-faint); }
 .empty-state p { font-size: 15px; margin-bottom: 16px; }
 .modal-overlay {
     display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center;
+    background: var(--modal-overlay); z-index: 1000; align-items: center; justify-content: center;
 }
 .modal-overlay.open { display: flex; }
 .modal {
-    background: #1a1d2b; border: 1px solid #2a2d3a; border-radius: 12px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
     width: 640px; max-width: 95vw; max-height: 90vh; overflow-y: auto; padding: 24px;
 }
-.modal h2 { color: #fff; margin-bottom: 20px; font-size: 18px; }
+.modal h2 { color: var(--text-primary); margin-bottom: 20px; font-size: 18px; }
 .form-group { margin-bottom: 14px; }
 .form-group label {
-    display: block; color: #aaa; font-size: 12px; margin-bottom: 4px;
+    display: block; color: var(--text-secondary); font-size: 12px; margin-bottom: 4px;
     text-transform: uppercase; letter-spacing: 0.5px;
 }
 .form-group input, .form-group select, .form-group textarea {
-    width: 100%; padding: 9px 12px; background: #0f1117; border: 1px solid #2a2d3a;
-    border-radius: 6px; color: #e0e0e0; font-size: 14px; outline: none;
+    width: 100%; padding: 9px 12px; background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text-body); font-size: 14px; outline: none;
     font-family: inherit;
 }
 .form-group textarea { resize: vertical; min-height: 60px; }
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #5b9aff; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
 .form-row { display: flex; gap: 12px; }
 .form-row .form-group { flex: 1; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 .links-section { margin-top: 10px; }
-.links-section h4 { color: #ccc; font-size: 13px; margin-bottom: 8px; }
+.links-section h4 { color: var(--text-body); font-size: 13px; margin-bottom: 8px; }
 .link-item { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
 .link-item input { flex: 1; }
-.link-item .remove-link { background: none; border: none; color: #666; cursor: pointer; font-size: 16px; padding: 4px; }
-.link-item .remove-link:hover { color: #e74c3c; }
+.link-item .remove-link { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 16px; padding: 4px; }
+.link-item .remove-link:hover { color: var(--btn-danger); }
 .checks-section { margin-top: 16px; }
-.checks-section h3 { color: #ccc; font-size: 14px; margin-bottom: 10px; }
+.checks-section h3 { color: var(--text-body); font-size: 14px; margin-bottom: 10px; }
 .check-item {
-    background: #0f1117; border: 1px solid #2a2d3a; border-radius: 8px;
+    background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
     padding: 14px; margin-bottom: 10px; position: relative;
 }
 .check-item .remove-check {
     position: absolute; top: 8px; right: 8px; background: none; border: none;
-    color: #666; cursor: pointer; font-size: 18px; line-height: 1;
+    color: var(--text-dim); cursor: pointer; font-size: 18px; line-height: 1;
 }
-.check-item .remove-check:hover { color: #e74c3c; }
+.check-item .remove-check:hover { color: var(--btn-danger); }
 .drawer-overlay {
     display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.4); z-index: 900;
+    background: var(--drawer-overlay); z-index: 900;
 }
 .drawer-overlay.open { display: block; }
 .drawer {
     position: fixed; top: 0; right: -580px; width: 560px; max-width: 95vw;
-    height: 100vh; background: #161822; border-left: 1px solid #2a2d3a;
+    height: 100vh; background: var(--bg-panel); border-left: 1px solid var(--border);
     z-index: 910; overflow-y: auto; transition: right 0.3s ease; padding: 24px;
 }
 .drawer.open { right: 0; }
 .drawer-close {
     position: absolute; top: 16px; right: 16px; background: none; border: none;
-    color: #888; font-size: 24px; cursor: pointer; z-index: 920;
+    color: var(--text-muted); font-size: 24px; cursor: pointer; z-index: 920;
 }
-.drawer-close:hover { color: #fff; }
-.drawer h2 { color: #fff; font-size: 18px; margin-bottom: 4px; padding-right: 40px; }
-.drawer .drawer-host { color: #888; font-size: 13px; margin-bottom: 16px; }
-/* Help section styles */
-.help-section { background: #1a1d2b; border: 1px solid #2a2d3a; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
-.help-heading { color: #e2e8f0; font-size: 14px; font-weight: 600; padding: 14px 20px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background 0.15s; }
-.help-heading:hover { background: rgba(255,255,255,0.03); }
-.help-heading::after { content: "+"; color: #64748b; font-size: 18px; font-weight: 400; transition: transform 0.2s; }
-.help-section.open .help-heading::after { content: "-"; }
-.help-body { display: none; padding: 0 20px 20px 20px; color: #94a3b8; font-size: 13px; line-height: 1.7; }
-.help-section.open .help-body { display: block; }
-.help-body h4 { color: #cbd5e1; font-size: 13px; margin: 16px 0 6px 0; }
-.help-body h4:first-child { margin-top: 0; }
-.help-body ul, .help-body ol { margin: 6px 0; padding-left: 24px; }
-.help-body li { margin-bottom: 4px; }
-.help-body pre { background: #111827; border: 1px solid #2a2d3a; border-radius: 6px; padding: 12px 16px; font-size: 12px; color: #e2e8f0; overflow-x: auto; margin: 8px 0; white-space: pre; }
-.help-body code { background: #111827; padding: 1px 6px; border-radius: 3px; font-size: 12px; color: #22c55e; }
-.help-body pre code { background: none; padding: 0; }
-.help-body a { color: #22c55e; }
-.help-section.hidden { display: none; }
+.drawer-close:hover { color: var(--text-primary); }
+.drawer h2 { color: var(--text-primary); font-size: 18px; margin-bottom: 4px; padding-right: 40px; }
+.drawer .drawer-host { color: var(--text-muted); font-size: 13px; margin-bottom: 16px; }
 .drawer .drawer-section { margin-bottom: 20px; }
 .drawer .drawer-section h3 {
-    color: #888; font-size: 12px; text-transform: uppercase;
-    letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid #2a2d3a; padding-bottom: 6px;
+    color: var(--text-muted); font-size: 12px; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 6px;
 }
 .drawer .uptime-row { display: flex; gap: 16px; margin-bottom: 8px; }
 .drawer .uptime-item {
-    background: #0f1117; border: 1px solid #2a2d3a; border-radius: 6px;
+    background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px;
     padding: 10px 16px; flex: 1; text-align: center;
 }
-.drawer .uptime-item .val { font-size: 20px; font-weight: 700; color: #2ecc71; }
-.drawer .uptime-item .val.warn { color: #f39c12; }
-.drawer .uptime-item .val.crit { color: #e74c3c; }
-.drawer .uptime-item .val.na   { color: #555; }
-.drawer .uptime-item .per { font-size: 11px; color: #888; margin-top: 2px; }
-.drawer .notes-text { color: #bbb; font-size: 13px; white-space: pre-wrap; line-height: 1.6; }
+.drawer .uptime-item .val { font-size: 20px; font-weight: 700; color: var(--status-ok); }
+.drawer .uptime-item .val.warn { color: var(--status-warning); }
+.drawer .uptime-item .val.crit { color: var(--status-critical); }
+.drawer .uptime-item .val.na   { color: var(--text-faint); }
+.drawer .uptime-item .per { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.drawer .notes-text { color: var(--text-secondary); font-size: 13px; white-space: pre-wrap; line-height: 1.6; }
 .drawer .link-list { list-style: none; }
 .drawer .link-list li { margin-bottom: 6px; }
-.drawer .link-list a { color: #5b9aff; text-decoration: none; font-size: 13px; }
+.drawer .link-list a { color: var(--accent); text-decoration: none; font-size: 13px; }
 .drawer .link-list a:hover { text-decoration: underline; }
 .drawer table { font-size: 12px; }
 .drawer th { font-size: 11px; padding: 6px 8px; }
 .drawer td { padding: 6px 8px; font-size: 12px; }
 .perf-chart-wrap {
-    background: #0f1117; border: 1px solid #2a2d3a; border-radius: 8px;
+    background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
     padding: 12px; margin-bottom: 12px;
 }
-.perf-chart-wrap h4 { color: #aaa; font-size: 12px; margin-bottom: 8px; }
+.perf-chart-wrap h4 { color: var(--text-secondary); font-size: 12px; margin-bottom: 8px; }
 .perf-chart-wrap canvas { max-height: 160px; }
 .perf-period-btns { display: flex; gap: 6px; margin-bottom: 12px; }
 .perf-period-btns button { padding: 4px 10px; font-size: 11px; }
-.perf-period-btns button.active { background: #5b9aff; color: #fff; border-color: #5b9aff; }
+.perf-period-btns button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .scan-controls {
     display: flex; gap: 12px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap;
 }
 .scan-controls .form-group { margin-bottom: 0; }
 .scan-progress {
-    background: #1a1d2b; border: 1px solid #2a2d3a; border-radius: 8px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
     padding: 16px; margin-bottom: 20px;
 }
 .scan-progress .progress-bar-bg {
-    background: #0f1117; border-radius: 4px; height: 8px; overflow: hidden; margin: 10px 0;
+    background: var(--bg-input); border-radius: 4px; height: 8px; overflow: hidden; margin: 10px 0;
 }
 .scan-progress .progress-bar-fill {
-    background: #5b9aff; height: 100%; border-radius: 4px; transition: width 0.3s;
+    background: var(--accent); height: 100%; border-radius: 4px; transition: width 0.3s;
 }
-.scan-progress .progress-text { color: #888; font-size: 13px; }
+.scan-progress .progress-text { color: var(--text-muted); font-size: 13px; }
 .scan-progress .progress-stats {
-    display: flex; gap: 24px; margin-top: 8px; color: #aaa; font-size: 13px;
+    display: flex; gap: 24px; margin-top: 8px; color: var(--text-secondary); font-size: 13px;
 }
-.scan-progress .progress-stats strong { color: #fff; }
+.scan-progress .progress-stats strong { color: var(--text-primary); }
 .scan-results-filter {
     display: flex; gap: 10px; margin-bottom: 12px; align-items: center;
 }
 .scan-results-filter label {
-    color: #888; font-size: 12px; display: flex; align-items: center; gap: 4px; cursor: pointer;
+    color: var(--text-muted); font-size: 12px; display: flex; align-items: center; gap: 4px; cursor: pointer;
 }
-.scan-results-filter input[type="checkbox"] { accent-color: #5b9aff; }
+.scan-results-filter input[type="checkbox"] { accent-color: var(--accent); }
 .port-chip {
-    display: inline-block; background: rgba(91,154,255,0.1); border: 1px solid rgba(91,154,255,0.2);
-    border-radius: 3px; padding: 1px 6px; font-size: 11px; color: #5b9aff; margin: 1px 2px;
-}
-a.port-link {
-    text-decoration: none; cursor: pointer; transition: background 0.2s, border-color 0.2s;
-}
-a.port-link:hover {
-    background: rgba(91,154,255,0.25); border-color: rgba(91,154,255,0.5); color: #8cb8ff;
+    display: inline-block; background: var(--accent-bg); border: 1px solid var(--accent-border);
+    border-radius: 3px; padding: 1px 6px; font-size: 11px; color: var(--accent); margin: 1px 2px;
 }
 .alive-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
-.alive-dot.up { background: #2ecc71; }
-.alive-dot.down { background: #555; }
+.alive-dot.up { background: var(--status-ok); }
+.alive-dot.down { background: var(--text-faint); }
 .monitored-badge {
-    background: rgba(46,204,113,0.15); color: #2ecc71; padding: 2px 6px;
+    background: var(--status-ok-bg); color: var(--status-ok); padding: 2px 6px;
     border-radius: 3px; font-size: 10px; font-weight: 600;
 }
 #network-map {
-    width: 100%; height: 600px; background: #0f1117;
-    border: 1px solid #2a2d3a; border-radius: 8px; margin-top: 12px;
+    width: 100%; height: 600px; background: var(--bg-input);
+    border: 1px solid var(--border); border-radius: 8px; margin-top: 12px;
 }
 .map-legend { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 12px; }
-.map-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #888; }
+.map-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
 .map-legend-dot { width: 12px; height: 12px; border-radius: 50%; }
 .map-legend-dot.discovered { border: 2px dashed #888; background: transparent; width: 10px; height: 10px; }
 .map-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .inv-stats { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
 .inv-stat {
-    background: #1a1d2b; border: 1px solid #2a2d3a; border-radius: 8px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
     padding: 12px 20px; text-align: center; min-width: 100px;
 }
-.inv-stat .val { font-size: 24px; font-weight: 700; color: #5b9aff; }
-.inv-stat .lbl { font-size: 11px; color: #888; text-transform: uppercase; margin-top: 2px; }
+.inv-stat .val { font-size: 24px; font-weight: 700; color: var(--accent); }
+.inv-stat .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
 .inv-type-chip {
     display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600;
-    background: rgba(91,154,255,0.1); border: 1px solid rgba(91,154,255,0.2); color: #5b9aff;
+    background: var(--accent-bg); border: 1px solid var(--accent-border); color: var(--accent);
 }
-.inv-status-active  { background: rgba(46,204,113,0.15); color: #2ecc71; }
-.inv-status-retired { background: rgba(136,136,136,0.15); color: #888; }
+.inv-status-active  { background: var(--status-ok-bg); color: var(--status-ok); }
+.inv-status-retired { background: var(--status-unknown-bg); color: var(--status-unknown); }
 .downtime-card {
-    background: #1a1d2b; border: 1px solid #2a2d3a; border-radius: 8px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
     padding: 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
 }
 .downtime-card .dt-info { flex: 1; }
-.downtime-card .dt-device { color: #fff; font-weight: 600; font-size: 14px; }
-.downtime-card .dt-times { color: #888; font-size: 12px; margin-top: 4px; }
-.downtime-card .dt-reason { color: #aaa; font-size: 12px; margin-top: 2px; font-style: italic; }
+.downtime-card .dt-device { color: var(--text-primary); font-weight: 600; font-size: 14px; }
+.downtime-card .dt-times { color: var(--text-muted); font-size: 12px; margin-top: 4px; }
+.downtime-card .dt-reason { color: var(--text-secondary); font-size: 12px; margin-top: 2px; font-style: italic; }
 .downtime-card .dt-status { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 3px; }
-.downtime-card .dt-status.active { background: rgba(230,126,34,0.15); color: #e67e22; }
-.downtime-card .dt-status.upcoming { background: rgba(91,154,255,0.15); color: #5b9aff; }
-.downtime-card .dt-status.expired { background: rgba(136,136,136,0.15); color: #666; }
+.downtime-card .dt-status.active { background: var(--status-parent-down-bg); color: var(--status-parent-down); }
+.downtime-card .dt-status.upcoming { background: var(--accent-bg); color: var(--accent); }
+.downtime-card .dt-status.expired { background: var(--status-unknown-bg); color: var(--text-dim); }
 </style>
 </head>
 <body>
 
 <div class="header">
     <div style="display:flex;align-items:baseline;">
-        <h1>&#x1F340; My<span class="brand-dot"></span>Clover<span class="brand-dot">.</span>Tech<span class="brand-dot">.</span>netmon</h1>
-        <span class="subtitle">Network Monitoring System v5.3</span>
+        <h1>Clover<span class="brand-dot">.</span>tech<span class="brand-dot">.</span>netmon</h1>
+        <span class="subtitle">Network Monitoring System v5.4</span>
     </div>
     <span class="refresh-info" id="refresh-info">Auto-refresh: 30s</span>
 </div>
@@ -358,9 +539,7 @@ a.port-link:hover {
     <div class="tab" data-tab="downtime">Downtime</div>
     <div class="tab" data-tab="devices">Manage Devices</div>
     <div class="tab" data-tab="reports">Reports</div>
-    <div class="tab" data-tab="security">Security</div>
     <div class="tab" data-tab="settings">Settings</div>
-    <div class="tab" data-tab="help">Help</div>
 </div>
 
 <!-- ========== STATUS TAB ========== -->
@@ -389,18 +568,18 @@ a.port-link:hover {
 <div class="content tab-content" id="tab-map">
     <div class="map-toolbar">
         <div class="map-legend">
-            <div class="map-legend-item"><div class="map-legend-dot" style="background:#2ecc71;"></div> OK</div>
-            <div class="map-legend-item"><div class="map-legend-dot" style="background:#f39c12;"></div> Warning</div>
-            <div class="map-legend-item"><div class="map-legend-dot" style="background:#e74c3c;"></div> Critical</div>
-            <div class="map-legend-item"><div class="map-legend-dot" style="background:#9b59b6;"></div> Maintenance</div>
-            <div class="map-legend-item"><div class="map-legend-dot" style="background:#e67e22;"></div> Parent Down</div>
-            <div class="map-legend-item"><div class="map-legend-dot" style="background:#555;"></div> Pending</div>
+            <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--status-ok);"></div> OK</div>
+            <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--status-warning);"></div> Warning</div>
+            <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--status-critical);"></div> Critical</div>
+            <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--status-maint);"></div> Maintenance</div>
+            <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--status-parent-down);"></div> Parent Down</div>
+            <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--text-faint);"></div> Pending</div>
             <div class="map-legend-item"><div class="map-legend-dot discovered"></div> Discovered</div>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="loadNetworkMap()">Refresh Map</button>
     </div>
     <div id="network-map"></div>
-    <p style="color:#555;font-size:12px;margin-top:8px;">Click a monitored device to open its detail drawer. Lines show parent-child dependencies.</p>
+    <p style="color:var(--text-faint);font-size:12px;margin-top:8px;">Click a monitored device to open its detail drawer. Lines show parent-child dependencies.</p>
 </div>
 
 <!-- ========== DISCOVERY TAB ========== -->
@@ -413,13 +592,13 @@ a.port-link:hover {
         </div>
         <button class="btn btn-primary" id="scan-btn" onclick="startScan()">Start Scan</button>
     </div>
-    <p style="color:#666;font-size:12px;margin-bottom:16px;">Scans up to 1024 IPs. Pings each host and checks common ports. Only alive hosts are shown. Results auto-import into Inventory.</p>
+    <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px;">Scans up to 1024 IPs. Pings each host and checks common ports. Only alive hosts are shown. Results auto-import into Inventory.</p>
     <div class="scan-progress" id="scan-progress" style="display:none;">
         <div class="progress-text" id="scan-progress-text">Scanning...</div>
         <div class="progress-bar-bg"><div class="progress-bar-fill" id="scan-progress-bar" style="width:0%;"></div></div>
         <div class="progress-stats">
             <span>Scanned: <strong id="scan-scanned">0</strong> / <strong id="scan-total">0</strong></span>
-            <span>Alive: <strong id="scan-alive" style="color:#2ecc71;">0</strong></span>
+            <span>Alive: <strong id="scan-alive" style="color:var(--status-ok);">0</strong></span>
             <span>Target: <strong id="scan-target"></strong></span>
         </div>
     </div>
@@ -428,7 +607,7 @@ a.port-link:hover {
     </div>
     <div id="scan-results"></div>
     <div style="margin-top:24px;">
-        <h3 style="color:#888;font-size:13px;margin-bottom:10px;">SCAN HISTORY</h3>
+        <h3 style="color:var(--text-muted);font-size:13px;margin-bottom:10px;">SCAN HISTORY</h3>
         <div id="scan-history"></div>
     </div>
 </div>
@@ -436,7 +615,7 @@ a.port-link:hover {
 <!-- ========== INVENTORY TAB ========== -->
 <div class="content tab-content" id="tab-inventory">
     <div class="device-toolbar">
-        <h2 style="color:#fff;font-size:16px;">Asset Inventory</h2>
+        <h2 style="color:var(--text-primary);font-size:16px;">Asset Inventory</h2>
         <div style="display:flex;gap:8px;">
             <button class="btn btn-danger btn-sm" id="inv-remove-sel-btn" style="display:none;" onclick="batchDeleteAssets()">Remove Selected (<span id="inv-sel-count">0</span>)</button>
             <button class="btn btn-ghost btn-sm" onclick="importLatestScan()">Import Latest Scan</button>
@@ -460,7 +639,7 @@ a.port-link:hover {
 <!-- ========== ALERTS TAB ========== -->
 <div class="content tab-content" id="tab-alerts">
     <div class="device-toolbar">
-        <h2 style="color:#fff;font-size:16px;">Alerts</h2>
+        <h2 style="color:var(--text-primary);font-size:16px;">Alerts</h2>
         <div style="display:flex;gap:8px;">
             <button class="btn btn-ghost btn-sm" id="ack-all-btn" onclick="ackAllAlerts()">Acknowledge All</button>
         </div>
@@ -482,17 +661,17 @@ a.port-link:hover {
 <!-- ========== DOWNTIME TAB ========== -->
 <div class="content tab-content" id="tab-downtime">
     <div class="device-toolbar">
-        <h2 style="color:#fff;font-size:16px;">Scheduled Downtime</h2>
+        <h2 style="color:var(--text-primary);font-size:16px;">Scheduled Downtime</h2>
         <button class="btn btn-primary" onclick="openDowntimeModal()">+ Schedule Downtime</button>
     </div>
-    <p style="color:#666;font-size:12px;margin-bottom:16px;">Plan maintenance windows in advance. Devices in scheduled downtime skip checks and suppress alerts during the window.</p>
+    <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px;">Plan maintenance windows in advance. Devices in scheduled downtime skip checks and suppress alerts during the window.</p>
     <div id="downtime-list"></div>
 </div>
 
 <!-- ========== DEVICES TAB ========== -->
 <div class="content tab-content" id="tab-devices">
     <div class="device-toolbar">
-        <h2 style="color:#fff;font-size:16px;">Devices &amp; Checks</h2>
+        <h2 style="color:var(--text-primary);font-size:16px;">Devices &amp; Checks</h2>
         <button class="btn btn-primary" onclick="openAddDevice()">+ Add Device</button>
     </div>
     <table class="device-table">
@@ -507,12 +686,12 @@ a.port-link:hover {
 
 <!-- ========== SETTINGS TAB ========== -->
 <div class="content tab-content" id="tab-reports">
-    <h2 style="color:#fff;font-size:16px;margin-bottom:20px;">SLA & Uptime Reports</h2>
+    <h2 style="color:var(--text-primary);font-size:16px;margin-bottom:20px;">SLA & Uptime Reports</h2>
     <div id="reports-upgrade" style="display:none;"></div>
     <div id="reports-content">
         <div style="display:flex;gap:12px;margin-bottom:20px;align-items:center;">
-            <label style="color:#94a3b8;font-size:13px;">Period:</label>
-            <select id="report-period" style="background:#1a1d2b;border:1px solid #2a2d3a;color:#e2e8f0;padding:6px 12px;border-radius:6px;">
+            <label style="color:var(--text-muted);font-size:13px;">Period:</label>
+            <select id="report-period" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-body);padding:6px 12px;border-radius:6px;">
                 <option value="24">Last 24 hours</option>
                 <option value="168">Last 7 days</option>
                 <option value="720" selected>Last 30 days</option>
@@ -528,138 +707,114 @@ a.port-link:hover {
                     <th>Device</th><th>Group</th><th>Uptime %</th><th>Downtime</th>
                     <th>Incidents</th><th>MTTR</th><th>SLA Status</th>
                 </tr></thead>
-                <tbody id="sla-body"><tr><td colspan="7" style="text-align:center;color:#555;padding:40px;">Click "Generate Report" to view SLA data</td></tr></tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<div class="content tab-content" id="tab-security">
-    <h2 style="color:#fff;font-size:16px;margin-bottom:20px;">Security Scanner</h2>
-    <div id="security-upgrade" style="display:none;"></div>
-    <div id="security-content">
-        <!-- Scan launcher -->
-        <div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:20px;margin-bottom:20px;">
-            <h3 style="color:#e2e8f0;font-size:14px;margin-bottom:12px;">Launch Security Scan</h3>
-            <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
-                <div style="flex:1;min-width:200px;">
-                    <label style="color:#94a3b8;font-size:12px;display:block;margin-bottom:4px;">Targets (comma-separated IPs, or blank for all devices)</label>
-                    <input type="text" id="sec-targets" placeholder="e.g. 192.168.1.1, 192.168.1.10" style="width:100%;background:#111827;border:1px solid #2a2d3a;color:#e2e8f0;padding:8px 12px;border-radius:6px;font-size:13px;">
-                </div>
-                <div>
-                    <label style="color:#94a3b8;font-size:12px;display:block;margin-bottom:4px;">Scan Types</label>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <label style="color:#cbd5e1;font-size:12px;cursor:pointer;"><input type="checkbox" id="sec-type-ports" checked style="margin-right:3px;">Ports</label>
-                        <label style="color:#cbd5e1;font-size:12px;cursor:pointer;"><input type="checkbox" id="sec-type-ssl" checked style="margin-right:3px;">SSL/TLS</label>
-                        <label style="color:#cbd5e1;font-size:12px;cursor:pointer;"><input type="checkbox" id="sec-type-http" checked style="margin-right:3px;">HTTP Headers</label>
-                        <label style="color:#cbd5e1;font-size:12px;cursor:pointer;"><input type="checkbox" id="sec-type-services" checked style="margin-right:3px;">Services</label>
-                        <label style="color:#cbd5e1;font-size:12px;cursor:pointer;"><input type="checkbox" id="sec-type-snmp" style="margin-right:3px;">SNMP</label>
-                        <label style="color:#cbd5e1;font-size:12px;cursor:pointer;"><input type="checkbox" id="sec-type-dns" style="margin-right:3px;">DNS</label>
-                    </div>
-                </div>
-                <button class="btn btn-primary" onclick="startSecurityScan()" id="sec-scan-btn">Start Scan</button>
-                <button class="btn" onclick="stopSecurityScan()" id="sec-stop-btn" style="display:none;background:#ef4444;color:#fff;">Stop Scan</button>
-            </div>
-            <!-- Progress -->
-            <div id="sec-progress" style="display:none;margin-top:16px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                    <span style="color:#94a3b8;font-size:12px;" id="sec-progress-label">Scanning...</span>
-                    <span style="color:#e2e8f0;font-size:12px;font-weight:600;" id="sec-progress-pct">0%</span>
-                </div>
-                <div style="background:#111827;border-radius:4px;height:8px;overflow:hidden;">
-                    <div id="sec-progress-bar" style="background:#22c55e;height:100%;width:0%;transition:width 0.3s;border-radius:4px;"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Summary cards (shown after scan) -->
-        <div id="sec-summary" style="display:none;gap:12px;margin-bottom:20px;flex-wrap:wrap;"></div>
-
-        <!-- Findings table -->
-        <div id="sec-results" style="display:none;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                <h3 style="color:#e2e8f0;font-size:14px;margin:0;">Findings</h3>
-                <div style="display:flex;gap:8px;">
-                    <select id="sec-filter-severity" onchange="filterSecFindings()" style="background:#1a1d2b;border:1px solid #2a2d3a;color:#e2e8f0;padding:4px 10px;border-radius:6px;font-size:12px;">
-                        <option value="">All Severities</option>
-                        <option value="critical">Critical</option>
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
-                        <option value="info">Info</option>
-                    </select>
-                    <select id="sec-filter-category" onchange="filterSecFindings()" style="background:#1a1d2b;border:1px solid #2a2d3a;color:#e2e8f0;padding:4px 10px;border-radius:6px;font-size:12px;">
-                        <option value="">All Categories</option>
-                        <option value="ports">Ports</option>
-                        <option value="ssl">SSL/TLS</option>
-                        <option value="http">HTTP</option>
-                        <option value="services">Services</option>
-                        <option value="snmp">SNMP</option>
-                        <option value="dns">DNS</option>
-                    </select>
-                </div>
-            </div>
-            <table class="data-table" id="sec-findings-table">
-                <thead><tr>
-                    <th style="width:90px;">Severity</th>
-                    <th>Target</th>
-                    <th style="width:90px;">Category</th>
-                    <th>Finding</th>
-                    <th>Remediation</th>
-                </tr></thead>
-                <tbody id="sec-findings-body"></tbody>
-            </table>
-        </div>
-
-        <!-- Scan history -->
-        <div style="margin-top:24px;">
-            <h3 style="color:#e2e8f0;font-size:14px;margin-bottom:12px;">Scan History</h3>
-            <table class="data-table">
-                <thead><tr>
-                    <th>Scan ID</th><th>Date</th><th>Targets</th><th>Types</th>
-                    <th>Critical</th><th>High</th><th>Medium</th><th>Low</th><th>Actions</th>
-                </tr></thead>
-                <tbody id="sec-history-body">
-                    <tr><td colspan="9" style="text-align:center;color:#555;padding:40px;">No security scans yet. Launch one above.</td></tr>
-                </tbody>
+                <tbody id="sla-body"><tr><td colspan="7" style="text-align:center;color:var(--text-faint);padding:40px;">Click "Generate Report" to view SLA data</td></tr></tbody>
             </table>
         </div>
     </div>
 </div>
 
 <div class="content tab-content" id="tab-settings">
-    <h2 style="color:#fff;font-size:16px;margin-bottom:20px;">Settings</h2>
-    <div id="settings-saved-msg" style="display:none;background:rgba(46,204,113,0.15);color:#2ecc71;padding:10px 16px;border-radius:6px;margin-bottom:16px;font-size:13px;">Settings saved successfully.</div>
-    <div id="settings-error-msg" style="display:none;background:rgba(231,76,60,0.15);color:#e74c3c;padding:10px 16px;border-radius:6px;margin-bottom:16px;font-size:13px;"></div>
+    <h2 style="color:var(--text-primary);font-size:16px;margin-bottom:20px;">Settings</h2>
+    <div id="settings-saved-msg" style="display:none;background:var(--status-ok-bg);color:var(--status-ok);padding:10px 16px;border-radius:6px;margin-bottom:16px;font-size:13px;">Settings saved successfully.</div>
+    <div id="settings-error-msg" style="display:none;background:var(--status-critical-bg);color:var(--status-critical);padding:10px 16px;border-radius:6px;margin-bottom:16px;font-size:13px;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+            <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Appearance</h3>
+            <div class="form-group">
+                <label>Skin / Theme</label>
+                <div id="skin-picker" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px;">
+                    <button class="skin-swatch" data-skin="midnight" style="padding:10px 8px;border-radius:6px;border:2px solid var(--border);cursor:pointer;text-align:center;font-size:12px;font-weight:600;background:#0f1117;color:#e0e0e0;" onclick="setSkin('midnight')">
+                        <span style="display:block;font-size:16px;margin-bottom:4px;">&#127761;</span>Midnight
+                    </button>
+                    <button class="skin-swatch" data-skin="light" style="padding:10px 8px;border-radius:6px;border:2px solid var(--border);cursor:pointer;text-align:center;font-size:12px;font-weight:600;background:#f0f2f5;color:#111827;" onclick="setSkin('light')">
+                        <span style="display:block;font-size:16px;margin-bottom:4px;">&#9728;&#65039;</span>Light
+                    </button>
+                    <button class="skin-swatch" data-skin="corporate" style="padding:10px 8px;border-radius:6px;border:2px solid var(--border);cursor:pointer;text-align:center;font-size:12px;font-weight:600;background:#0f2240;color:#c4d3e8;" onclick="setSkin('corporate')">
+                        <span style="display:block;font-size:16px;margin-bottom:4px;">&#128309;</span>Corporate
+                    </button>
+                    <button class="skin-swatch" data-skin="matrix" style="padding:10px 8px;border-radius:6px;border:2px solid var(--border);cursor:pointer;text-align:center;font-size:12px;font-weight:600;background:#000000;color:#33ff33;" onclick="setSkin('matrix')">
+                        <span style="display:block;font-size:16px;margin-bottom:4px;">&#129001;</span>Matrix
+                    </button>
+                    <button class="skin-swatch" data-skin="amber" style="padding:10px 8px;border-radius:6px;border:2px solid var(--border);cursor:pointer;text-align:center;font-size:12px;font-weight:600;background:#0d0a06;color:#ffcc00;" onclick="setSkin('amber')">
+                        <span style="display:block;font-size:16px;margin-bottom:4px;">&#128992;</span>Amber NOC
+                    </button>
+                    <button class="skin-swatch" data-skin="solarized" style="padding:10px 8px;border-radius:6px;border:2px solid var(--border);cursor:pointer;text-align:center;font-size:12px;font-weight:600;background:#002b36;color:#fdf6e3;" onclick="setSkin('solarized')">
+                        <span style="display:block;font-size:16px;margin-bottom:4px;">&#128995;</span>Solarized
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+            <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Dashboard Customization</h3>
+            <div class="form-group">
+                <label>Default Tab</label>
+                <select id="pref-default-tab" onchange="savePref('defaultTab', this.value)">
+                    <option value="status">Status</option>
+                    <option value="map">Network Map</option>
+                    <option value="discovery">Discovery</option>
+                    <option value="inventory">Inventory</option>
+                    <option value="alerts">Alerts</option>
+                    <option value="history">History</option>
+                    <option value="downtime">Downtime</option>
+                    <option value="devices">Manage Devices</option>
+                    <option value="reports">Reports</option>
+                    <option value="settings">Settings</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Card Density</label>
+                <select id="pref-density" onchange="setDensity(this.value)">
+                    <option value="comfortable">Comfortable (default)</option>
+                    <option value="compact">Compact</option>
+                    <option value="expanded">Expanded</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Auto-Refresh Interval</label>
+                <select id="pref-refresh" onchange="setRefreshInterval(this.value)">
+                    <option value="5">5 seconds</option>
+                    <option value="15">15 seconds</option>
+                    <option value="30" selected>30 seconds (default)</option>
+                    <option value="60">60 seconds</option>
+                    <option value="0">Off</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;">
+                    <input type="checkbox" id="pref-show-summary" checked onchange="savePref('showSummary', this.checked); toggleSummaryBar()" style="accent-color:var(--accent);width:16px;height:16px;"> Show summary bar on Status tab
+                </label>
+            </div>
+        </div>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
         <div>
-            <div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:20px;margin-bottom:20px;">
-                <h3 style="color:#ccc;font-size:14px;margin-bottom:16px;border-bottom:1px solid #2a2d3a;padding-bottom:8px;">General</h3>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px;">
+                <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">General</h3>
                 <div class="form-group">
                     <label>Check Interval (seconds)</label>
                     <input type="number" id="set-interval" min="5" placeholder="60">
-                    <span style="color:#555;font-size:11px;">Minimum 5 seconds.</span>
+                    <span style="color:var(--text-faint);font-size:11px;">Minimum 5 seconds.</span>
                 </div>
             </div>
-            <div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:20px;">
-                <h3 style="color:#ccc;font-size:14px;margin-bottom:16px;border-bottom:1px solid #2a2d3a;padding-bottom:8px;">Dashboard</h3>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+                <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Dashboard</h3>
                 <div class="form-row">
                     <div class="form-group"><label>Listen Host</label><input type="text" id="set-dash-host" placeholder="0.0.0.0"></div>
                     <div class="form-group"><label>Port</label><input type="number" id="set-dash-port" placeholder="8080"></div>
                 </div>
-                <span style="color:#f39c12;font-size:11px;">Changes take effect on next restart.</span>
+                <span style="color:var(--status-warning);font-size:11px;">Changes take effect on next restart.</span>
             </div>
         </div>
         <div>
-            <div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:20px;">
-                <h3 style="color:#ccc;font-size:14px;margin-bottom:16px;border-bottom:1px solid #2a2d3a;padding-bottom:8px;">Email Notifications (SMTP)</h3>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+                <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Email Notifications (SMTP)</h3>
                 <div class="form-row">
                     <div class="form-group" style="flex:2;"><label>SMTP Host</label><input type="text" id="set-smtp-host" placeholder="smtp.gmail.com"></div>
                     <div class="form-group" style="flex:1;"><label>Port</label><input type="number" id="set-smtp-port" placeholder="587"></div>
                 </div>
                 <div class="form-group">
                     <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;">
-                        <input type="checkbox" id="set-smtp-tls" style="accent-color:#5b9aff;width:16px;height:16px;"> Use TLS (STARTTLS)
+                        <input type="checkbox" id="set-smtp-tls" style="accent-color:var(--accent);width:16px;height:16px;"> Use TLS (STARTTLS)
                     </label>
                 </div>
                 <div class="form-row">
@@ -680,25 +835,25 @@ a.port-link:hover {
         </div>
     </div>
     <div style="margin-top:20px;">
-        <div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:20px;">
-            <h3 style="color:#ccc;font-size:14px;margin-bottom:16px;border-bottom:1px solid #2a2d3a;padding-bottom:8px;">License</h3>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+            <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">License</h3>
             <div id="license-tier-badge" style="display:inline-block;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;text-transform:uppercase;margin-bottom:12px;background:#333;color:#888;">Community (Free)</div>
             <div id="license-usage" style="font-size:12px;color:#888;margin-bottom:12px;"></div>
             <div class="form-group" style="margin-bottom:12px;">
                 <label>License Key</label>
                 <div style="display:flex;gap:8px;">
-                    <input type="text" id="set-license-key" placeholder="Paste your license key here" style="flex:1;font-family:monospace;">
+                    <input type="text" id="set-license-key" placeholder="PRO-XXXXXXXX-YYYYYYYYYYYYYYYY" style="flex:1;font-family:monospace;">
                     <button class="btn btn-primary btn-sm" onclick="activateLicense()" id="activate-license-btn">Activate</button>
                 </div>
             </div>
             <div id="license-result" style="font-size:12px;margin-top:6px;"></div>
-            <div style="margin-top:8px;"><a href="https://myclover.tech/#pricing" target="_blank" style="font-size:12px;color:#5b9aff;text-decoration:none;">Purchase a license at myclover.tech &rarr;</a></div>
+            <div style="margin-top:8px;"><a href="https://myclover.tech/#pricing" target="_blank" style="font-size:12px;color:var(--accent);text-decoration:none;">Purchase a license at myclover.tech &rarr;</a></div>
         </div>
     </div>
     <div id="ent-settings" style="display:none;margin-top:20px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
-            <div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:20px;">
-                <h3 style="color:#ccc;font-size:14px;margin-bottom:16px;border-bottom:1px solid #2a2d3a;padding-bottom:8px;">Webhook Notifications <span style="font-size:10px;color:#a78bfa;background:rgba(167,139,250,0.15);padding:2px 8px;border-radius:4px;margin-left:8px;">Enterprise</span></h3>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+                <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Webhook Notifications <span style="font-size:10px;color:#a78bfa;background:rgba(167,139,250,0.15);padding:2px 8px;border-radius:4px;margin-left:8px;">Enterprise</span></h3>
                 <div id="webhook-list"></div>
                 <button class="btn btn-ghost btn-sm" onclick="addWebhookRow()" style="margin-top:10px;">+ Add Webhook</button>
                 <div style="margin-top:12px;display:flex;gap:8px;">
@@ -706,37 +861,18 @@ a.port-link:hover {
                     <span id="webhook-save-result" style="font-size:12px;color:#22c55e;"></span>
                 </div>
             </div>
-            <div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:20px;">
-                <h3 style="color:#ccc;font-size:14px;margin-bottom:16px;border-bottom:1px solid #2a2d3a;padding-bottom:8px;">Enterprise Tools</h3>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+                <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Enterprise Tools</h3>
                 <div style="margin-bottom:12px;">
-                    <a href="/noc" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:rgba(34,197,94,0.1);border:1px solid #22c55e;border-radius:8px;color:#22c55e;text-decoration:none;font-weight:600;">
+                    <a href="/noc" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:var(--status-ok-bg);border:1px solid var(--status-ok);border-radius:8px;color:var(--status-ok);text-decoration:none;font-weight:600;">
                         &#128250; Open NOC Display
                     </a>
-                    <p style="font-size:11px;color:#64748b;margin-top:6px;">Full-screen view for wall-mounted monitors. Auto-refreshes every 10s.</p>
+                    <p style="font-size:11px;color:var(--text-dim);margin-top:6px;">Full-screen view for wall-mounted monitors. Auto-refreshes every 10s.</p>
                 </div>
                 <div style="margin-bottom:12px;">
                     <div style="font-size:13px;color:#e2e8f0;margin-bottom:4px;">Custom Plugins</div>
-                    <div id="plugin-list" style="font-size:12px;color:#64748b;">Loading...</div>
-                    <p style="font-size:11px;color:#64748b;margin-top:6px;">Place .py scripts in the <code style="background:#0a0e17;padding:2px 6px;border-radius:3px;font-size:11px;">plugins/</code> folder. Use check type "plugin" in device config.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div style="margin-top:20px;">
-        <div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:20px;">
-            <h3 style="color:#ccc;font-size:14px;margin-bottom:16px;border-bottom:1px solid #2a2d3a;padding-bottom:8px;">Backup &amp; Restore</h3>
-            <p style="color:#64748b;font-size:12px;margin-bottom:16px;">Download a full backup (database, config, plugins) or restore from a previous backup zip.</p>
-            <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;">
-                <div>
-                    <button class="btn btn-primary btn-sm" onclick="downloadBackup()" id="backup-btn">&#128229; Download Backup</button>
-                    <div id="backup-status" style="font-size:11px;color:#64748b;margin-top:6px;"></div>
-                </div>
-                <div style="border-left:1px solid #2a2d3a;padding-left:12px;">
-                    <label style="display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:#1e293b;border:1px dashed #3a3d4a;border-radius:6px;cursor:pointer;font-size:12px;color:#94a3b8;transition:border-color 0.2s;">
-                        &#128228; Choose Backup to Restore...
-                        <input type="file" id="restore-file" accept=".zip" style="display:none;" onchange="handleRestoreFile(this)">
-                    </label>
-                    <div id="restore-status" style="font-size:11px;color:#64748b;margin-top:6px;"></div>
+                    <div id="plugin-list" style="font-size:12px;color:var(--text-dim);">Loading...</div>
+                    <p style="font-size:11px;color:var(--text-dim);margin-top:6px;">Place .py scripts in the <code style="background:var(--bg-deep);padding:2px 6px;border-radius:3px;font-size:11px;">plugins/</code> folder. Use check type "plugin" in device config.</p>
                 </div>
             </div>
         </div>
@@ -744,655 +880,6 @@ a.port-link:hover {
     <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">
         <button class="btn btn-ghost" onclick="loadSettings()">Revert</button>
         <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
-    </div>
-</div>
-
-<div class="content tab-content" id="tab-help">
-    <h2 style="color:#fff;font-size:16px;margin-bottom:20px;">Help &amp; Documentation</h2>
-
-    <!-- Search -->
-    <div style="margin-bottom:20px;">
-        <input type="text" id="help-search" placeholder="Search help topics..." oninput="filterHelp()" style="width:100%;max-width:400px;background:#111827;border:1px solid #2a2d3a;color:#e2e8f0;padding:10px 14px;border-radius:6px;font-size:13px;">
-    </div>
-
-    <!-- Support contact -->
-    <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:12px;">
-        <span style="font-size:20px;">&#9993;</span>
-        <div>
-            <div style="color:#e2e8f0;font-size:13px;font-weight:600;">Need help? Contact our support team</div>
-            <a href="mailto:support@myclover.tech" style="color:#22c55e;font-size:13px;text-decoration:none;">support@myclover.tech</a>
-        </div>
-    </div>
-
-    <div id="help-sections">
-
-    <!-- Getting Started -->
-    <div class="help-section" data-keywords="install setup start quick begin run requirements python pip launch first">
-        <div class="help-heading" onclick="toggleHelp(this)">Getting Started</div>
-        <div class="help-body">
-            <h4>System Requirements</h4>
-            <ul>
-                <li>Python 3.10 or later</li>
-                <li>Supported OS: Windows, Linux, macOS</li>
-                <li>Minimum 512 MB RAM (1 GB recommended for 100+ devices)</li>
-                <li>SQLite (included with Python - no separate database install needed)</li>
-            </ul>
-            <h4>Installation</h4>
-            <ol>
-                <li>Extract all files into a folder (e.g. <code>C:\netmon\</code> or <code>/opt/netmon/</code>)</li>
-                <li>Install dependencies: <code>pip install -r requirements.txt</code></li>
-                <li>Edit <code>config.yaml</code> to add your devices</li>
-                <li>Run: <code>python netmon.py</code></li>
-                <li>Open your browser to <code>http://localhost:8080</code></li>
-            </ol>
-            <h4>Running as a Service (Linux)</h4>
-            <pre>
-[Unit]
-Description=MyClover.Tech.netmon
-After=network.target
-
-[Service]
-ExecStart=/usr/bin/python3 /opt/netmon/netmon.py
-WorkingDirectory=/opt/netmon
-Restart=always
-User=netmon
-
-[Install]
-WantedBy=multi-user.target</pre>
-            <p>Save this to <code>/etc/systemd/system/netmon.service</code>, then run <code>systemctl enable --now netmon</code>.</p>
-        </div>
-    </div>
-
-    <!-- Licensing & Tiers -->
-    <div class="help-section" data-keywords="license key tier free pro enterprise upgrade activate feature limit device sensor pricing plan subscription">
-        <div class="help-heading" onclick="toggleHelp(this)">Licensing &amp; Tiers</div>
-        <div class="help-body">
-            <h4>License Tiers</h4>
-            <table class="data-table" style="margin-bottom:16px;">
-                <thead><tr><th>Feature</th><th>Community (Free)</th><th>Pro ($29/mo)</th><th>Enterprise ($99/mo)</th></tr></thead>
-                <tbody>
-                    <tr><td>Max Devices</td><td>10</td><td>500</td><td>Unlimited</td></tr>
-                    <tr><td>Max Sensors per Device</td><td>4</td><td>20</td><td>Unlimited</td></tr>
-                    <tr><td>Status, Alerts, History, Devices</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
-                    <tr><td>Network Map, Discovery, Inventory</td><td>-</td><td>Yes</td><td>Yes</td></tr>
-                    <tr><td>Performance Graphing, Downtime</td><td>-</td><td>Yes</td><td>Yes</td></tr>
-                    <tr><td>Host Dependencies</td><td>-</td><td>Yes</td><td>Yes</td></tr>
-                    <tr><td>REST API Write Access</td><td>-</td><td>Yes</td><td>Yes</td></tr>
-                    <tr><td>NOC/TV Display</td><td>-</td><td>-</td><td>Yes</td></tr>
-                    <tr><td>Multi-Channel Notifications</td><td>-</td><td>-</td><td>Yes</td></tr>
-                    <tr><td>SLA &amp; Uptime Reports</td><td>-</td><td>-</td><td>Yes</td></tr>
-                    <tr><td>Security Scanner</td><td>-</td><td>-</td><td>Yes</td></tr>
-                    <tr><td>User Auth &amp; RBAC</td><td>-</td><td>-</td><td>Yes</td></tr>
-                    <tr><td>Custom Plugins, SNMP Deep Poll</td><td>-</td><td>-</td><td>Yes</td></tr>
-                    <tr><td>Multi-Recipient Alerts</td><td>-</td><td>-</td><td>Yes</td></tr>
-                </tbody>
-            </table>
-            <h4>Activating a License Key</h4>
-            <ol>
-                <li>Go to the <strong>Settings</strong> tab</li>
-                <li>Scroll to the <strong>License</strong> section</li>
-                <li>Paste your license key and click <strong>Activate</strong></li>
-                <li>Alternatively, set <code>license_key</code> in <code>config.yaml</code> and restart</li>
-            </ol>
-            <p>Keys are validated locally -- no internet connection required. You will receive your key via email after purchase.</p>
-            <h4>Purchase a License</h4>
-            <p>Visit <a href="https://myclover.tech" target="_blank" style="color:#22c55e;">myclover.tech</a> to purchase a Pro or Enterprise license.</p>
-        </div>
-    </div>
-
-    <!-- Adding & Managing Devices -->
-    <div class="help-section" data-keywords="device add edit delete remove host ip group check ping tcp http snmp port sensor monitor manage crud configure">
-        <div class="help-heading" onclick="toggleHelp(this)">Adding &amp; Managing Devices</div>
-        <div class="help-body">
-            <h4>Adding a Device via Dashboard</h4>
-            <ol>
-                <li>Go to the <strong>Manage Devices</strong> tab</li>
-                <li>Click <strong>Add Device</strong></li>
-                <li>Fill in: Name, Host/IP, Group (optional), and at least one Check</li>
-                <li>Click <strong>Save</strong></li>
-            </ol>
-            <h4>Adding a Device via config.yaml</h4>
-            <pre>
-devices:
-  - name: "My Server"
-    host: "192.168.1.50"
-    group: "Servers"
-    parent: ""
-    notes: "Production web server"
-    maintenance: false
-    links: []
-    checks:
-      - type: ping
-        label: "ICMP"
-      - type: http
-        label: "HTTP"
-        url: "http://192.168.1.50"
-        expected_code: 200</pre>
-            <h4>Check Types</h4>
-            <table class="data-table" style="margin-bottom:16px;">
-                <thead><tr><th>Type</th><th>Description</th><th>Key Fields</th></tr></thead>
-                <tbody>
-                    <tr><td><code>ping</code></td><td>ICMP echo request</td><td>warning_ms, critical_ms, timeout_ms, retries</td></tr>
-                    <tr><td><code>port</code></td><td>TCP port connect test</td><td>port, warning_ms, critical_ms</td></tr>
-                    <tr><td><code>http</code></td><td>HTTP/HTTPS endpoint</td><td>url, expected_code (200), timeout_ms, retries</td></tr>
-                    <tr><td><code>snmp</code></td><td>SNMP GET query</td><td>oid, community (default "public"), version</td></tr>
-                </tbody>
-            </table>
-            <h4>Maintenance Mode</h4>
-            <p>Toggle maintenance mode on a device to temporarily suppress checks and alerts. Click the wrench icon on any device card, or use the API: <code>POST /api/devices/&lt;name&gt;/maintenance</code></p>
-            <h4>Device Links &amp; Notes</h4>
-            <p>Add reference URLs (e.g. admin panels) and notes to each device via the device edit modal. These appear in the device detail drawer.</p>
-        </div>
-    </div>
-
-    <!-- Status & Monitoring -->
-    <div class="help-section" data-keywords="status monitor dashboard card color ok warning critical unreachable parent down check interval refresh threshold">
-        <div class="help-heading" onclick="toggleHelp(this)">Status &amp; Monitoring</div>
-        <div class="help-body">
-            <h4>Status Colors</h4>
-            <table class="data-table" style="margin-bottom:16px;">
-                <thead><tr><th>Status</th><th>Color</th><th>Meaning</th></tr></thead>
-                <tbody>
-                    <tr><td>OK</td><td style="color:#2ecc71;">Green</td><td>Response time within normal range</td></tr>
-                    <tr><td>WARNING</td><td style="color:#f39c12;">Yellow</td><td>Response time exceeds warning threshold</td></tr>
-                    <tr><td>CRITICAL</td><td style="color:#e74c3c;">Red</td><td>Check failed or response time exceeds critical threshold</td></tr>
-                    <tr><td>UNREACHABLE</td><td style="color:#95a5a6;">Gray</td><td>Host cannot be reached</td></tr>
-                    <tr><td>PARENT DOWN</td><td style="color:#8e44ad;">Purple</td><td>Parent device is down (checks are skipped)</td></tr>
-                    <tr><td>MAINTENANCE</td><td style="color:#3498db;">Blue</td><td>Device is in scheduled maintenance</td></tr>
-                </tbody>
-            </table>
-            <h4>Check Interval</h4>
-            <p>The default check interval is 60 seconds. Change it in <strong>Settings &gt; General</strong> or in <code>config.yaml</code> under <code>check_interval_seconds</code>. The dashboard auto-refreshes every 30 seconds.</p>
-            <h4>Thresholds</h4>
-            <p>Each check can have <code>warning_ms</code> and <code>critical_ms</code> thresholds. If response time exceeds the warning threshold, the status becomes WARNING. If it exceeds critical, it becomes CRITICAL.</p>
-            <h4>Device Detail Drawer</h4>
-            <p>Click any device card on the Status tab to open a detail drawer showing uptime percentages (24h/7d/30d), check history, performance charts, links, and notes.</p>
-        </div>
-    </div>
-
-    <!-- Alerts & Notifications -->
-    <div class="help-section" data-keywords="alert notification email smtp acknowledge ack suppress cooldown webhook slack teams pagerduty notify">
-        <div class="help-heading" onclick="toggleHelp(this)">Alerts &amp; Notifications</div>
-        <div class="help-body">
-            <h4>Email Alerts (SMTP)</h4>
-            <p>Configure SMTP settings in <strong>Settings &gt; SMTP</strong> or in <code>config.yaml</code>:</p>
-            <pre>
-smtp:
-  smtp_host: "smtp.gmail.com"
-  smtp_port: 587
-  use_tls: true
-  username: "you@gmail.com"
-  password: "app-password"
-  from_addr: "netmon@yourdomain.com"
-  recipients:
-    - "admin@yourdomain.com"
-  cooldown_minutes: 15</pre>
-            <p>Use the <strong>Test Email</strong> button in Settings to verify your configuration.</p>
-            <h4>Alert Cooldown</h4>
-            <p>To prevent alert storms, the same device/check will only trigger one email per cooldown period (default 15 minutes).</p>
-            <h4>Acknowledging Alerts</h4>
-            <p>On the <strong>Alerts</strong> tab, click <strong>Ack</strong> next to any alert to acknowledge it. Acknowledged alerts stop generating repeat notifications until the device recovers and fails again. Use <strong>Ack All</strong> to acknowledge everything at once.</p>
-            <h4>Multi-Channel Notifications (Enterprise)</h4>
-            <p>Send alerts to Slack, Microsoft Teams, PagerDuty, or any generic webhook endpoint. Configure in <strong>Settings &gt; Webhooks</strong> or in <code>config.yaml</code>.</p>
-            <table class="data-table" style="margin-bottom:16px;">
-                <thead><tr><th>Type</th><th>Setup</th></tr></thead>
-                <tbody>
-                    <tr><td>Slack</td><td>Create an Incoming Webhook in your Slack workspace and paste the URL</td></tr>
-                    <tr><td>Teams</td><td>Create an Incoming Webhook connector in your Teams channel</td></tr>
-                    <tr><td>PagerDuty</td><td>Create a service with Events API v2 and use the routing key</td></tr>
-                    <tr><td>Generic</td><td>Any HTTP endpoint that accepts POST JSON payloads</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Network Discovery -->
-    <div class="help-section" data-keywords="discovery scan network sweep find cidr range ip subnet discover ping port auto import">
-        <div class="help-heading" onclick="toggleHelp(this)">Network Discovery Scanner (Pro+)</div>
-        <div class="help-body">
-            <h4>Running a Discovery Scan</h4>
-            <ol>
-                <li>Go to the <strong>Discovery</strong> tab</li>
-                <li>Enter a CIDR range (e.g. <code>192.168.1.0/24</code>) or IP range</li>
-                <li>Click <strong>Start Scan</strong></li>
-                <li>The scanner ping-sweeps the range, probes 11 common ports, and performs reverse DNS lookups</li>
-            </ol>
-            <h4>Adding Discovered Devices</h4>
-            <p>Click <strong>Add to Monitoring</strong> next to any discovered host to immediately start monitoring it. Discovered devices also appear on the <strong>Network Map</strong> with dashed borders.</p>
-            <h4>Importing to Inventory</h4>
-            <p>Scan results can be imported into the <strong>Asset Inventory</strong> with one click.</p>
-            <h4>Scan Limits</h4>
-            <p>Maximum 1,024 IPs per scan to prevent excessive network load.</p>
-        </div>
-    </div>
-
-    <!-- Network Map -->
-    <div class="help-section" data-keywords="map network graph topology visual vis.js dependency parent child edge node interactive">
-        <div class="help-heading" onclick="toggleHelp(this)">Network Map (Pro+)</div>
-        <div class="help-body">
-            <p>The interactive network map uses vis.js to visualize your monitored devices and their relationships.</p>
-            <h4>Node Colors</h4>
-            <ul>
-                <li><strong style="color:#2ecc71;">Green</strong> = OK</li>
-                <li><strong style="color:#f39c12;">Yellow</strong> = WARNING</li>
-                <li><strong style="color:#e74c3c;">Red</strong> = CRITICAL</li>
-                <li><strong style="color:#95a5a6;">Gray dashed</strong> = Discovered (not yet monitored)</li>
-            </ul>
-            <h4>Dependency Lines</h4>
-            <p>If you set a <strong>Parent</strong> device, directed arrows show the dependency chain. When a parent goes critical, child devices show PARENT DOWN status.</p>
-            <h4>Interaction</h4>
-            <p>Click a node to open its detail drawer. Drag to rearrange. Scroll to zoom.</p>
-        </div>
-    </div>
-
-    <!-- Asset Inventory -->
-    <div class="help-section" data-keywords="inventory asset hardware ip mac vendor model os location serial type server switch router manage batch delete import">
-        <div class="help-heading" onclick="toggleHelp(this)">Asset Inventory (Pro+)</div>
-        <div class="help-body">
-            <p>The asset inventory tracks all network equipment with fields for IP, hostname, MAC address, vendor, model, OS, location, serial number, type, and notes.</p>
-            <h4>Adding Assets</h4>
-            <ul>
-                <li><strong>Manual:</strong> Click <strong>Add Asset</strong> on the Inventory tab</li>
-                <li><strong>From Discovery:</strong> Run a network scan, then click <strong>Import to Inventory</strong></li>
-                <li><strong>From Monitoring:</strong> Monitored devices are shown in inventory stats</li>
-            </ul>
-            <h4>Batch Operations</h4>
-            <p>Select multiple assets with checkboxes and use <strong>Delete Selected</strong> for batch removal.</p>
-            <h4>Quick Monitor</h4>
-            <p>Click the monitor icon next to any inventory asset to instantly add it as a monitored device.</p>
-        </div>
-    </div>
-
-    <!-- Host Dependencies -->
-    <div class="help-section" data-keywords="dependency parent child cascade suppress downstream upstream hierarchy tree">
-        <div class="help-heading" onclick="toggleHelp(this)">Host Dependencies (Pro+)</div>
-        <div class="help-body">
-            <p>Host dependencies model the physical/logical hierarchy of your network. When a parent device goes down, child devices are automatically marked PARENT DOWN.</p>
-            <h4>How It Works</h4>
-            <ol>
-                <li>Set a <strong>Parent</strong> device when adding or editing a device</li>
-                <li>If the parent device becomes CRITICAL, all children skip their checks and show PARENT DOWN</li>
-                <li>This prevents alert storms from cascading failures (e.g. a router outage that takes down all connected servers)</li>
-                <li>Dependencies are recursive -- if A depends on B and B depends on C, and C goes down, both A and B are marked PARENT DOWN</li>
-            </ol>
-            <h4>Visualization</h4>
-            <p>Dependency relationships appear as directed arrows on the <strong>Network Map</strong>.</p>
-        </div>
-    </div>
-
-    <!-- Performance Graphing -->
-    <div class="help-section" data-keywords="performance graph chart response time latency history trend data point downsample">
-        <div class="help-heading" onclick="toggleHelp(this)">Performance Graphing (Pro+)</div>
-        <div class="help-body">
-            <p>Every check automatically records response time data. View performance trends by clicking a device card to open the detail drawer.</p>
-            <h4>Time Periods</h4>
-            <p>Select 1 hour, 6 hours, 24 hours, or 7 days. Data is automatically downsampled to max 200 points for performance.</p>
-            <h4>Chart Colors</h4>
-            <ul>
-                <li><strong style="color:#2ecc71;">Green</strong> data points = OK response times</li>
-                <li><strong style="color:#f39c12;">Yellow</strong> = WARNING threshold exceeded</li>
-                <li><strong style="color:#e74c3c;">Red</strong> = CRITICAL threshold exceeded</li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Scheduled Downtime -->
-    <div class="help-section" data-keywords="downtime schedule maintenance window planned suppress silence mute time period">
-        <div class="help-heading" onclick="toggleHelp(this)">Scheduled Downtime (Pro+)</div>
-        <div class="help-body">
-            <h4>Scheduling Downtime</h4>
-            <ol>
-                <li>Go to the <strong>Downtime</strong> tab</li>
-                <li>Click <strong>Schedule Downtime</strong></li>
-                <li>Select a device, set start/end times (UTC), and add a reason</li>
-                <li>During the downtime window, checks and alerts are suppressed automatically</li>
-            </ol>
-            <h4>Downtime States</h4>
-            <ul>
-                <li><strong>Upcoming:</strong> Scheduled but hasn't started yet</li>
-                <li><strong>Active:</strong> Currently in progress (checks suppressed)</li>
-                <li><strong>Expired:</strong> Completed (can be removed from history)</li>
-            </ul>
-            <p>Cancel any upcoming or active downtime with the <strong>Cancel</strong> button.</p>
-        </div>
-    </div>
-
-    <!-- SLA & Reports -->
-    <div class="help-section" data-keywords="sla report uptime availability csv export period monthly weekly daily">
-        <div class="help-heading" onclick="toggleHelp(this)">SLA &amp; Uptime Reports (Enterprise)</div>
-        <div class="help-body">
-            <p>Generate SLA compliance reports showing uptime percentages, total checks, OK/warning/critical counts for every device and sensor.</p>
-            <h4>Generating a Report</h4>
-            <ol>
-                <li>Go to the <strong>Reports</strong> tab</li>
-                <li>Select a time period (24h, 7d, 30d, 90d)</li>
-                <li>Click <strong>Generate Report</strong></li>
-            </ol>
-            <h4>CSV Export</h4>
-            <p>Click <strong>Download CSV</strong> to export the report for use in spreadsheets or external tools.</p>
-        </div>
-    </div>
-
-    <!-- Security Scanner -->
-    <div class="help-section" data-keywords="security scan penetration test pentest vulnerability port ssl tls http header snmp dns service finding remediation stop cancel">
-        <div class="help-heading" onclick="toggleHelp(this)">Security Scanner (Enterprise)</div>
-        <div class="help-body">
-            <p>The built-in security scanner performs non-destructive, passive analysis of your network devices.</p>
-            <h4>Scan Types</h4>
-            <table class="data-table" style="margin-bottom:16px;">
-                <thead><tr><th>Module</th><th>What It Checks</th></tr></thead>
-                <tbody>
-                    <tr><td>Port Scan</td><td>33 common ports with banner grabbing and service identification</td></tr>
-                    <tr><td>SSL/TLS</td><td>Certificate expiry, weak protocols, weak ciphers, untrusted CAs</td></tr>
-                    <tr><td>HTTP Headers</td><td>7 critical security headers (HSTS, CSP, etc.), server info disclosure</td></tr>
-                    <tr><td>Services</td><td>FTP anonymous login, Telnet, RDP, exposed databases, Redis no-auth, VNC, SMB</td></tr>
-                    <tr><td>SNMP</td><td>Default community strings (public, private, etc.)</td></tr>
-                    <tr><td>DNS</td><td>Zone transfer (AXFR) vulnerability</td></tr>
-                </tbody>
-            </table>
-            <h4>Running a Scan</h4>
-            <ol>
-                <li>Go to the <strong>Security</strong> tab</li>
-                <li>Optionally enter specific target IPs (leave blank to scan all configured devices)</li>
-                <li>Select scan types and click <strong>Start Scan</strong></li>
-                <li>Use the <strong>Stop Scan</strong> button to cancel a running scan</li>
-            </ol>
-            <h4>Severity Levels</h4>
-            <ul>
-                <li><strong style="color:#ef4444;">Critical</strong> -- Immediate action required (e.g. expired cert, FTP anonymous login, default SNMP)</li>
-                <li><strong style="color:#f97316;">High</strong> -- Important fix needed (e.g. missing HSTS, exposed databases, weak SSL)</li>
-                <li><strong style="color:#eab308;">Medium</strong> -- Should be addressed (e.g. missing headers, RDP exposed)</li>
-                <li><strong style="color:#3b82f6;">Low</strong> -- Minor informational (e.g. server version disclosed)</li>
-                <li><strong style="color:#64748b;">Info</strong> -- Informational only (e.g. open port listing)</li>
-            </ul>
-            <p>All scans are purely passive -- no exploits, no payloads, safe to run on production networks.</p>
-        </div>
-    </div>
-
-    <!-- NOC / TV Display -->
-    <div class="help-section" data-keywords="noc tv display fullscreen wall monitor big screen kiosk auto refresh large">
-        <div class="help-heading" onclick="toggleHelp(this)">NOC / TV Display Mode (Enterprise)</div>
-        <div class="help-body">
-            <p>Access <code>/noc</code> in your browser for a fullscreen, auto-refreshing status board designed for wall-mounted displays and NOC monitors.</p>
-            <h4>Features</h4>
-            <ul>
-                <li>Auto-refreshes every 10 seconds</li>
-                <li>Large, readable device status cards</li>
-                <li>Overall health summary bar</li>
-                <li>Recent alerts feed</li>
-                <li>Dark theme optimized for large screens</li>
-            </ul>
-            <p>Tip: Use your browser's fullscreen mode (F11) and set the page as a kiosk tab.</p>
-        </div>
-    </div>
-
-    <!-- User Auth -->
-    <div class="help-section" data-keywords="user auth authentication login password role admin operator viewer rbac access control token jwt session">
-        <div class="help-heading" onclick="toggleHelp(this)">User Authentication &amp; Roles (Enterprise)</div>
-        <div class="help-body">
-            <p>Enterprise tier supports role-based access control (RBAC) with three roles:</p>
-            <table class="data-table" style="margin-bottom:16px;">
-                <thead><tr><th>Role</th><th>Permissions</th></tr></thead>
-                <tbody>
-                    <tr><td>admin</td><td>Full access: manage devices, settings, users, all features</td></tr>
-                    <tr><td>operator</td><td>Manage devices, acknowledge alerts, run scans</td></tr>
-                    <tr><td>viewer</td><td>Read-only dashboard access</td></tr>
-                </tbody>
-            </table>
-            <h4>Configuring Users</h4>
-            <p>Add users in <code>config.yaml</code>:</p>
-            <pre>
-users:
-  - username: admin
-    password: your-strong-password
-    role: admin
-  - username: operator1
-    password: changeme
-    role: operator</pre>
-            <p>Authentication is only enforced when users are configured and an Enterprise license is active. Sessions use signed tokens with 24-hour expiry.</p>
-        </div>
-    </div>
-
-    <!-- Custom Plugins -->
-    <div class="help-section" data-keywords="plugin custom check script extend python external monitor disk space">
-        <div class="help-heading" onclick="toggleHelp(this)">Custom Check Plugins (Enterprise)</div>
-        <div class="help-body">
-            <p>Extend netmon with custom check scripts placed in the <code>plugins/</code> folder.</p>
-            <h4>Plugin Requirements</h4>
-            <ul>
-                <li>Python scripts (.py) in the <code>plugins/</code> directory</li>
-                <li>Accept <code>--host &lt;hostname&gt;</code> as a command-line argument</li>
-                <li>Print JSON output with <code>status</code>, <code>message</code>, and optional <code>metrics</code></li>
-            </ul>
-            <h4>Example Plugin Output</h4>
-            <pre>
-{
-  "status": "ok",
-  "message": "Disk usage: 42%",
-  "metrics": {"disk_percent": 42}
-}</pre>
-            <h4>Included Sample</h4>
-            <p><code>plugins/check_disk_space.py</code> -- monitors disk space on remote hosts.</p>
-            <p>List available plugins via the API: <code>GET /api/plugins</code></p>
-        </div>
-    </div>
-
-    <!-- SNMP Deep Polling -->
-    <div class="help-section" data-keywords="snmp deep poll cpu memory ram disk interface uptime bandwidth oid net-snmp">
-        <div class="help-heading" onclick="toggleHelp(this)">SNMP Deep Polling (Enterprise)</div>
-        <div class="help-body">
-            <p>Deep-poll SNMP-enabled devices for detailed system metrics.</p>
-            <h4>Metrics Collected</h4>
-            <ul>
-                <li>CPU load (1-min, 5-min, 15-min)</li>
-                <li>Memory usage (total, used, free)</li>
-                <li>Disk utilization</li>
-                <li>Network interface counters (bytes in/out)</li>
-                <li>System uptime and description</li>
-            </ul>
-            <h4>Requirements</h4>
-            <p>Net-SNMP tools must be installed on the netmon server:</p>
-            <ul>
-                <li>Ubuntu/Debian: <code>sudo apt install snmp</code></li>
-                <li>RHEL/CentOS: <code>sudo yum install net-snmp-utils</code></li>
-                <li>Windows: Download from <a href="https://net-snmp.org" target="_blank" style="color:#22c55e;">net-snmp.org</a></li>
-            </ul>
-            <p>API: <code>GET /api/devices/&lt;name&gt;/snmp</code></p>
-        </div>
-    </div>
-
-    <!-- REST API -->
-    <div class="help-section" data-keywords="api rest endpoint json http get post put delete curl integration automate programmatic">
-        <div class="help-heading" onclick="toggleHelp(this)">REST API Reference</div>
-        <div class="help-body">
-            <p>Netmon exposes a full REST API for automation and integration. All endpoints return JSON.</p>
-            <h4>Core Endpoints</h4>
-            <table class="data-table" style="margin-bottom:16px;">
-                <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
-                <tbody>
-                    <tr><td>GET</td><td><code>/api/status</code></td><td>Latest check results per device</td></tr>
-                    <tr><td>GET</td><td><code>/api/alerts</code></td><td>Alert history (default 48h)</td></tr>
-                    <tr><td>GET</td><td><code>/api/history</code></td><td>Full check history (default 24h)</td></tr>
-                    <tr><td>GET</td><td><code>/api/devices</code></td><td>List all devices</td></tr>
-                    <tr><td>POST</td><td><code>/api/devices</code></td><td>Add a device</td></tr>
-                    <tr><td>PUT</td><td><code>/api/devices/&lt;name&gt;</code></td><td>Update a device</td></tr>
-                    <tr><td>DELETE</td><td><code>/api/devices/&lt;name&gt;</code></td><td>Delete a device</td></tr>
-                    <tr><td>GET</td><td><code>/api/settings</code></td><td>Current settings</td></tr>
-                    <tr><td>PUT</td><td><code>/api/settings</code></td><td>Update settings</td></tr>
-                </tbody>
-            </table>
-            <h4>Monitoring Endpoints</h4>
-            <table class="data-table" style="margin-bottom:16px;">
-                <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
-                <tbody>
-                    <tr><td>GET</td><td><code>/api/devices/&lt;name&gt;/uptime</code></td><td>24h/7d/30d uptime percentages</td></tr>
-                    <tr><td>GET</td><td><code>/api/devices/&lt;name&gt;/perf</code></td><td>Performance time-series</td></tr>
-                    <tr><td>GET</td><td><code>/api/devices/&lt;name&gt;/snmp</code></td><td>SNMP deep poll (Ent)</td></tr>
-                    <tr><td>POST</td><td><code>/api/alerts/&lt;id&gt;/acknowledge</code></td><td>Acknowledge alert</td></tr>
-                    <tr><td>POST</td><td><code>/api/alerts/acknowledge-all</code></td><td>Acknowledge all alerts</td></tr>
-                    <tr><td>GET</td><td><code>/api/dependencies</code></td><td>Dependency map</td></tr>
-                    <tr><td>GET/POST</td><td><code>/api/downtime</code></td><td>List/schedule downtime</td></tr>
-                </tbody>
-            </table>
-            <h4>Discovery &amp; Inventory</h4>
-            <table class="data-table" style="margin-bottom:16px;">
-                <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
-                <tbody>
-                    <tr><td>POST</td><td><code>/api/scan</code></td><td>Start network discovery scan</td></tr>
-                    <tr><td>GET</td><td><code>/api/scan/status</code></td><td>Scan progress</td></tr>
-                    <tr><td>GET</td><td><code>/api/inventory</code></td><td>List all assets</td></tr>
-                    <tr><td>POST</td><td><code>/api/inventory</code></td><td>Add asset</td></tr>
-                    <tr><td>GET</td><td><code>/api/map/data</code></td><td>Network map data</td></tr>
-                </tbody>
-            </table>
-            <h4>Enterprise Endpoints</h4>
-            <table class="data-table" style="margin-bottom:16px;">
-                <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
-                <tbody>
-                    <tr><td>GET</td><td><code>/api/reports/sla</code></td><td>SLA uptime report</td></tr>
-                    <tr><td>POST</td><td><code>/api/security/scan</code></td><td>Start security scan</td></tr>
-                    <tr><td>POST</td><td><code>/api/security/cancel</code></td><td>Cancel running scan</td></tr>
-                    <tr><td>GET</td><td><code>/api/security/scans</code></td><td>List security scans</td></tr>
-                    <tr><td>GET</td><td><code>/api/noc/data</code></td><td>NOC display data</td></tr>
-                    <tr><td>GET/PUT</td><td><code>/api/webhooks</code></td><td>Webhook config</td></tr>
-                    <tr><td>POST</td><td><code>/api/auth/login</code></td><td>Login (get token)</td></tr>
-                    <tr><td>GET</td><td><code>/api/plugins</code></td><td>List plugins</td></tr>
-                    <tr><td>GET</td><td><code>/api/license</code></td><td>Current license info</td></tr>
-                    <tr><td>POST</td><td><code>/api/license</code></td><td>Activate license key</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Configuration -->
-    <div class="help-section" data-keywords="config yaml settings configure file edit interval smtp dashboard host port reload hot">
-        <div class="help-heading" onclick="toggleHelp(this)">Configuration Reference</div>
-        <div class="help-body">
-            <h4>config.yaml Structure</h4>
-            <pre>
-license_key: ""            # Your license key here
-check_interval_seconds: 60
-
-dashboard:
-  host: 0.0.0.0            # bind address
-  port: 8080               # web UI port
-
-smtp:
-  smtp_host: ""
-  smtp_port: 587
-  use_tls: true
-  username: ""
-  password: ""
-  from_addr: "netmon@yourdomain.com"
-  recipients: []
-  cooldown_minutes: 15
-
-users: []                  # Enterprise RBAC
-webhooks: []               # Enterprise notifications
-
-devices:
-  - name: "Device Name"
-    host: "192.168.1.1"
-    group: "Group Name"
-    parent: ""             # parent device name
-    notes: ""
-    maintenance: false
-    links: []
-    checks:
-      - type: ping
-        label: "ICMP"
-        warning_ms: 20
-        critical_ms: 100</pre>
-            <h4>Hot Reload</h4>
-            <p>Most settings changes made via the dashboard or API are applied immediately without restarting netmon. Device changes and SMTP settings are hot-reloaded.</p>
-            <h4>Database</h4>
-            <p>All monitoring data is stored in <code>netmon.db</code> (SQLite) in the same directory as <code>netmon.py</code>. No database server required.</p>
-        </div>
-    </div>
-
-    <!-- Troubleshooting -->
-    <div class="help-section" data-keywords="troubleshoot error problem issue fix bug loading stuck crash log database permission port bind firewall">
-        <div class="help-heading" onclick="toggleHelp(this)">Troubleshooting</div>
-        <div class="help-body">
-            <h4>Dashboard shows "Loading..." and doesn't update</h4>
-            <p>This usually means the API is unreachable. Check that netmon.py is running and the port (default 8080) is accessible. If you recently upgraded, clear your browser cache (Ctrl+Shift+R).</p>
-
-            <h4>Port 8080 already in use</h4>
-            <p>Change the port in <code>config.yaml</code> under <code>dashboard: port:</code> or stop the other process using that port.</p>
-
-            <h4>Ping checks show CRITICAL on Windows</h4>
-            <p>Netmon v4+ validates Windows ping output by checking for TTL in the response. Make sure you're running as a user with permission to execute ping commands.</p>
-
-            <h4>Email alerts not sending</h4>
-            <ul>
-                <li>Verify SMTP settings in the Settings tab and use <strong>Test Email</strong></li>
-                <li>For Gmail: enable "App Passwords" (not your regular password)</li>
-                <li>For Office 365: use port 587 with TLS enabled</li>
-                <li>Check that <code>recipients</code> is not empty</li>
-            </ul>
-
-            <h4>License key not accepted</h4>
-            <p>Copy your full license key exactly as received, including all dashes. Keys are case-sensitive.</p>
-
-            <h4>Database errors or corruption</h4>
-            <p>Stop netmon, rename/delete <code>netmon.db</code>, and restart. A fresh database will be created automatically. Note: this resets all history data.</p>
-
-            <h4>"Permission denied" on Linux</h4>
-            <p>ICMP ping usually requires root or the <code>cap_net_raw</code> capability. Run as root or set: <code>sudo setcap cap_net_raw+ep $(which python3)</code></p>
-
-            <h4>Discovery scan finds no hosts</h4>
-            <ul>
-                <li>Verify the CIDR range is correct for your subnet</li>
-                <li>Some hosts may block ICMP (try with port scanning enabled)</li>
-                <li>Firewalls may block ping between subnets</li>
-            </ul>
-
-            <h4>High CPU usage</h4>
-            <p>Increase <code>check_interval_seconds</code>. Monitoring 100+ devices every 30 seconds can be CPU-intensive. Recommended: 60s for up to 200 devices, 120s for 200+.</p>
-
-            <h4>SNMP checks failing</h4>
-            <ul>
-                <li>Ensure net-snmp tools are installed (<code>snmpget --version</code> should work)</li>
-                <li>Verify the community string matches the device configuration</li>
-                <li>Check that SNMP is enabled on the target device and UDP port 161 is open</li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- About -->
-    <div class="help-section" data-keywords="about version info stack technology python flask sqlite chart.js vis.js">
-        <div class="help-heading" onclick="toggleHelp(this)">About MyClover.Tech.netmon</div>
-        <div class="help-body">
-            <h4>Technology Stack</h4>
-            <ul>
-                <li><strong>Backend:</strong> Python 3.10+ / Flask</li>
-                <li><strong>Database:</strong> SQLite (zero configuration)</li>
-                <li><strong>Charts:</strong> Chart.js 4.x</li>
-                <li><strong>Network Map:</strong> vis.js 9.x</li>
-                <li><strong>Configuration:</strong> YAML</li>
-            </ul>
-            <h4>File Structure</h4>
-            <pre>
-netmon.py              # Main application
-config.yaml            # Configuration
-netmon.db              # Database (auto-created)
-requirements.txt       # Python dependencies
-templates/
-  dashboard.html       # Web dashboard
-  noc.html             # NOC display mode
-plugins/
-  check_disk_space.py  # Sample custom plugin</pre>
-            <p>Visit <a href="https://myclover.tech" target="_blank" style="color:#22c55e;">myclover.tech</a> for updates and documentation.</p>
-        </div>
-    </div>
-
-    </div><!-- /help-sections -->
-
-    <!-- Bottom support banner -->
-    <div style="margin-top:32px;padding:20px;background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;text-align:center;">
-        <div style="color:#e2e8f0;font-size:14px;margin-bottom:8px;">Still need help?</div>
-        <a href="mailto:support@myclover.tech" style="color:#22c55e;font-size:14px;font-weight:600;text-decoration:none;">Email support@myclover.tech</a>
-        <div style="color:#64748b;font-size:12px;margin-top:6px;">We typically respond within 24 hours.</div>
     </div>
 </div>
 
@@ -1411,7 +898,7 @@ plugins/
         <div class="form-group">
             <label>Parent Device (Dependency)</label>
             <select id="dev-parent"><option value="">-- None (root) --</option></select>
-            <span style="color:#555;font-size:11px;">If parent goes down, alerts for this device are suppressed.</span>
+            <span style="color:var(--text-faint);font-size:11px;">If parent goes down, alerts for this device are suppressed.</span>
         </div>
     </div>
     <div class="form-group"><label>Notes</label><textarea id="dev-notes" placeholder="Free-text notes about this device"></textarea></div>
@@ -1440,7 +927,7 @@ plugins/
 <div class="modal-overlay" id="delete-modal">
 <div class="modal" style="width:400px;">
     <h2>Delete Device</h2>
-    <p style="color:#aaa;margin-bottom:20px;">Are you sure you want to delete <strong id="delete-device-name" style="color:#fff;"></strong>? This cannot be undone.</p>
+    <p style="color:#aaa;margin-bottom:20px;">Are you sure you want to delete <strong id="delete-device-name" style="color:var(--text-primary);"></strong>? This cannot be undone.</p>
     <div class="modal-actions">
         <button class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button>
         <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
@@ -1479,7 +966,7 @@ plugins/
     </div>
     <div class="form-row">
         <div class="form-group"><label>Serial Number</label><input type="text" id="asset-serial"></div>
-        <div class="form-group"><label>Purchase Date</label><input type="date" id="asset-purchase" style="color-scheme:dark;"></div>
+        <div class="form-group"><label>Purchase Date</label><input type="date" id="asset-purchase" style="color-scheme:var(--input-color-scheme, dark);"></div>
     </div>
     <div class="form-row">
         <div class="form-group"><label>Status</label><select id="asset-status"><option value="active">Active</option><option value="retired">Retired</option></select></div>
@@ -1497,7 +984,7 @@ plugins/
 <div class="modal-overlay" id="asset-delete-modal">
 <div class="modal" style="width:400px;">
     <h2>Delete Asset</h2>
-    <p style="color:#aaa;margin-bottom:20px;">Delete asset <strong id="asset-delete-ip" style="color:#fff;"></strong>?</p>
+    <p style="color:#aaa;margin-bottom:20px;">Delete asset <strong id="asset-delete-ip" style="color:var(--text-primary);"></strong>?</p>
     <div class="modal-actions">
         <button class="btn btn-ghost" onclick="closeAssetDeleteModal()">Cancel</button>
         <button class="btn btn-danger" onclick="confirmDeleteAsset()">Delete</button>
@@ -1514,8 +1001,8 @@ plugins/
         <select id="dt-device"></select>
     </div>
     <div class="form-row">
-        <div class="form-group"><label>Start Time (UTC)</label><input type="datetime-local" id="dt-start" style="color-scheme:dark;"></div>
-        <div class="form-group"><label>End Time (UTC)</label><input type="datetime-local" id="dt-end" style="color-scheme:dark;"></div>
+        <div class="form-group"><label>Start Time (UTC)</label><input type="datetime-local" id="dt-start" style="color-scheme:var(--input-color-scheme, dark);"></div>
+        <div class="form-group"><label>End Time (UTC)</label><input type="datetime-local" id="dt-end" style="color-scheme:var(--input-color-scheme, dark);"></div>
     </div>
     <div class="form-group"><label>Reason</label><textarea id="dt-reason" placeholder="e.g. Firmware upgrade, Hardware replacement"></textarea></div>
     <div class="modal-actions">
@@ -1549,40 +1036,6 @@ var _perfCharts = {};
 var _perfPeriod = 24;
 
 var PORT_NAMES = {22:"SSH",23:"Telnet",53:"DNS",80:"HTTP",443:"HTTPS",161:"SNMP",445:"SMB",3389:"RDP",5900:"VNC",8080:"HTTP-Alt",8443:"HTTPS-Alt"};
-
-// Download a .rdp file to launch Remote Desktop Connection
-function downloadRdpFile(ip) {
-    var content = 'full address:s:' + ip + '\r\nprompt for credentials:i:1\r\nscreen mode id:i:2\r\n';
-    var blob = new Blob([content], {type: 'application/x-rdp'});
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = ip.replace(/\./g, '_') + '.rdp';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
-}
-
-// Build a clickable service link from port number and host IP
-function portServiceLink(port, ip) {
-    var name = PORT_NAMES[port] || port;
-    // RDP: generate a downloadable .rdp file instead of rdp:// protocol
-    if (port === 3389) {
-        return '<a href="javascript:void(0)" onclick="downloadRdpFile(\'' + escAttr(ip) + '\')" class="port-chip port-link" title="Download .rdp file for ' + esc(ip) + '">' + name + '</a>';
-    }
-    var urlMap = {
-        80:  'http://' + ip,
-        443: 'https://' + ip,
-        8080:'http://' + ip + ':8080',
-        8443:'https://' + ip + ':8443',
-        22:  'ssh://' + ip,
-        23:  'telnet://' + ip,
-        5900:'vnc://' + ip
-    };
-    var url = urlMap[port];
-    if (url) {
-        return '<a href="' + url + '" target="_blank" rel="noopener" class="port-chip port-link" title="Connect to ' + name + ' on ' + esc(ip) + '">' + name + '</a>';
-    }
-    return '<span class="port-chip">' + name + '</span>';
-}
 
 var _currentTier = 'community';
 var _tierFeatures = {};
@@ -1619,7 +1072,6 @@ document.querySelectorAll('.tab').forEach(function(tab) {
         if (tab.dataset.tab === 'discovery') { loadDiscoveryTab(); }
         if (tab.dataset.tab === 'map') loadNetworkMap();
         if (tab.dataset.tab === 'reports') loadReportsTab();
-        if (tab.dataset.tab === 'security') loadSecurityTab();
         if (tab.dataset.tab === 'settings') loadSettings();
         if (tab.dataset.tab === 'inventory') loadInventory();
         if (tab.dataset.tab === 'downtime') loadDowntimes();
@@ -1671,7 +1123,7 @@ function buildStatusData(parentMap, statusMap) {
 
     if (!devices.length) {
         summaryBar.innerHTML = '';
-        container.innerHTML = '<div class="empty-state"><p>No devices configured yet.</p><p style="font-size:13px;color:#666;">Go to <strong>Manage Devices</strong> to add your first device.</p></div>';
+        container.innerHTML = '<div class="empty-state"><p>No devices configured yet.</p><p style="font-size:13px;color:var(--text-dim);">Go to <strong>Manage Devices</strong> to add your first device.</p></div>';
         _allCards = []; _allGroups = [];
         return;
     }
@@ -1838,7 +1290,7 @@ function openDrawer(deviceName) {
         + '<button class="btn btn-maint btn-sm' + (isMaint ? ' active-maint' : '') + '" '
         + 'onclick="toggleMaint(\'' + escAttr(deviceName) + '\',' + (!isMaint ? 'true' : 'false') + ')">'
         + (isMaint ? 'Disable Maintenance' : 'Enable Maintenance') + '</button>'
-        + (isMaint ? ' <span style="color:#9b59b6;font-size:12px;margin-left:8px;">Alerts paused</span>' : '')
+        + (isMaint ? ' <span style="color:var(--status-maint);font-size:12px;margin-left:8px;">Alerts paused</span>' : '')
         + '</div>';
 
     var links = dev.links || [];
@@ -1925,7 +1377,7 @@ function loadDrawerPerf(deviceName) {
             if (!canvas) return;
             var times = points.map(function(p){ return (p.timestamp||'').replace('T',' ').substring(11,19); });
             var values = points.map(function(p){ return p.response_ms; });
-            var colors = points.map(function(p){ return p.status === 'OK' ? '#2ecc71' : (p.status === 'WARNING' ? '#f39c12' : '#e74c3c'); });
+            var colors = points.map(function(p){ return p.status === 'OK' ? cssVar('--status-ok') : (p.status === 'WARNING' ? cssVar('--status-warning') : cssVar('--status-critical')); });
             var bgColors = points.map(function(p){ return p.status === 'OK' ? 'rgba(46,204,113,0.15)' : (p.status === 'WARNING' ? 'rgba(243,156,18,0.15)' : 'rgba(231,76,60,0.15)'); });
             var chart = new Chart(canvas.getContext('2d'), {
                 type: 'line',
@@ -1934,7 +1386,7 @@ function loadDrawerPerf(deviceName) {
                     datasets: [{
                         label: 'Response (ms)',
                         data: values,
-                        borderColor: '#5b9aff',
+                        borderColor: cssVar('--accent'),
                         backgroundColor: 'rgba(91,154,255,0.1)',
                         borderWidth: 1.5,
                         pointRadius: values.length > 50 ? 0 : 2,
@@ -1948,8 +1400,8 @@ function loadDrawerPerf(deviceName) {
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { display: true, ticks: { color: '#555', maxTicksLimit: 8, font: {size: 10} }, grid: { color: '#1e2130' } },
-                        y: { display: true, ticks: { color: '#555', font: {size: 10} }, grid: { color: '#1e2130' }, beginAtZero: true,
+                        x: { display: true, ticks: { color: '#555', maxTicksLimit: 8, font: {size: 10} }, grid: { color: cssVar('--border-light') } },
+                        y: { display: true, ticks: { color: '#555', font: {size: 10} }, grid: { color: cssVar('--border-light') }, beginAtZero: true,
                              title: { display: true, text: 'ms', color: '#555', font: {size: 10} } }
                     },
                     interaction: { mode: 'index', intersect: false },
@@ -2011,7 +1463,7 @@ function toggleMaint(name, enable) {
 function loadAlerts() {
     fetch('/api/alerts?hours=48').then(function(r){ return r.json(); }).then(function(data) {
         var tbody = document.getElementById('alerts-body');
-        if (!data.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#555;padding:40px;">No alerts in the last 48 hours</td></tr>'; return; }
+        if (!data.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-faint);padding:40px;">No alerts in the last 48 hours</td></tr>'; return; }
         var html = '';
         data.forEach(function(a) {
             var s = a.status.toLowerCase();
@@ -2051,7 +1503,7 @@ function ackAllAlerts() {
 function loadHistory() {
     fetch('/api/history?hours=24').then(function(r){ return r.json(); }).then(function(data) {
         var tbody = document.getElementById('history-body');
-        if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#555;padding:40px;">No history yet</td></tr>'; return; }
+        if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-faint);padding:40px;">No history yet</td></tr>'; return; }
         var html = '';
         data.forEach(function(r) {
             var s = r.status.toLowerCase();
@@ -2074,7 +1526,7 @@ function loadDowntimes() {
     }).then(function(data) {
         if (!data) return;
         var el = document.getElementById('downtime-list');
-        if (!data.length) { el.innerHTML = '<div class="empty-state"><p>No scheduled downtimes.</p><p style="font-size:13px;color:#666;">Click "+ Schedule Downtime" to plan a maintenance window.</p></div>'; return; }
+        if (!data.length) { el.innerHTML = '<div class="empty-state"><p>No scheduled downtimes.</p><p style="font-size:13px;color:var(--text-dim);">Click "+ Schedule Downtime" to plan a maintenance window.</p></div>'; return; }
         var now = new Date().toISOString();
         var html = '';
         data.forEach(function(dt) {
@@ -2173,7 +1625,7 @@ function loadDevices() {
             if ((d.notes || '').length > 40) notesSnip += '...';
             var maintLabel = d.maintenance ? ' <span class="maint-badge" style="margin-left:6px;">Maint</span>' : '';
             html += '<tr>'
-                + '<td><strong style="color:#fff;">' + esc(d.name) + '</strong>' + maintLabel + '</td>'
+                + '<td><strong style="color:var(--text-primary);">' + esc(d.name) + '</strong>' + maintLabel + '</td>'
                 + '<td>' + esc(d.host) + '</td>'
                 + '<td>' + esc(d.group || 'Default') + '</td>'
                 + '<td>' + esc(d.parent || '--') + '</td>'
@@ -2423,7 +1875,7 @@ function renderScanResults() {
     filtered.forEach(function(r) {
         var ms = r.response_ms !== null ? r.response_ms.toFixed(1) : '--';
         var portsHtml = '';
-        (r.open_ports || []).forEach(function(p) { portsHtml += portServiceLink(p, r.ip); });
+        (r.open_ports || []).forEach(function(p) { portsHtml += '<span class="port-chip">' + (PORT_NAMES[p] || p) + ' (' + p + ')</span>'; });
         if (!(r.open_ports||[]).length && r.is_alive) portsHtml = '<span style="color:#555;">None</span>';
         var actionHtml = '';
         if (r.is_alive && !r.is_monitored) {
@@ -2466,14 +1918,14 @@ function loadNetworkMap() {
 
 function renderNetworkMap(data) {
     var container = document.getElementById('network-map');
-    var statusColors = { 'hub':'#5b9aff', 'OK':'#2ecc71', 'WARNING':'#f39c12', 'CRITICAL':'#e74c3c', 'MAINTENANCE':'#9b59b6', 'PARENT_DOWN':'#e67e22', 'PENDING':'#555555', 'discovered':'#888888' };
+    var statusColors = { 'hub': cssVar('--accent'), 'OK': cssVar('--status-ok'), 'WARNING': cssVar('--status-warning'), 'CRITICAL': cssVar('--status-critical'), 'MAINTENANCE': cssVar('--status-maint'), 'PARENT_DOWN': cssVar('--status-parent-down'), 'PENDING': cssVar('--text-faint'), 'discovered': cssVar('--text-muted') };
     var nodes = [], edges = [];
     data.nodes.forEach(function(n) {
-        var color = statusColors[n.status] || '#555';
+        var color = statusColors[n.status] || cssVar('--text-faint');
         var nodeOpts = { id: n.id, label: n.label, title: n.host ? (n.label + '\n' + n.host) : n.label, group: n.group || 'Default' };
         if (n.type === 'hub') {
             nodeOpts.shape = 'diamond'; nodeOpts.size = 30;
-            nodeOpts.color = { background: '#5b9aff', border: '#4a89ee', highlight: { background: '#6faeff', border: '#5b9aff' }};
+            nodeOpts.color = { background: cssVar('--accent'), border: cssVar('--accent-hover'), highlight: { background: cssVar('--accent'), border: cssVar('--accent-hover') }};
             nodeOpts.font = { color: '#fff', size: 14, bold: true };
         } else if (n.type === 'discovered') {
             nodeOpts.shape = 'dot'; nodeOpts.size = 14;
@@ -2490,7 +1942,7 @@ function renderNetworkMap(data) {
         nodes.push(nodeOpts);
     });
     data.edges.forEach(function(e) {
-        edges.push({ from: e.from, to: e.to, color: { color: '#2a2d3a', highlight: '#5b9aff' }, width: 1, smooth: { type: 'continuous' }, arrows: { to: { enabled: true, scaleFactor: 0.5 }} });
+        edges.push({ from: e.from, to: e.to, color: { color: cssVar('--border'), highlight: cssVar('--accent') }, width: 1, smooth: { type: 'continuous' }, arrows: { to: { enabled: true, scaleFactor: 0.5 }} });
     });
     var visData = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
     var options = {
@@ -2599,7 +2051,7 @@ function renderWebhooks() {
     var html = '';
     _webhookData.forEach(function(w, i) {
         html += '<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">'
-            + '<select onchange="_webhookData[' + i + '].type=this.value" style="background:#0a0e17;border:1px solid #2a2d3a;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:12px;width:100px;">'
+            + '<select onchange="_webhookData[' + i + '].type=this.value" style="background:var(--bg-deep);border:1px solid var(--border);color:var(--text-body);padding:4px 8px;border-radius:4px;font-size:12px;width:100px;">'
             + '<option value="slack"' + (w.type === 'slack' ? ' selected' : '') + '>Slack</option>'
             + '<option value="teams"' + (w.type === 'teams' ? ' selected' : '') + '>Teams</option>'
             + '<option value="pagerduty"' + (w.type === 'pagerduty' ? ' selected' : '') + '>PagerDuty</option>'
@@ -2607,9 +2059,9 @@ function renderWebhooks() {
             + '</select>'
             + '<input type="text" value="' + escAttr(w.url || w.routing_key || '') + '" '
             + 'onchange="_webhookData[' + i + '].url=this.value" '
-            + 'placeholder="Webhook URL" style="flex:1;background:#0a0e17;border:1px solid #2a2d3a;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:12px;">'
+            + 'placeholder="Webhook URL" style="flex:1;background:var(--bg-deep);border:1px solid var(--border);color:var(--text-body);padding:4px 8px;border-radius:4px;font-size:12px;">'
             + '<button onclick="_webhookData.splice(' + i + ',1);renderWebhooks();" '
-            + 'style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;" title="Remove">&times;</button>'
+            + 'style="background:none;border:none;color:var(--btn-danger);cursor:pointer;font-size:16px;" title="Remove">&times;</button>'
             + '</div>';
     });
     el.innerHTML = html;
@@ -2689,56 +2141,6 @@ function testEmail() {
     }, 500);
 }
 
-// ===== Backup & Restore =====
-function downloadBackup() {
-    var btn = document.getElementById('backup-btn');
-    var st = document.getElementById('backup-status');
-    btn.disabled = true; btn.innerHTML = '&#9203; Creating backup...';
-    st.textContent = '';
-    fetch('/api/backup')
-    .then(function(r) {
-        if (!r.ok) throw new Error('Backup failed (HTTP ' + r.status + ')');
-        return r.blob().then(function(blob) {
-            var cd = r.headers.get('Content-Disposition') || '';
-            var match = cd.match(/filename[^;=\n]*="?([^";\n]+)/);
-            var fname = match ? match[1] : 'netmon_backup.zip';
-            var a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = fname;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            URL.revokeObjectURL(a.href);
-            st.style.color = '#2ecc71';
-            st.textContent = 'Backup downloaded: ' + fname;
-        });
-    })
-    .catch(function(e) { st.style.color = '#e74c3c'; st.textContent = e.message; })
-    .finally(function() { btn.disabled = false; btn.innerHTML = '&#128229; Download Backup'; });
-}
-
-function handleRestoreFile(input) {
-    if (!input.files || !input.files[0]) return;
-    var file = input.files[0];
-    var st = document.getElementById('restore-status');
-    if (!file.name.toLowerCase().endsWith('.zip')) {
-        st.style.color = '#e74c3c'; st.textContent = 'Please select a .zip backup file.';
-        input.value = ''; return;
-    }
-    if (!confirm('Restore from "' + file.name + '"?\n\nThis will overwrite the current database and config. A restart is recommended after restore.')) {
-        input.value = ''; return;
-    }
-    st.style.color = '#f39c12'; st.textContent = 'Uploading and restoring...';
-    var fd = new FormData();
-    fd.append('file', file);
-    fetch('/api/restore', { method: 'POST', body: fd })
-    .then(function(r) { return r.json().then(function(d) { d._status = r.status; return d; }); })
-    .then(function(d) {
-        if (d._status >= 400) { st.style.color = '#e74c3c'; st.textContent = d.description || 'Restore failed.'; }
-        else { st.style.color = '#2ecc71'; st.textContent = 'Restored ' + (d.files||[]).length + ' file(s): ' + (d.files||[]).join(', ') + '. Restart recommended.'; loadSettings(); }
-    })
-    .catch(function(e) { st.style.color = '#e74c3c'; st.textContent = e.message; })
-    .finally(function() { input.value = ''; });
-}
-
 // ===== Inventory =====
 function loadInventory() {
     Promise.all([ safeFetch('/api/inventory', null), safeFetch('/api/inventory/stats', null) ])
@@ -2777,15 +2179,15 @@ function filterInventory() {
     var wrap = document.getElementById('inv-table-wrap');
     if (!filtered.length) { wrap.innerHTML = '<div class="empty-state"><p>No assets found.</p></div>'; updateInvSelBtn(); return; }
     var html = '<table><thead><tr>'
-        + '<th style="width:36px;"><input type="checkbox" id="inv-select-all" onchange="toggleAllInvCheckboxes(this)" style="accent-color:#5b9aff;width:16px;height:16px;cursor:pointer;"></th>'
+        + '<th style="width:36px;"><input type="checkbox" id="inv-select-all" onchange="toggleAllInvCheckboxes(this)" style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer;"></th>'
         + '<th>IP</th><th>Hostname</th><th>Type</th><th>Vendor / Model</th><th>Location</th><th>Ports</th><th>Status</th><th>Last Seen</th><th style="width:180px;">Actions</th></tr></thead><tbody>';
     filtered.forEach(function(a) {
-        var portsHtml = ''; (a.open_ports_list || []).slice(0,6).forEach(function(p) { portsHtml += portServiceLink(p, a.ip); });
-        if ((a.open_ports_list||[]).length > 6) portsHtml += '<span style="color:#555;font-size:11px;">+' + ((a.open_ports_list||[]).length-6) + '</span>';
+        var portsHtml = ''; (a.open_ports_list || []).slice(0,6).forEach(function(p) { portsHtml += '<span class="port-chip">' + (PORT_NAMES[p]||p) + '</span>'; });
+        if ((a.open_ports_list||[]).length > 6) portsHtml += '<span style="color:var(--text-faint);font-size:11px;">+' + ((a.open_ports_list||[]).length-6) + '</span>';
         if (!portsHtml) portsHtml = '<span style="color:#444;">--</span>';
         var stCls = a.status === 'active' ? 'inv-status-active' : 'inv-status-retired';
         var monBadge = a.is_monitored ? ' <span class="monitored-badge">Monitored</span>' : '';
-        html += '<tr><td><input type="checkbox" class="inv-row-cb" value="' + a.id + '" onchange="updateInvSelBtn()" style="accent-color:#5b9aff;width:16px;height:16px;cursor:pointer;"></td>'
+        html += '<tr><td><input type="checkbox" class="inv-row-cb" value="' + a.id + '" onchange="updateInvSelBtn()" style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer;"></td>'
             + '<td style="font-family:monospace;">' + esc(a.ip) + monBadge + '</td><td>' + esc(a.hostname || '') + '</td>'
             + '<td>' + (a.device_type ? '<span class="inv-type-chip">' + esc(a.device_type) + '</span>' : '--') + '</td>'
             + '<td>' + esc([a.vendor,a.model].filter(function(x){return x;}).join(' ') || '--') + '</td>'
@@ -2895,13 +2297,13 @@ function loadSLAReport() {
         var totalUp = 0, totalDev = devs.length, incidents = 0;
         devs.forEach(function(d) { if (d.uptime_pct !== null) totalUp += d.uptime_pct; incidents += d.incident_count; });
         var avgUp = totalDev > 0 ? (totalUp / totalDev).toFixed(2) : 'N/A';
-        var sumHtml = '<div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:16px 24px;text-align:center;">'
+        var sumHtml = '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px 24px;text-align:center;">'
             + '<div style="font-size:28px;font-weight:700;color:#22c55e;">' + avgUp + '%</div>'
             + '<div style="font-size:11px;color:#64748b;text-transform:uppercase;">Avg Uptime</div></div>'
-            + '<div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:16px 24px;text-align:center;">'
+            + '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px 24px;text-align:center;">'
             + '<div style="font-size:28px;font-weight:700;color:#94a3b8;">' + totalDev + '</div>'
             + '<div style="font-size:11px;color:#64748b;text-transform:uppercase;">Devices</div></div>'
-            + '<div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:16px 24px;text-align:center;">'
+            + '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px 24px;text-align:center;">'
             + '<div style="font-size:28px;font-weight:700;color:#f59e0b;">' + incidents + '</div>'
             + '<div style="font-size:11px;color:#64748b;text-transform:uppercase;">Incidents</div></div>';
         document.getElementById('sla-summary').innerHTML = sumHtml;
@@ -2920,7 +2322,7 @@ function loadSLAReport() {
                 + '<td>' + d.incident_count + '</td><td>' + mttr + '</td>'
                 + '<td><span class="badge ' + slaClass + '">' + slaLabel + '</span></td></tr>';
         });
-        if (!html) html = '<tr><td colspan="7" style="text-align:center;color:#555;padding:40px;">No data for this period</td></tr>';
+        if (!html) html = '<tr><td colspan="7" style="text-align:center;color:var(--text-faint);padding:40px;">No data for this period</td></tr>';
         document.getElementById('sla-body').innerHTML = html;
     });
 }
@@ -2930,233 +2332,126 @@ function downloadSLACSV() {
     window.open('/api/reports/sla?hours=' + hours + '&format=csv', '_blank');
 }
 
-// ===== Security Scanner Tab =====
-var _secFindings = [];
-var _secScanPolling = null;
-
-function loadSecurityTab() {
-    safeFetch('/api/security/scans', []).then(function(scans) {
-        if (scans.error) {
-            document.getElementById('security-upgrade').innerHTML = upgradeHTML('Security Scanner');
-            document.getElementById('security-upgrade').style.display = '';
-            document.getElementById('security-content').style.display = 'none';
-            return;
-        }
-        document.getElementById('security-upgrade').style.display = 'none';
-        document.getElementById('security-content').style.display = '';
-        renderSecHistory(scans);
-        // If most recent scan has results, show them
-        if (scans.length > 0 && scans[0].status === 'completed') {
-            loadSecScanResults(scans[0].scan_id);
-        }
-    });
-}
-
-function startSecurityScan() {
-    var targetsStr = document.getElementById('sec-targets').value.trim();
-    var targets = targetsStr ? targetsStr.split(',').map(function(t){ return t.trim(); }).filter(Boolean) : [];
-    var scanTypes = [];
-    if (document.getElementById('sec-type-ports').checked) scanTypes.push('ports');
-    if (document.getElementById('sec-type-ssl').checked) scanTypes.push('ssl');
-    if (document.getElementById('sec-type-http').checked) scanTypes.push('http');
-    if (document.getElementById('sec-type-services').checked) scanTypes.push('services');
-    if (document.getElementById('sec-type-snmp').checked) scanTypes.push('snmp');
-    if (document.getElementById('sec-type-dns').checked) scanTypes.push('dns');
-    if (scanTypes.length === 0) { alert('Select at least one scan type'); return; }
-
-    document.getElementById('sec-scan-btn').disabled = true;
-    document.getElementById('sec-scan-btn').textContent = 'Scanning...';
-    document.getElementById('sec-stop-btn').style.display = '';
-    document.getElementById('sec-progress').style.display = '';
-    document.getElementById('sec-summary').style.display = 'none';
-    document.getElementById('sec-results').style.display = 'none';
-
-    fetch('/api/security/scan', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({targets: targets, scan_types: scanTypes})
-    }).then(function(r){ return r.json(); }).then(function(d) {
-        if (d.error) {
-            alert(d.error);
-            document.getElementById('sec-scan-btn').disabled = false;
-            document.getElementById('sec-scan-btn').textContent = 'Start Scan';
-            document.getElementById('sec-stop-btn').style.display = 'none';
-            document.getElementById('sec-progress').style.display = 'none';
-            return;
-        }
-        // Poll for progress
-        _secScanPolling = setInterval(function() {
-            fetch('/api/security/status').then(function(r){ return r.json(); }).then(function(st) {
-                document.getElementById('sec-progress-pct').textContent = (st.progress || 0) + '%';
-                document.getElementById('sec-progress-bar').style.width = (st.progress || 0) + '%';
-                var label = 'Scanning';
-                if (st.current_target) label += ' ' + st.current_target;
-                if (st.current_test) label += ' - ' + st.current_test;
-                label += '...';
-                document.getElementById('sec-progress-label').textContent = label;
-
-                if (st.status === 'completed' || st.status === 'cancelled') {
-                    clearInterval(_secScanPolling);
-                    _secScanPolling = null;
-                    document.getElementById('sec-scan-btn').disabled = false;
-                    document.getElementById('sec-scan-btn').textContent = 'Start Scan';
-                    document.getElementById('sec-stop-btn').style.display = 'none';
-                    document.getElementById('sec-stop-btn').disabled = false;
-                    document.getElementById('sec-stop-btn').textContent = 'Stop Scan';
-                    document.getElementById('sec-progress').style.display = 'none';
-                    if (st.status === 'cancelled') {
-                        document.getElementById('sec-progress-label').textContent = 'Scan cancelled.';
-                    }
-                    loadSecScanResults(st.scan_id || d.scan_id);
-                    loadSecurityTab();
-                }
-            });
-        }, 1500);
-    });
-}
-
-function loadSecScanResults(scanId) {
-    fetch('/api/security/scans/' + scanId).then(function(r){ return r.json(); }).then(function(scan) {
-        if (scan.error) return;
-        _secFindings = scan.findings || [];
-
-        // Summary cards
-        var s = scan.summary || {};
-        var counts = s.severity_counts || {};
-        var summaryHtml = ''
-            + sevCard('Critical', counts.critical || 0, '#ef4444')
-            + sevCard('High', counts.high || 0, '#f97316')
-            + sevCard('Medium', counts.medium || 0, '#eab308')
-            + sevCard('Low', counts.low || 0, '#3b82f6')
-            + sevCard('Info', counts.info || 0, '#64748b');
-        var sumEl = document.getElementById('sec-summary');
-        sumEl.innerHTML = summaryHtml;
-        sumEl.style.display = 'flex';
-
-        // Show findings
-        document.getElementById('sec-results').style.display = '';
-        renderSecFindings(_secFindings);
-    });
-}
-
-function sevCard(label, count, color) {
-    return '<div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:16px 24px;text-align:center;min-width:100px;">'
-        + '<div style="font-size:24px;font-weight:700;color:' + color + ';">' + count + '</div>'
-        + '<div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">' + esc(label) + '</div></div>';
-}
-
-function sevBadge(severity) {
-    var colors = {critical:'#ef4444',high:'#f97316',medium:'#eab308',low:'#3b82f6',info:'#64748b'};
-    var c = colors[severity] || '#64748b';
-    return '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;'
-        + 'background:' + c + '20;color:' + c + ';text-transform:uppercase;">' + esc(severity) + '</span>';
-}
-
-function catBadge(cat) {
-    return '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;'
-        + 'background:#22222b;color:#94a3b8;">' + esc(cat) + '</span>';
-}
-
-function renderSecFindings(findings) {
-    var html = '';
-    findings.forEach(function(f) {
-        html += '<tr>'
-            + '<td>' + sevBadge(f.severity) + '</td>'
-            + '<td style="font-family:monospace;font-size:12px;">' + esc(f.target) + '</td>'
-            + '<td>' + catBadge(f.category) + '</td>'
-            + '<td><div style="color:#e2e8f0;font-weight:500;font-size:13px;">' + esc(f.title) + '</div>'
-            + '<div style="color:#64748b;font-size:11px;margin-top:2px;">' + esc(f.description) + '</div></td>'
-            + '<td style="color:#94a3b8;font-size:12px;">' + esc(f.remediation || '-') + '</td>'
-            + '</tr>';
-    });
-    if (!html) html = '<tr><td colspan="5" style="text-align:center;color:#555;padding:40px;">No findings</td></tr>';
-    document.getElementById('sec-findings-body').innerHTML = html;
-}
-
-function filterSecFindings() {
-    var sev = document.getElementById('sec-filter-severity').value;
-    var cat = document.getElementById('sec-filter-category').value;
-    var filtered = _secFindings.filter(function(f) {
-        if (sev && f.severity !== sev) return false;
-        if (cat && f.category !== cat) return false;
-        return true;
-    });
-    renderSecFindings(filtered);
-}
-
-function renderSecHistory(scans) {
-    if (!scans || scans.length === 0) {
-        document.getElementById('sec-history-body').innerHTML = '<tr><td colspan="9" style="text-align:center;color:#555;padding:40px;">No security scans yet. Launch one above.</td></tr>';
-        return;
-    }
-    var html = '';
-    scans.forEach(function(s) {
-        var summary = s.summary || {};
-        var counts = summary.severity_counts || {};
-        var targets = s.targets || [];
-        var targetStr = targets.length > 3 ? targets.slice(0,3).join(', ') + ' +' + (targets.length - 3) : targets.join(', ');
-        var types = s.scan_types || [];
-        html += '<tr>'
-            + '<td style="font-family:monospace;font-size:12px;">' + esc(s.scan_id) + '</td>'
-            + '<td style="font-size:12px;">' + esc(s.started_at || '') + '</td>'
-            + '<td style="font-size:12px;" title="' + escAttr(targets.join(', ')) + '">' + esc(targetStr) + '</td>'
-            + '<td style="font-size:12px;">' + esc(types.join(', ')) + '</td>'
-            + '<td style="color:#ef4444;font-weight:600;">' + (counts.critical || 0) + '</td>'
-            + '<td style="color:#f97316;font-weight:600;">' + (counts.high || 0) + '</td>'
-            + '<td style="color:#eab308;">' + (counts.medium || 0) + '</td>'
-            + '<td style="color:#3b82f6;">' + (counts.low || 0) + '</td>'
-            + '<td><button class="btn btn-ghost btn-sm" onclick="loadSecScanResults(\'' + escAttr(s.scan_id) + '\')">View</button> '
-            + '<button class="btn btn-ghost btn-sm" onclick="deleteSecScan(\'' + escAttr(s.scan_id) + '\')" style="color:#ef4444;">Del</button></td>'
-            + '</tr>';
-    });
-    document.getElementById('sec-history-body').innerHTML = html;
-}
-
-function deleteSecScan(scanId) {
-    if (!confirm('Delete this security scan and all findings?')) return;
-    fetch('/api/security/scans/' + scanId, {method:'DELETE'}).then(function(){ loadSecurityTab(); });
-}
-
-function stopSecurityScan() {
-    document.getElementById('sec-stop-btn').disabled = true;
-    document.getElementById('sec-stop-btn').textContent = 'Stopping...';
-    fetch('/api/security/cancel', {method:'POST'}).then(function(r){ return r.json(); }).then(function(d) {
-        document.getElementById('sec-progress-label').textContent = 'Cancelling scan...';
-        // Polling loop will pick up the cancelled status and clean up
-    }).catch(function() {
-        document.getElementById('sec-stop-btn').disabled = false;
-        document.getElementById('sec-stop-btn').textContent = 'Stop Scan';
-    });
-}
-
-// ===== Help Tab =====
-function toggleHelp(el) {
-    var section = el.parentElement;
-    section.classList.toggle('open');
-}
-
-function filterHelp() {
-    var q = (document.getElementById('help-search').value || '').toLowerCase().trim();
-    var sections = document.querySelectorAll('.help-section');
-    for (var i = 0; i < sections.length; i++) {
-        var s = sections[i];
-        if (!q) { s.classList.remove('hidden'); continue; }
-        var kw = (s.getAttribute('data-keywords') || '').toLowerCase();
-        var heading = (s.querySelector('.help-heading') || {}).textContent || '';
-        var body = (s.querySelector('.help-body') || {}).textContent || '';
-        var match = kw.indexOf(q) !== -1 || heading.toLowerCase().indexOf(q) !== -1 || body.toLowerCase().indexOf(q) !== -1;
-        if (match) { s.classList.remove('hidden'); s.classList.add('open'); }
-        else { s.classList.add('hidden'); }
-    }
-}
-
 function esc(s) { if (s === null || s === undefined) return ''; var d = document.createElement('div'); d.appendChild(document.createTextNode(String(s))); return d.innerHTML; }
 function escAttr(s) { return esc(String(s === null || s === undefined ? '' : s)).replace(/"/g, '&quot;'); }
+
+
+// ===== Skin & Customization Engine (v5.4) =====
+var _refreshTimer = null;
+var _refreshMs = 30000;
+
+function setSkin(name) {
+    if (name === 'midnight' || !name) {
+        document.documentElement.removeAttribute('data-skin');
+    } else {
+        document.documentElement.setAttribute('data-skin', name);
+    }
+    localStorage.setItem('netmon-skin', name || 'midnight');
+    highlightActiveSkin();
+}
+
+function highlightActiveSkin() {
+    var current = localStorage.getItem('netmon-skin') || 'midnight';
+    document.querySelectorAll('.skin-swatch').forEach(function(btn) {
+        if (btn.getAttribute('data-skin') === current) {
+            btn.style.borderColor = 'var(--accent)';
+            btn.style.boxShadow = '0 0 0 1px var(--accent)';
+        } else {
+            btn.style.borderColor = 'var(--border)';
+            btn.style.boxShadow = 'none';
+        }
+    });
+}
+
+function setDensity(val) {
+    if (val === 'comfortable' || !val) {
+        document.documentElement.removeAttribute('data-density');
+    } else {
+        document.documentElement.setAttribute('data-density', val);
+    }
+    localStorage.setItem('netmon-density', val || 'comfortable');
+}
+
+function setRefreshInterval(seconds) {
+    seconds = parseInt(seconds) || 0;
+    localStorage.setItem('netmon-refresh', seconds);
+    _refreshMs = seconds * 1000;
+    if (_refreshTimer) { clearInterval(_refreshTimer); _refreshTimer = null; }
+    if (seconds > 0) {
+        _refreshTimer = setInterval(refreshAll, _refreshMs);
+        document.getElementById('refresh-info').textContent = 'Auto-refresh: ' + seconds + 's';
+    } else {
+        document.getElementById('refresh-info').textContent = 'Auto-refresh: off';
+    }
+}
+
+function toggleSummaryBar() {
+    var show = document.getElementById('pref-show-summary').checked;
+    var bar = document.getElementById('summary-bar');
+    if (bar) bar.style.display = show ? 'flex' : 'none';
+}
+
+function savePref(key, value) {
+    localStorage.setItem('netmon-' + key, JSON.stringify(value));
+}
+
+function loadPrefs() {
+    // Skin
+    var skin = localStorage.getItem('netmon-skin') || 'midnight';
+    setSkin(skin);
+
+    // Density
+    var density = localStorage.getItem('netmon-density') || 'comfortable';
+    setDensity(density);
+    var densityEl = document.getElementById('pref-density');
+    if (densityEl) densityEl.value = density;
+
+    // Refresh
+    var refresh = localStorage.getItem('netmon-refresh');
+    if (refresh !== null) {
+        setRefreshInterval(parseInt(refresh));
+        var refreshEl = document.getElementById('pref-refresh');
+        if (refreshEl) refreshEl.value = refresh;
+    }
+
+    // Default tab
+    var defaultTab = null;
+    try { defaultTab = JSON.parse(localStorage.getItem('netmon-defaultTab')); } catch(e) {}
+    if (defaultTab) {
+        var tabEl = document.getElementById('pref-default-tab');
+        if (tabEl) tabEl.value = defaultTab;
+        // Activate on first load
+        if (!window._tabInitDone) {
+            var targetTab = document.querySelector('.tab[data-tab="' + defaultTab + '"]');
+            if (targetTab) targetTab.click();
+            window._tabInitDone = true;
+        }
+    }
+
+    // Summary bar
+    var showSummary = true;
+    try { var s = JSON.parse(localStorage.getItem('netmon-showSummary')); if (s === false) showSummary = false; } catch(e) {}
+    var sumCb = document.getElementById('pref-show-summary');
+    if (sumCb) sumCb.checked = showSummary;
+    toggleSummaryBar();
+
+    highlightActiveSkin();
+}
+
+// Load prefs on startup
+loadPrefs();
+
+
+// Helper to read computed CSS variable values
+function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
 
 // ===== Auto-refresh =====
 function refreshAll() { loadStatus(); loadAlerts(); loadHistory(); }
 refreshAll();
-setInterval(refreshAll, 30000);
+// Start default refresh timer (loadPrefs may override)
+if (!_refreshTimer) { _refreshTimer = setInterval(refreshAll, _refreshMs); }
 </script>
 </body>
 </html>
