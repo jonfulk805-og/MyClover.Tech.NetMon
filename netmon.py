@@ -36,6 +36,7 @@ import secrets
 import base64
 import csv
 import io
+import zipfile
 import glob as glob_mod
 import functools
 from pathlib import Path
@@ -56,7 +57,7 @@ except ImportError:
     print("[WARN] requests not installed. HTTP checks disabled. Run: pip install requests")
 
 try:
-    from flask import Flask, jsonify, request, render_template, abort
+    from flask import Flask, jsonify, request, render_template, abort, send_file
     HAS_FLASK = True
 except ImportError:
     HAS_FLASK = False
@@ -2599,6 +2600,92 @@ def create_app():
             "by_type": types,
             "monitored_count": len(monitored_ips),
         })
+
+    # --- Backup & Restore ---
+
+    @app.route("/api/backup", methods=["GET"])
+    def api_backup():
+        """Create a zip backup of the database and config."""
+        import sqlite3 as _sqlite3
+        ts = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).strftime("%Y%m%d_%H%M%S")
+        buf = io.BytesIO()
+        tmp_db = DB_PATH.parent / ".netmon_backup_tmp.db"
+        try:
+            with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+                # Database -- use SQLite backup API for a consistent snapshot
+                if DB_PATH.exists():
+                    try:
+                        src = _sqlite3.connect(str(DB_PATH))
+                        dst = _sqlite3.connect(str(tmp_db))
+                        src.backup(dst)
+                        dst.close()
+                        src.close()
+                        zf.write(str(tmp_db), "netmon.db")
+                    finally:
+                        if tmp_db.exists():
+                            tmp_db.unlink()
+                # Config
+                cfg_path = DEFAULT_CFG
+                if cfg_path.exists():
+                    zf.write(str(cfg_path), "config.yaml")
+                # Plugins
+                if PLUGIN_DIR.exists():
+                    for pf in PLUGIN_DIR.glob("*.py"):
+                        zf.write(str(pf), "plugins/" + pf.name)
+            buf.seek(0)
+            return send_file(
+                buf,
+                mimetype="application/zip",
+                as_attachment=True,
+                download_name="netmon_backup_%s.zip" % ts,
+            )
+        except Exception as exc:
+            log.exception("Backup failed: %s", exc)
+            return jsonify({"error": "Backup failed: %s" % str(exc)}), 500
+
+    @app.route("/api/restore", methods=["POST"])
+    def api_restore():
+        """Restore from a backup zip uploaded via multipart form."""
+        if "file" not in request.files:
+            abort(400, description="No file uploaded.")
+        f = request.files["file"]
+        if not f.filename or not f.filename.lower().endswith(".zip"):
+            abort(400, description="Upload must be a .zip file.")
+        buf = io.BytesIO(f.read())
+        try:
+            zf = zipfile.ZipFile(buf, "r")
+        except zipfile.BadZipFile:
+            abort(400, description="Invalid zip file.")
+        names = zf.namelist()
+        restored = []
+        # Restore database
+        if "netmon.db" in names:
+            db_bytes = zf.read("netmon.db")
+            with open(str(DB_PATH), "wb") as out:
+                out.write(db_bytes)
+            restored.append("netmon.db")
+        # Restore config
+        if "config.yaml" in names:
+            cfg_bytes = zf.read("config.yaml")
+            with open(str(DEFAULT_CFG), "wb") as out:
+                out.write(cfg_bytes)
+            restored.append("config.yaml")
+            _reload_config()
+        # Restore plugins
+        for n in names:
+            if n.startswith("plugins/") and n.endswith(".py"):
+                PLUGIN_DIR.mkdir(exist_ok=True)
+                plugin_bytes = zf.read(n)
+                dest = PLUGIN_DIR / Path(n).name
+                with open(str(dest), "wb") as out:
+                    out.write(plugin_bytes)
+                restored.append(n)
+        zf.close()
+        if not restored:
+            abort(400, description="Zip contained no recognized files (netmon.db, config.yaml, plugins/*.py).")
+        return jsonify({"status": "restored", "files": restored,
+                        "message": "Restored %d file(s). Restart netmon for full effect." % len(restored)})
+
 
     return app
 
