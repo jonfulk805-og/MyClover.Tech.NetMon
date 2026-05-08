@@ -643,6 +643,24 @@ a.port-link:hover {
 .tab-visibility-item input { accent-color: var(--accent); width: 15px; height: 15px; }
 .tab-visibility-item.disabled-tab { opacity: 0.5; }
 
+
+/* Help section styles */
+.help-section { background: var(--card-bg, #1a1d2b); border: 1px solid var(--border, #2a2d3a); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+.help-heading { color: var(--text-primary, #e2e8f0); font-size: 14px; font-weight: 600; padding: 14px 20px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background 0.15s; }
+.help-heading:hover { background: rgba(255,255,255,0.03); }
+.help-heading::after { content: "+"; color: var(--text-faint, #64748b); font-size: 18px; font-weight: 400; transition: transform 0.2s; }
+.help-section.open .help-heading::after { content: "-"; }
+.help-body { display: none; padding: 0 20px 20px 20px; color: var(--text-secondary, #94a3b8); font-size: 13px; line-height: 1.7; }
+.help-section.open .help-body { display: block; }
+.help-body h4 { color: var(--text-primary, #cbd5e1); font-size: 13px; margin: 16px 0 6px 0; }
+.help-body h4:first-child { margin-top: 0; }
+.help-body ul, .help-body ol { margin: 6px 0; padding-left: 24px; }
+.help-body li { margin-bottom: 4px; }
+.help-body pre { background: var(--page-bg, #111827); border: 1px solid var(--border, #2a2d3a); border-radius: 6px; padding: 12px 16px; font-size: 12px; color: var(--text-primary, #e2e8f0); overflow-x: auto; margin: 8px 0; white-space: pre; }
+.help-body code { background: var(--page-bg, #111827); padding: 1px 6px; border-radius: 3px; font-size: 12px; color: var(--accent, #22c55e); }
+.help-body pre code { background: none; padding: 0; }
+.help-body a { color: var(--accent, #22c55e); }
+.help-section.hidden { display: none; }
 </style>
 </head>
 <body>
@@ -667,6 +685,7 @@ a.port-link:hover {
     <div class="tab" data-tab="reports" draggable="true"><span class="tab-grip">&#9776;</span>Reports</div>
     <div class="tab" data-tab="security" draggable="true"><span class="tab-grip">&#9776;</span>Security</div>
     <div class="tab" data-tab="settings" draggable="true"><span class="tab-grip">&#9776;</span>Settings</div>
+    <div class="tab" data-tab="help" draggable="true"><span class="tab-grip">&#9776;</span>Help</div>
     <div class="tab-hidden-indicator" id="hidden-tabs-indicator" onclick="showHiddenTabsMenu(this)" title="Show hidden tabs"></div>
 </div>
 
@@ -1304,6 +1323,850 @@ a.port-link:hover {
     <div class="form-row">
         <div class="form-group"><label>Start Time (local)</label><input type="datetime-local" id="dt-start" style="color-scheme:var(--input-color-scheme, dark);"></div>
         <div class="form-group"><label>End Time (local)</label><input type="datetime-local" id="dt-end" style="color-scheme:var(--input-color-scheme, dark);"></div>
+    </div>
+    <div class="form-group"><label>Reason</label><textarea id="dt-reason" placeholder="e.g. Firmware upgrade, Hardware replacement"></textarea></div>
+    <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeDowntimeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveDowntime()">Schedule</button>
+    </div>
+</div>
+</div>
+
+<div class="content tab-content" id="tab-help">
+    <h2 style="color:var(--text-primary);font-size:16px;margin-bottom:20px;">Help &amp; Documentation</h2>
+
+    <!-- Search -->
+    <div style="margin-bottom:20px;">
+        <input type="text" id="help-search" placeholder="Search help topics..." oninput="filterHelp()" style="width:100%;max-width:400px;background:var(--page-bg);border:1px solid var(--border);color:var(--text-primary);padding:10px 14px;border-radius:6px;font-size:13px;">
+    </div>
+
+    <!-- Support contact -->
+    <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:12px;">
+        <span style="font-size:20px;">&#9993;</span>
+        <div>
+            <div style="color:var(--text-primary);font-size:13px;font-weight:600;">Need help? Contact our support team</div>
+            <a href="mailto:support@myclover.tech" style="color:#22c55e;font-size:13px;text-decoration:none;">support@myclover.tech</a>
+        </div>
+    </div>
+
+    <div id="help-sections">
+
+    <!-- Getting Started -->
+    <div class="help-section" data-keywords="install setup start quick begin run requirements python pip launch first">
+        <div class="help-heading" onclick="toggleHelp(this)">Getting Started</div>
+        <div class="help-body">
+            <h4>System Requirements</h4>
+            <ul>
+                <li>Python 3.10 or later</li>
+                <li>Supported OS: Windows, Linux, macOS</li>
+                <li>Minimum 512 MB RAM (1 GB recommended for 100+ devices)</li>
+                <li>SQLite (included with Python - no separate database install needed)</li>
+            </ul>
+            <h4>Installation</h4>
+            <ol>
+                <li>Extract all files into a folder (e.g. <code>C:\netmon\</code> or <code>/opt/netmon/</code>)</li>
+                <li>Install dependencies: <code>pip install -r requirements.txt</code></li>
+                <li>Edit <code>config.yaml</code> to add your devices</li>
+                <li>Run: <code>python netmon.py</code></li>
+                <li>Open your browser to <code>http://localhost:8080</code></li>
+            </ol>
+            <h4>Running as a Service (Linux)</h4>
+            <pre>
+[Unit]
+Description=MyClover.Tech.netmon
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /opt/netmon/netmon.py
+WorkingDirectory=/opt/netmon
+Restart=always
+User=netmon
+
+[Install]
+WantedBy=multi-user.target</pre>
+            <p>Save this to <code>/etc/systemd/system/netmon.service</code>, then run <code>systemctl enable --now netmon</code>.</p>
+        </div>
+    </div>
+
+    <!-- Licensing & Tiers -->
+    <div class="help-section" data-keywords="license key tier free pro enterprise upgrade activate feature limit device sensor pricing plan subscription">
+        <div class="help-heading" onclick="toggleHelp(this)">Licensing &amp; Tiers</div>
+        <div class="help-body">
+            <h4>License Tiers</h4>
+            <table class="data-table" style="margin-bottom:16px;">
+                <thead><tr><th>Feature</th><th>Community (Free)</th><th>Pro ($29/mo)</th><th>Enterprise ($99/mo)</th></tr></thead>
+                <tbody>
+                    <tr><td>Max Devices</td><td>10</td><td>500</td><td>Unlimited</td></tr>
+                    <tr><td>Max Sensors per Device</td><td>4</td><td>20</td><td>Unlimited</td></tr>
+                    <tr><td>Status, Alerts, History, Devices</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+                    <tr><td>Network Map, Discovery, Inventory</td><td>-</td><td>Yes</td><td>Yes</td></tr>
+                    <tr><td>Performance Graphing, Downtime</td><td>-</td><td>Yes</td><td>Yes</td></tr>
+                    <tr><td>Host Dependencies</td><td>-</td><td>Yes</td><td>Yes</td></tr>
+                    <tr><td>REST API Write Access</td><td>-</td><td>Yes</td><td>Yes</td></tr>
+                    <tr><td>NOC/TV Display</td><td>-</td><td>-</td><td>Yes</td></tr>
+                    <tr><td>Multi-Channel Notifications</td><td>-</td><td>-</td><td>Yes</td></tr>
+                    <tr><td>SLA &amp; Uptime Reports</td><td>-</td><td>-</td><td>Yes</td></tr>
+                    <tr><td>Security Scanner</td><td>-</td><td>-</td><td>Yes</td></tr>
+                    <tr><td>User Auth &amp; RBAC</td><td>-</td><td>-</td><td>Yes</td></tr>
+                    <tr><td>Custom Plugins, SNMP Deep Poll</td><td>-</td><td>-</td><td>Yes</td></tr>
+                    <tr><td>Multi-Recipient Alerts</td><td>-</td><td>-</td><td>Yes</td></tr>
+                </tbody>
+            </table>
+            <h4>Activating a License Key</h4>
+            <ol>
+                <li>Go to the <strong>Settings</strong> tab</li>
+                <li>Scroll to the <strong>License</strong> section</li>
+                <li>Paste your license key and click <strong>Activate</strong></li>
+                <li>Alternatively, set <code>license_key</code> in <code>config.yaml</code> and restart</li>
+            </ol>
+            <p>Keys are validated locally -- no internet connection required. You will receive your key via email after purchase.</p>
+            <h4>Purchase a License</h4>
+            <p>Visit <a href="https://myclover.tech" target="_blank" style="color:#22c55e;">myclover.tech</a> to purchase a Pro or Enterprise license.</p>
+        </div>
+    </div>
+
+    <!-- Adding & Managing Devices -->
+    <div class="help-section" data-keywords="device add edit delete remove host ip group check ping tcp http snmp port sensor monitor manage crud configure">
+        <div class="help-heading" onclick="toggleHelp(this)">Adding &amp; Managing Devices</div>
+        <div class="help-body">
+            <h4>Adding a Device via Dashboard</h4>
+            <ol>
+                <li>Go to the <strong>Manage Devices</strong> tab</li>
+                <li>Click <strong>Add Device</strong></li>
+                <li>Fill in: Name, Host/IP, Group (optional), and at least one Check</li>
+                <li>Click <strong>Save</strong></li>
+            </ol>
+            <h4>Adding a Device via config.yaml</h4>
+            <pre>
+devices:
+  - name: "My Server"
+    host: "192.168.1.50"
+    group: "Servers"
+    parent: ""
+    notes: "Production web server"
+    maintenance: false
+    links: []
+    checks:
+      - type: ping
+        label: "ICMP"
+      - type: http
+        label: "HTTP"
+        url: "http://192.168.1.50"
+        expected_code: 200</pre>
+            <h4>Check Types</h4>
+            <table class="data-table" style="margin-bottom:16px;">
+                <thead><tr><th>Type</th><th>Description</th><th>Key Fields</th></tr></thead>
+                <tbody>
+                    <tr><td><code>ping</code></td><td>ICMP echo request</td><td>warning_ms, critical_ms, timeout_ms, retries</td></tr>
+                    <tr><td><code>port</code></td><td>TCP port connect test</td><td>port, warning_ms, critical_ms</td></tr>
+                    <tr><td><code>http</code></td><td>HTTP/HTTPS endpoint</td><td>url, expected_code (200), timeout_ms, retries</td></tr>
+                    <tr><td><code>snmp</code></td><td>SNMP GET query</td><td>oid, community (default "public"), version</td></tr>
+                </tbody>
+            </table>
+            <h4>Maintenance Mode</h4>
+            <p>Toggle maintenance mode on a device to temporarily suppress checks and alerts. Click the wrench icon on any device card, or use the API: <code>POST /api/devices/&lt;name&gt;/maintenance</code></p>
+            <h4>Device Links &amp; Notes</h4>
+            <p>Add reference URLs (e.g. admin panels) and notes to each device via the device edit modal. These appear in the device detail drawer.</p>
+        </div>
+    </div>
+
+    <!-- Status & Monitoring -->
+    <div class="help-section" data-keywords="status monitor dashboard card color ok warning critical unreachable parent down check interval refresh threshold">
+        <div class="help-heading" onclick="toggleHelp(this)">Status &amp; Monitoring</div>
+        <div class="help-body">
+            <h4>Status Colors</h4>
+            <table class="data-table" style="margin-bottom:16px;">
+                <thead><tr><th>Status</th><th>Color</th><th>Meaning</th></tr></thead>
+                <tbody>
+                    <tr><td>OK</td><td style="color:#2ecc71;">Green</td><td>Response time within normal range</td></tr>
+                    <tr><td>WARNING</td><td style="color:#f39c12;">Yellow</td><td>Response time exceeds warning threshold</td></tr>
+                    <tr><td>CRITICAL</td><td style="color:#e74c3c;">Red</td><td>Check failed or response time exceeds critical threshold</td></tr>
+                    <tr><td>UNREACHABLE</td><td style="color:#95a5a6;">Gray</td><td>Host cannot be reached</td></tr>
+                    <tr><td>PARENT DOWN</td><td style="color:#8e44ad;">Purple</td><td>Parent device is down (checks are skipped)</td></tr>
+                    <tr><td>MAINTENANCE</td><td style="color:#3498db;">Blue</td><td>Device is in scheduled maintenance</td></tr>
+                </tbody>
+            </table>
+            <h4>Check Interval</h4>
+            <p>The default check interval is 60 seconds. Change it in <strong>Settings &gt; General</strong> or in <code>config.yaml</code> under <code>check_interval_seconds</code>. The dashboard auto-refreshes every 30 seconds.</p>
+            <h4>Thresholds</h4>
+            <p>Each check can have <code>warning_ms</code> and <code>critical_ms</code> thresholds. If response time exceeds the warning threshold, the status becomes WARNING. If it exceeds critical, it becomes CRITICAL.</p>
+            <h4>Device Detail Drawer</h4>
+            <p>Click any device card on the Status tab to open a detail drawer showing uptime percentages (24h/7d/30d), check history, performance charts, links, and notes.</p>
+        </div>
+    </div>
+
+    <!-- Alerts & Notifications -->
+    <div class="help-section" data-keywords="alert notification email smtp acknowledge ack suppress cooldown webhook slack teams pagerduty notify">
+        <div class="help-heading" onclick="toggleHelp(this)">Alerts &amp; Notifications</div>
+        <div class="help-body">
+            <h4>Email Alerts (SMTP)</h4>
+            <p>Configure SMTP settings in <strong>Settings &gt; SMTP</strong> or in <code>config.yaml</code>:</p>
+            <pre>
+smtp:
+  smtp_host: "smtp.gmail.com"
+  smtp_port: 587
+  use_tls: true
+  username: "you@gmail.com"
+  password: "app-password"
+  from_addr: "netmon@yourdomain.com"
+  recipients:
+    - "admin@yourdomain.com"
+  cooldown_minutes: 15</pre>
+            <p>Use the <strong>Test Email</strong> button in Settings to verify your configuration.</p>
+            <h4>Alert Cooldown</h4>
+            <p>To prevent alert storms, the same device/check will only trigger one email per cooldown period (default 15 minutes).</p>
+            <h4>Acknowledging Alerts</h4>
+            <p>On the <strong>Alerts</strong> tab, click <strong>Ack</strong> next to any alert to acknowledge it. Acknowledged alerts stop generating repeat notifications until the device recovers and fails again. Use <strong>Ack All</strong> to acknowledge everything at once.</p>
+            <h4>Multi-Channel Notifications (Enterprise)</h4>
+            <p>Send alerts to Slack, Microsoft Teams, PagerDuty, or any generic webhook endpoint. Configure in <strong>Settings &gt; Webhooks</strong> or in <code>config.yaml</code>.</p>
+            <table class="data-table" style="margin-bottom:16px;">
+                <thead><tr><th>Type</th><th>Setup</th></tr></thead>
+                <tbody>
+                    <tr><td>Slack</td><td>Create an Incoming Webhook in your Slack workspace and paste the URL</td></tr>
+                    <tr><td>Teams</td><td>Create an Incoming Webhook connector in your Teams channel</td></tr>
+                    <tr><td>PagerDuty</td><td>Create a service with Events API v2 and use the routing key</td></tr>
+                    <tr><td>Generic</td><td>Any HTTP endpoint that accepts POST JSON payloads</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Network Discovery -->
+    <div class="help-section" data-keywords="discovery scan network sweep find cidr range ip subnet discover ping port auto import">
+        <div class="help-heading" onclick="toggleHelp(this)">Network Discovery Scanner (Pro+)</div>
+        <div class="help-body">
+            <h4>Running a Discovery Scan</h4>
+            <ol>
+                <li>Go to the <strong>Discovery</strong> tab</li>
+                <li>Enter a CIDR range (e.g. <code>192.168.1.0/24</code>) or IP range</li>
+                <li>Click <strong>Start Scan</strong></li>
+                <li>The scanner ping-sweeps the range, probes 11 common ports, and performs reverse DNS lookups</li>
+            </ol>
+            <h4>Adding Discovered Devices</h4>
+            <p>Click <strong>Add to Monitoring</strong> next to any discovered host to immediately start monitoring it. Discovered devices also appear on the <strong>Network Map</strong> with dashed borders.</p>
+            <h4>Importing to Inventory</h4>
+            <p>Scan results can be imported into the <strong>Asset Inventory</strong> with one click.</p>
+            <h4>Scan Limits</h4>
+            <p>Maximum 1,024 IPs per scan to prevent excessive network load.</p>
+        </div>
+    </div>
+
+    <!-- Network Map -->
+    <div class="help-section" data-keywords="map network graph topology visual vis.js dependency parent child edge node interactive">
+        <div class="help-heading" onclick="toggleHelp(this)">Network Map (Pro+)</div>
+        <div class="help-body">
+            <p>The interactive network map uses vis.js to visualize your monitored devices and their relationships.</p>
+            <h4>Node Colors</h4>
+            <ul>
+                <li><strong style="color:#2ecc71;">Green</strong> = OK</li>
+                <li><strong style="color:#f39c12;">Yellow</strong> = WARNING</li>
+                <li><strong style="color:#e74c3c;">Red</strong> = CRITICAL</li>
+                <li><strong style="color:#95a5a6;">Gray dashed</strong> = Discovered (not yet monitored)</li>
+            </ul>
+            <h4>Dependency Lines</h4>
+            <p>If you set a <strong>Parent</strong> device, directed arrows show the dependency chain. When a parent goes critical, child devices show PARENT DOWN status.</p>
+            <h4>Interaction</h4>
+            <p>Click a node to open its detail drawer. Drag to rearrange. Scroll to zoom.</p>
+        </div>
+    </div>
+
+    <!-- Asset Inventory -->
+    <div class="help-section" data-keywords="inventory asset hardware ip mac vendor model os location serial type server switch router manage batch delete import">
+        <div class="help-heading" onclick="toggleHelp(this)">Asset Inventory (Pro+)</div>
+        <div class="help-body">
+            <p>The asset inventory tracks all network equipment with fields for IP, hostname, MAC address, vendor, model, OS, location, serial number, type, and notes.</p>
+            <h4>Adding Assets</h4>
+            <ul>
+                <li><strong>Manual:</strong> Click <strong>Add Asset</strong> on the Inventory tab</li>
+                <li><strong>From Discovery:</strong> Run a network scan, then click <strong>Import to Inventory</strong></li>
+                <li><strong>From Monitoring:</strong> Monitored devices are shown in inventory stats</li>
+            </ul>
+            <h4>Batch Operations</h4>
+            <p>Select multiple assets with checkboxes and use <strong>Delete Selected</strong> for batch removal.</p>
+            <h4>Quick Monitor</h4>
+            <p>Click the monitor icon next to any inventory asset to instantly add it as a monitored device.</p>
+        </div>
+    </div>
+
+    <!-- Host Dependencies -->
+    <div class="help-section" data-keywords="dependency parent child cascade suppress downstream upstream hierarchy tree">
+        <div class="help-heading" onclick="toggleHelp(this)">Host Dependencies (Pro+)</div>
+        <div class="help-body">
+            <p>Host dependencies model the physical/logical hierarchy of your network. When a parent device goes down, child devices are automatically marked PARENT DOWN.</p>
+            <h4>How It Works</h4>
+            <ol>
+                <li>Set a <strong>Parent</strong> device when adding or editing a device</li>
+                <li>If the parent device becomes CRITICAL, all children skip their checks and show PARENT DOWN</li>
+                <li>This prevents alert storms from cascading failures (e.g. a router outage that takes down all connected servers)</li>
+                <li>Dependencies are recursive -- if A depends on B and B depends on C, and C goes down, both A and B are marked PARENT DOWN</li>
+            </ol>
+            <h4>Visualization</h4>
+            <p>Dependency relationships appear as directed arrows on the <strong>Network Map</strong>.</p>
+        </div>
+    </div>
+
+    <!-- Performance Graphing -->
+    <div class="help-section" data-keywords="performance graph chart response time latency history trend data point downsample">
+        <div class="help-heading" onclick="toggleHelp(this)">Performance Graphing (Pro+)</div>
+        <div class="help-body">
+            <p>Every check automatically records response time data. View performance trends by clicking a device card to open the detail drawer.</p>
+            <h4>Time Periods</h4>
+            <p>Select 1 hour, 6 hours, 24 hours, or 7 days. Data is automatically downsampled to max 200 points for performance.</p>
+            <h4>Chart Colors</h4>
+            <ul>
+                <li><strong style="color:#2ecc71;">Green</strong> data points = OK response times</li>
+                <li><strong style="color:#f39c12;">Yellow</strong> = WARNING threshold exceeded</li>
+                <li><strong style="color:#e74c3c;">Red</strong> = CRITICAL threshold exceeded</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Scheduled Downtime -->
+    <div class="help-section" data-keywords="downtime schedule maintenance window planned suppress silence mute time period">
+        <div class="help-heading" onclick="toggleHelp(this)">Scheduled Downtime (Pro+)</div>
+        <div class="help-body">
+            <h4>Scheduling Downtime</h4>
+            <ol>
+                <li>Go to the <strong>Downtime</strong> tab</li>
+                <li>Click <strong>Schedule Downtime</strong></li>
+                <li>Select a device, set start/end times (UTC), and add a reason</li>
+                <li>During the downtime window, checks and alerts are suppressed automatically</li>
+            </ol>
+            <h4>Downtime States</h4>
+            <ul>
+                <li><strong>Upcoming:</strong> Scheduled but hasn't started yet</li>
+                <li><strong>Active:</strong> Currently in progress (checks suppressed)</li>
+                <li><strong>Expired:</strong> Completed (can be removed from history)</li>
+            </ul>
+            <p>Cancel any upcoming or active downtime with the <strong>Cancel</strong> button.</p>
+        </div>
+    </div>
+
+    <!-- SLA & Reports -->
+    <div class="help-section" data-keywords="sla report uptime availability csv export period monthly weekly daily">
+        <div class="help-heading" onclick="toggleHelp(this)">SLA &amp; Uptime Reports (Enterprise)</div>
+        <div class="help-body">
+            <p>Generate SLA compliance reports showing uptime percentages, total checks, OK/warning/critical counts for every device and sensor.</p>
+            <h4>Generating a Report</h4>
+            <ol>
+                <li>Go to the <strong>Reports</strong> tab</li>
+                <li>Select a time period (24h, 7d, 30d, 90d)</li>
+                <li>Click <strong>Generate Report</strong></li>
+            </ol>
+            <h4>CSV Export</h4>
+            <p>Click <strong>Download CSV</strong> to export the report for use in spreadsheets or external tools.</p>
+        </div>
+    </div>
+
+    <!-- Security Scanner -->
+    <div class="help-section" data-keywords="security scan penetration test pentest vulnerability port ssl tls http header snmp dns service finding remediation stop cancel">
+        <div class="help-heading" onclick="toggleHelp(this)">Security Scanner (Enterprise)</div>
+        <div class="help-body">
+            <p>The built-in security scanner performs non-destructive, passive analysis of your network devices.</p>
+            <h4>Scan Types</h4>
+            <table class="data-table" style="margin-bottom:16px;">
+                <thead><tr><th>Module</th><th>What It Checks</th></tr></thead>
+                <tbody>
+                    <tr><td>Port Scan</td><td>33 common ports with banner grabbing and service identification</td></tr>
+                    <tr><td>SSL/TLS</td><td>Certificate expiry, weak protocols, weak ciphers, untrusted CAs</td></tr>
+                    <tr><td>HTTP Headers</td><td>7 critical security headers (HSTS, CSP, etc.), server info disclosure</td></tr>
+                    <tr><td>Services</td><td>FTP anonymous login, Telnet, RDP, exposed databases, Redis no-auth, VNC, SMB</td></tr>
+                    <tr><td>SNMP</td><td>Default community strings (public, private, etc.)</td></tr>
+                    <tr><td>DNS</td><td>Zone transfer (AXFR) vulnerability</td></tr>
+                </tbody>
+            </table>
+            <h4>Running a Scan</h4>
+            <ol>
+                <li>Go to the <strong>Security</strong> tab</li>
+                <li>Optionally enter specific target IPs (leave blank to scan all configured devices)</li>
+                <li>Select scan types and click <strong>Start Scan</strong></li>
+                <li>Use the <strong>Stop Scan</strong> button to cancel a running scan</li>
+            </ol>
+            <h4>Severity Levels</h4>
+            <ul>
+                <li><strong style="color:#ef4444;">Critical</strong> -- Immediate action required (e.g. expired cert, FTP anonymous login, default SNMP)</li>
+                <li><strong style="color:#f97316;">High</strong> -- Important fix needed (e.g. missing HSTS, exposed databases, weak SSL)</li>
+                <li><strong style="color:#eab308;">Medium</strong> -- Should be addressed (e.g. missing headers, RDP exposed)</li>
+                <li><strong style="color:#3b82f6;">Low</strong> -- Minor informational (e.g. server version disclosed)</li>
+                <li><strong style="color:var(--text-faint);">Info</strong> -- Informational only (e.g. open port listing)</li>
+            </ul>
+            <p>All scans are purely passive -- no exploits, no payloads, safe to run on production networks.</p>
+        </div>
+    </div>
+
+    <!-- NOC / TV Display -->
+    <div class="help-section" data-keywords="noc tv display fullscreen wall monitor big screen kiosk auto refresh large">
+        <div class="help-heading" onclick="toggleHelp(this)">NOC / TV Display Mode (Enterprise)</div>
+        <div class="help-body">
+            <p>Access <code>/noc</code> in your browser for a fullscreen, auto-refreshing status board designed for wall-mounted displays and NOC monitors.</p>
+            <h4>Features</h4>
+            <ul>
+                <li>Auto-refreshes every 10 seconds</li>
+                <li>Large, readable device status cards</li>
+                <li>Overall health summary bar</li>
+                <li>Recent alerts feed</li>
+                <li>Dark theme optimized for large screens</li>
+            </ul>
+            <p>Tip: Use your browser's fullscreen mode (F11) and set the page as a kiosk tab.</p>
+        </div>
+    </div>
+
+    <!-- User Auth -->
+    <div class="help-section" data-keywords="user auth authentication login password role admin operator viewer rbac access control token jwt session">
+        <div class="help-heading" onclick="toggleHelp(this)">User Authentication &amp; Roles (Enterprise)</div>
+        <div class="help-body">
+            <p>Enterprise tier supports role-based access control (RBAC) with three roles:</p>
+            <table class="data-table" style="margin-bottom:16px;">
+                <thead><tr><th>Role</th><th>Permissions</th></tr></thead>
+                <tbody>
+                    <tr><td>admin</td><td>Full access: manage devices, settings, users, all features</td></tr>
+                    <tr><td>operator</td><td>Manage devices, acknowledge alerts, run scans</td></tr>
+                    <tr><td>viewer</td><td>Read-only dashboard access</td></tr>
+                </tbody>
+            </table>
+            <h4>Configuring Users</h4>
+            <p>Add users in <code>config.yaml</code>:</p>
+            <pre>
+users:
+  - username: admin
+    password: your-strong-password
+    role: admin
+  - username: operator1
+    password: changeme
+    role: operator</pre>
+            <p>Authentication is only enforced when users are configured and an Enterprise license is active. Sessions use signed tokens with 24-hour expiry.</p>
+        </div>
+    </div>
+
+    <!-- Custom Plugins -->
+    <div class="help-section" data-keywords="plugin custom check script extend python external monitor disk space">
+        <div class="help-heading" onclick="toggleHelp(this)">Custom Check Plugins (Enterprise)</div>
+        <div class="help-body">
+            <p>Extend netmon with custom check scripts placed in the <code>plugins/</code> folder.</p>
+            <h4>Plugin Requirements</h4>
+            <ul>
+                <li>Python scripts (.py) in the <code>plugins/</code> directory</li>
+                <li>Accept <code>--host &lt;hostname&gt;</code> as a command-line argument</li>
+                <li>Print JSON output with <code>status</code>, <code>message</code>, and optional <code>metrics</code></li>
+            </ul>
+            <h4>Example Plugin Output</h4>
+            <pre>
+{
+  "status": "ok",
+  "message": "Disk usage: 42%",
+  "metrics": {"disk_percent": 42}
+}</pre>
+            <h4>Included Sample</h4>
+            <p><code>plugins/check_disk_space.py</code> -- monitors disk space on remote hosts.</p>
+            <p>List available plugins via the API: <code>GET /api/plugins</code></p>
+        </div>
+    </div>
+
+    <!-- SNMP Deep Polling -->
+    <div class="help-section" data-keywords="snmp deep poll cpu memory ram disk interface uptime bandwidth oid net-snmp">
+        <div class="help-heading" onclick="toggleHelp(this)">SNMP Deep Polling (Enterprise)</div>
+        <div class="help-body">
+            <p>Deep-poll SNMP-enabled devices for detailed system metrics.</p>
+            <h4>Metrics Collected</h4>
+            <ul>
+                <li>CPU load (1-min, 5-min, 15-min)</li>
+                <li>Memory usage (total, used, free)</li>
+                <li>Disk utilization</li>
+                <li>Network interface counters (bytes in/out)</li>
+                <li>System uptime and description</li>
+            </ul>
+            <h4>Requirements</h4>
+            <p>Net-SNMP tools must be installed on the netmon server:</p>
+            <ul>
+                <li>Ubuntu/Debian: <code>sudo apt install snmp</code></li>
+                <li>RHEL/CentOS: <code>sudo yum install net-snmp-utils</code></li>
+                <li>Windows: Download from <a href="https://net-snmp.org" target="_blank" style="color:#22c55e;">net-snmp.org</a></li>
+            </ul>
+            <p>API: <code>GET /api/devices/&lt;name&gt;/snmp</code></p>
+        </div>
+    </div>
+
+    <!-- REST API -->
+    <div class="help-section" data-keywords="api rest endpoint json http get post put delete curl integration automate programmatic">
+        <div class="help-heading" onclick="toggleHelp(this)">REST API Reference</div>
+        <div class="help-body">
+            <p>Netmon exposes a full REST API for automation and integration. All endpoints return JSON.</p>
+            <h4>Core Endpoints</h4>
+            <table class="data-table" style="margin-bottom:16px;">
+                <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>GET</td><td><code>/api/status</code></td><td>Latest check results per device</td></tr>
+                    <tr><td>GET</td><td><code>/api/alerts</code></td><td>Alert history (default 48h)</td></tr>
+                    <tr><td>GET</td><td><code>/api/history</code></td><td>Full check history (default 24h)</td></tr>
+                    <tr><td>GET</td><td><code>/api/devices</code></td><td>List all devices</td></tr>
+                    <tr><td>POST</td><td><code>/api/devices</code></td><td>Add a device</td></tr>
+                    <tr><td>PUT</td><td><code>/api/devices/&lt;name&gt;</code></td><td>Update a device</td></tr>
+                    <tr><td>DELETE</td><td><code>/api/devices/&lt;name&gt;</code></td><td>Delete a device</td></tr>
+                    <tr><td>GET</td><td><code>/api/settings</code></td><td>Current settings</td></tr>
+                    <tr><td>PUT</td><td><code>/api/settings</code></td><td>Update settings</td></tr>
+                </tbody>
+            </table>
+            <h4>Monitoring Endpoints</h4>
+            <table class="data-table" style="margin-bottom:16px;">
+                <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>GET</td><td><code>/api/devices/&lt;name&gt;/uptime</code></td><td>24h/7d/30d uptime percentages</td></tr>
+                    <tr><td>GET</td><td><code>/api/devices/&lt;name&gt;/perf</code></td><td>Performance time-series</td></tr>
+                    <tr><td>GET</td><td><code>/api/devices/&lt;name&gt;/snmp</code></td><td>SNMP deep poll (Ent)</td></tr>
+                    <tr><td>POST</td><td><code>/api/alerts/&lt;id&gt;/acknowledge</code></td><td>Acknowledge alert</td></tr>
+                    <tr><td>POST</td><td><code>/api/alerts/acknowledge-all</code></td><td>Acknowledge all alerts</td></tr>
+                    <tr><td>GET</td><td><code>/api/dependencies</code></td><td>Dependency map</td></tr>
+                    <tr><td>GET/POST</td><td><code>/api/downtime</code></td><td>List/schedule downtime</td></tr>
+                </tbody>
+            </table>
+            <h4>Discovery &amp; Inventory</h4>
+            <table class="data-table" style="margin-bottom:16px;">
+                <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>POST</td><td><code>/api/scan</code></td><td>Start network discovery scan</td></tr>
+                    <tr><td>GET</td><td><code>/api/scan/status</code></td><td>Scan progress</td></tr>
+                    <tr><td>GET</td><td><code>/api/inventory</code></td><td>List all assets</td></tr>
+                    <tr><td>POST</td><td><code>/api/inventory</code></td><td>Add asset</td></tr>
+                    <tr><td>GET</td><td><code>/api/map/data</code></td><td>Network map data</td></tr>
+                </tbody>
+            </table>
+            <h4>Enterprise Endpoints</h4>
+            <table class="data-table" style="margin-bottom:16px;">
+                <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>GET</td><td><code>/api/reports/sla</code></td><td>SLA uptime report</td></tr>
+                    <tr><td>POST</td><td><code>/api/security/scan</code></td><td>Start security scan</td></tr>
+                    <tr><td>POST</td><td><code>/api/security/cancel</code></td><td>Cancel running scan</td></tr>
+                    <tr><td>GET</td><td><code>/api/security/scans</code></td><td>List security scans</td></tr>
+                    <tr><td>GET</td><td><code>/api/noc/data</code></td><td>NOC display data</td></tr>
+                    <tr><td>GET/PUT</td><td><code>/api/webhooks</code></td><td>Webhook config</td></tr>
+                    <tr><td>POST</td><td><code>/api/auth/login</code></td><td>Login (get token)</td></tr>
+                    <tr><td>GET</td><td><code>/api/plugins</code></td><td>List plugins</td></tr>
+                    <tr><td>GET</td><td><code>/api/license</code></td><td>Current license info</td></tr>
+                    <tr><td>POST</td><td><code>/api/license</code></td><td>Activate license key</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Configuration -->
+    <div class="help-section" data-keywords="config yaml settings configure file edit interval smtp dashboard host port reload hot">
+        <div class="help-heading" onclick="toggleHelp(this)">Configuration Reference</div>
+        <div class="help-body">
+            <h4>config.yaml Structure</h4>
+            <pre>
+license_key: ""            # Your license key here
+check_interval_seconds: 60
+
+dashboard:
+  host: 0.0.0.0            # bind address
+  port: 8080               # web UI port
+
+smtp:
+  smtp_host: ""
+  smtp_port: 587
+  use_tls: true
+  username: ""
+  password: ""
+  from_addr: "netmon@yourdomain.com"
+  recipients: []
+  cooldown_minutes: 15
+
+users: []                  # Enterprise RBAC
+webhooks: []               # Enterprise notifications
+
+devices:
+  - name: "Device Name"
+    host: "192.168.1.1"
+    group: "Group Name"
+    parent: ""             # parent device name
+    notes: ""
+    maintenance: false
+    links: []
+    checks:
+      - type: ping
+        label: "ICMP"
+        warning_ms: 20
+        critical_ms: 100</pre>
+            <h4>Hot Reload</h4>
+            <p>Most settings changes made via the dashboard or API are applied immediately without restarting netmon. Device changes and SMTP settings are hot-reloaded.</p>
+            <h4>Database</h4>
+            <p>All monitoring data is stored in <code>netmon.db</code> (SQLite) in the same directory as <code>netmon.py</code>. No database server required.</p>
+        </div>
+    </div>
+
+    <!-- Troubleshooting -->
+    <div class="help-section" data-keywords="troubleshoot error problem issue fix bug loading stuck crash log database permission port bind firewall">
+        <div class="help-heading" onclick="toggleHelp(this)">Troubleshooting</div>
+        <div class="help-body">
+            <h4>Dashboard shows "Loading..." and doesn't update</h4>
+            <p>This usually means the API is unreachable. Check that netmon.py is running and the port (default 8080) is accessible. If you recently upgraded, clear your browser cache (Ctrl+Shift+R).</p>
+
+            <h4>Port 8080 already in use</h4>
+            <p>Change the port in <code>config.yaml</code> under <code>dashboard: port:</code> or stop the other process using that port.</p>
+
+            <h4>Ping checks show CRITICAL on Windows</h4>
+            <p>Netmon v4+ validates Windows ping output by checking for TTL in the response. Make sure you're running as a user with permission to execute ping commands.</p>
+
+            <h4>Email alerts not sending</h4>
+            <ul>
+                <li>Verify SMTP settings in the Settings tab and use <strong>Test Email</strong></li>
+                <li>For Gmail: enable "App Passwords" (not your regular password)</li>
+                <li>For Office 365: use port 587 with TLS enabled</li>
+                <li>Check that <code>recipients</code> is not empty</li>
+            </ul>
+
+            <h4>License key not accepted</h4>
+            <p>Copy your full license key exactly as received, including all dashes. Keys are case-sensitive.</p>
+
+            <h4>Database errors or corruption</h4>
+            <p>Stop netmon, rename/delete <code>netmon.db</code>, and restart. A fresh database will be created automatically. Note: this resets all history data.</p>
+
+            <h4>"Permission denied" on Linux</h4>
+            <p>ICMP ping usually requires root or the <code>cap_net_raw</code> capability. Run as root or set: <code>sudo setcap cap_net_raw+ep $(which python3)</code></p>
+
+            <h4>Discovery scan finds no hosts</h4>
+            <ul>
+                <li>Verify the CIDR range is correct for your subnet</li>
+                <li>Some hosts may block ICMP (try with port scanning enabled)</li>
+                <li>Firewalls may block ping between subnets</li>
+            </ul>
+
+            <h4>High CPU usage</h4>
+            <p>Increase <code>check_interval_seconds</code>. Monitoring 100+ devices every 30 seconds can be CPU-intensive. Recommended: 60s for up to 200 devices, 120s for 200+.</p>
+
+            <h4>SNMP checks failing</h4>
+            <ul>
+                <li>Ensure net-snmp tools are installed (<code>snmpget --version</code> should work)</li>
+                <li>Verify the community string matches the device configuration</li>
+                <li>Check that SNMP is enabled on the target device and UDP port 161 is open</li>
+            </ul>
+        </div>
+    </div>
+
+
+    <!-- Visual Skins & Themes (v5.4+) -->
+    <div class="help-section" data-keywords="skin theme dark light mode appearance color visual style midnight corporate blue matrix cyber amber noc solarized">
+        <div class="help-heading" onclick="toggleHelp(this)">Visual Skins &amp; Themes</div>
+        <div class="help-body">
+            <p>MyClover.Tech.netmon ships with 6 built-in visual skins that change the entire dashboard appearance.</p>
+            <h4>Available Skins</h4>
+            <table class="data-table" style="margin-bottom:16px;">
+                <thead><tr><th>Skin</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>Midnight (default)</td><td>Dark blue-gray with green accents</td></tr>
+                    <tr><td>Light</td><td>Clean white/gray theme for bright environments</td></tr>
+                    <tr><td>Corporate Blue</td><td>Professional navy blue palette</td></tr>
+                    <tr><td>Matrix / Cyber</td><td>Deep green-on-black cyberpunk aesthetic</td></tr>
+                    <tr><td>Amber NOC</td><td>High-contrast amber/orange for NOC displays</td></tr>
+                    <tr><td>Solarized Dark</td><td>Ethan Schoonover's popular color scheme</td></tr>
+                </tbody>
+            </table>
+            <h4>Changing Skins</h4>
+            <p>Go to <strong>Settings &gt; Skins</strong> and click any skin card to apply it instantly. Your selection is saved in your browser and persists across sessions.</p>
+        </div>
+    </div>
+
+    <!-- Dashboard Customization (v5.4-v5.6) -->
+    <div class="help-section" data-keywords="customize dashboard tab reorder drag drop accent color density refresh default widget pin favorite layout grid list">
+        <div class="help-heading" onclick="toggleHelp(this)">Dashboard Customization</div>
+        <div class="help-body">
+            <h4>Basic Customization (Free)</h4>
+            <ul>
+                <li><strong>Default Landing Tab:</strong> Choose which tab opens first (Settings &gt; Customization)</li>
+                <li><strong>Card Density:</strong> Comfortable, Compact, or Spacious card sizing</li>
+                <li><strong>Auto-Refresh Interval:</strong> Set how often status data refreshes</li>
+                <li><strong>Summary Bar:</strong> Toggle the top summary bar on or off</li>
+            </ul>
+            <h4>Tab Customization (Pro+)</h4>
+            <ul>
+                <li><strong>Drag-and-Drop Reordering:</strong> Grab the grip handle on any tab and drag to rearrange</li>
+                <li><strong>Tab Visibility:</strong> Show or hide individual tabs from Settings &gt; Tab Visibility</li>
+                <li><strong>Custom Accent Color:</strong> Choose from 7 presets or pick any color with the native color picker</li>
+            </ul>
+            <h4>Advanced Customization (Pro+)</h4>
+            <ul>
+                <li><strong>Pinned/Favorite Devices:</strong> Star your critical devices for quick access at the top of the Status tab</li>
+                <li><strong>Per-Card Layout:</strong> Toggle between grid and list views for device sections</li>
+                <li><strong>Dashboard Widgets:</strong> 4 quick-stats panels showing uptime, response time, device count, and recent alerts</li>
+            </ul>
+            <p>All customization settings are stored locally in your browser.</p>
+        </div>
+    </div>
+
+    <!-- Timezone (v5.7) -->
+    <div class="help-section" data-keywords="timezone time zone local utc convert automatic detect clock date timestamp">
+        <div class="help-heading" onclick="toggleHelp(this)">Timezone &amp; Timestamps</div>
+        <div class="help-body">
+            <p>All timestamps in the dashboard are automatically converted to your local timezone. The system detects your timezone from your browser settings.</p>
+            <h4>How It Works</h4>
+            <ul>
+                <li>The backend stores all data in UTC for consistency</li>
+                <li>The dashboard automatically converts UTC timestamps to your local timezone</li>
+                <li>Your timezone is detected via <code>Intl.DateTimeFormat</code> (no configuration needed)</li>
+                <li>Downtime windows show your local timezone abbreviation (e.g., PST, EST, CET)</li>
+            </ul>
+            <p>If timestamps appear incorrect, check your operating system's timezone and clock settings.</p>
+        </div>
+    </div>
+
+    <!-- About -->
+    <div class="help-section" data-keywords="about version info stack technology python flask sqlite chart.js vis.js">
+        <div class="help-heading" onclick="toggleHelp(this)">About MyClover.Tech.NetMon v5.7</div>
+        <div class="help-body">
+            <h4>Technology Stack</h4>
+            <ul>
+                <li><strong>Backend:</strong> Python 3.10+ / Flask</li>
+                <li><strong>Database:</strong> SQLite (zero configuration)</li>
+                <li><strong>Charts:</strong> Chart.js 4.x</li>
+                <li><strong>Network Map:</strong> vis.js 9.x</li>
+                <li><strong>Configuration:</strong> YAML</li>
+            </ul>
+            <h4>File Structure</h4>
+            <pre>
+netmon.py              # Main application
+config.yaml            # Configuration
+netmon.db              # Database (auto-created)
+requirements.txt       # Python dependencies
+templates/
+  dashboard.html       # Web dashboard
+  noc.html             # NOC display mode
+plugins/
+  check_disk_space.py  # Sample custom plugin</pre>
+            <p>Visit <a href="https://myclover.tech" target="_blank" style="color:#22c55e;">myclover.tech</a> for updates and documentation.</p>
+        </div>
+    </div>
+
+    </div><!-- /help-sections -->
+
+    <!-- Bottom support banner -->
+    <div style="margin-top:32px;padding:20px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;text-align:center;">
+        <div style="color:var(--text-primary);font-size:14px;margin-bottom:8px;">Still need help?</div>
+        <a href="mailto:support@myclover.tech" style="color:var(--accent);font-size:14px;font-weight:600;text-decoration:none;">Email support@myclover.tech</a>
+        <div style="color:var(--text-faint);font-size:12px;margin-top:6px;">We typically respond within 24 hours.</div>
+    </div>
+</div>
+
+<!-- ========== DEVICE MODAL ========== -->
+<div class="modal-overlay" id="device-modal">
+<div class="modal">
+    <h2 id="modal-title">Add Device</h2>
+    <input type="hidden" id="modal-mode" value="add">
+    <input type="hidden" id="modal-original-name" value="">
+    <div class="form-row">
+        <div class="form-group"><label>Device Name</label><input type="text" id="dev-name" placeholder="e.g. Core Router"></div>
+        <div class="form-group"><label>Host / IP</label><input type="text" id="dev-host" placeholder="e.g. 192.168.1.1"></div>
+    </div>
+    <div class="form-row">
+        <div class="form-group"><label>Group</label><input type="text" id="dev-group" placeholder="e.g. Network" value="Default"></div>
+        <div class="form-group">
+            <label>Parent Device (Dependency)</label>
+            <select id="dev-parent"><option value="">-- None (root) --</option></select>
+            <span style="color:#555;font-size:11px;">If parent goes down, alerts for this device are suppressed.</span>
+        </div>
+    </div>
+    <div class="form-group"><label>Notes</label><textarea id="dev-notes" placeholder="Free-text notes about this device"></textarea></div>
+    <div class="links-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h4>Links</h4>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="addLinkRow()">+ Add Link</button>
+        </div>
+        <div id="links-container"></div>
+    </div>
+    <div class="checks-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h3>Checks</h3>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="addCheckRow()">+ Add Check</button>
+        </div>
+        <div id="checks-container"></div>
+    </div>
+    <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveDevice()">Save Device</button>
+    </div>
+</div>
+</div>
+
+<!-- ========== DELETE CONFIRM MODAL ========== -->
+<div class="modal-overlay" id="delete-modal">
+<div class="modal" style="width:400px;">
+    <h2>Delete Device</h2>
+    <p style="color:#aaa;margin-bottom:20px;">Are you sure you want to delete <strong id="delete-device-name" style="color:var(--text-primary);"></strong>? This cannot be undone.</p>
+    <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+    </div>
+</div>
+</div>
+
+<!-- ========== ASSET MODAL ========== -->
+<div class="modal-overlay" id="asset-modal">
+<div class="modal" style="width:700px;">
+    <h2 id="asset-modal-title">Add Asset</h2>
+    <input type="hidden" id="asset-modal-mode" value="add">
+    <input type="hidden" id="asset-modal-id" value="">
+    <div class="form-row">
+        <div class="form-group"><label>IP Address</label><input type="text" id="asset-ip" placeholder="192.168.1.100"></div>
+        <div class="form-group"><label>Hostname</label><input type="text" id="asset-hostname" placeholder="server01.local"></div>
+    </div>
+    <div class="form-row">
+        <div class="form-group"><label>MAC Address</label><input type="text" id="asset-mac" placeholder="AA:BB:CC:DD:EE:FF"></div>
+        <div class="form-group"><label>Device Type</label>
+            <select id="asset-type"><option value="">-- Select --</option>
+                <option value="Server">Server</option><option value="Router">Router</option><option value="Switch">Switch</option>
+                <option value="Firewall">Firewall</option><option value="Access Point">Access Point</option><option value="Printer">Printer</option>
+                <option value="Workstation">Workstation</option><option value="IP Phone">IP Phone</option><option value="Camera">Camera</option>
+                <option value="IoT Device">IoT Device</option><option value="Other">Other</option>
+            </select>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group"><label>Vendor</label><input type="text" id="asset-vendor" placeholder="e.g. Cisco, Dell, HP"></div>
+        <div class="form-group"><label>Model</label><input type="text" id="asset-model" placeholder="e.g. Catalyst 2960"></div>
+    </div>
+    <div class="form-row">
+        <div class="form-group"><label>OS / Firmware</label><input type="text" id="asset-os" placeholder="e.g. IOS 15.2"></div>
+        <div class="form-group"><label>Location</label><input type="text" id="asset-location" placeholder="e.g. Server Room A"></div>
+    </div>
+    <div class="form-row">
+        <div class="form-group"><label>Serial Number</label><input type="text" id="asset-serial"></div>
+        <div class="form-group"><label>Purchase Date</label><input type="date" id="asset-purchase" style="color-scheme:dark;"></div>
+    </div>
+    <div class="form-row">
+        <div class="form-group"><label>Status</label><select id="asset-status"><option value="active">Active</option><option value="retired">Retired</option></select></div>
+        <div class="form-group"><label>Open Ports</label><input type="text" id="asset-ports" placeholder="e.g. 22,80,443" readonly style="color:#666;"></div>
+    </div>
+    <div class="form-group"><label>Notes</label><textarea id="asset-notes" placeholder="Free-text notes"></textarea></div>
+    <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeAssetModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveAsset()">Save Asset</button>
+    </div>
+</div>
+</div>
+
+<!-- ========== ASSET DELETE MODAL ========== -->
+<div class="modal-overlay" id="asset-delete-modal">
+<div class="modal" style="width:400px;">
+    <h2>Delete Asset</h2>
+    <p style="color:#aaa;margin-bottom:20px;">Delete asset <strong id="asset-delete-ip" style="color:var(--text-primary);"></strong>?</p>
+    <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeAssetDeleteModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDeleteAsset()">Delete</button>
+    </div>
+</div>
+</div>
+
+<!-- ========== DOWNTIME MODAL ========== -->
+<div class="modal-overlay" id="downtime-modal">
+<div class="modal" style="width:500px;">
+    <h2>Schedule Downtime</h2>
+    <div class="form-group">
+        <label>Device</label>
+        <select id="dt-device"></select>
+    </div>
+    <div class="form-row">
+        <div class="form-group"><label>Start Time (UTC)</label><input type="datetime-local" id="dt-start" style="color-scheme:dark;"></div>
+        <div class="form-group"><label>End Time (UTC)</label><input type="datetime-local" id="dt-end" style="color-scheme:dark;"></div>
     </div>
     <div class="form-group"><label>Reason</label><textarea id="dt-reason" placeholder="e.g. Firmware upgrade, Hardware replacement"></textarea></div>
     <div class="modal-actions">
@@ -2670,6 +3533,28 @@ function importLatestScan() {
     .catch(function(e){ alert('Error: '+e.message); });
 }
 
+
+// ===== Help Tab =====
+function toggleHelp(el) {
+    var section = el.parentElement;
+    section.classList.toggle('open');
+}
+
+function filterHelp() {
+    var q = (document.getElementById('help-search').value || '').toLowerCase().trim();
+    var sections = document.querySelectorAll('.help-section');
+    for (var i = 0; i < sections.length; i++) {
+        var s = sections[i];
+        if (!q) { s.classList.remove('hidden'); continue; }
+        var kw = (s.getAttribute('data-keywords') || '').toLowerCase();
+        var heading = (s.querySelector('.help-heading') || {}).textContent || '';
+        var body = (s.querySelector('.help-body') || {}).textContent || '';
+        var match = kw.indexOf(q) !== -1 || heading.toLowerCase().indexOf(q) !== -1 || body.toLowerCase().indexOf(q) !== -1;
+        if (match) { s.classList.remove('hidden'); s.classList.add('open'); }
+        else { s.classList.add('hidden'); }
+    }
+}
+
 // ===== Helpers =====
 // ===== SLA Reports =====
 function loadReportsTab() {
@@ -3094,8 +3979,8 @@ setTimeout(function() {
 
 // ===== Tier 2: Tab Reorder, Visibility & Accent (v5.5) =====
 
-var DEFAULT_TAB_ORDER = ['status','map','discovery','inventory','alerts','history','downtime','devices','reports','security','settings'];
-var TAB_LABELS = {status:'Status',map:'Network Map',discovery:'Discovery',inventory:'Inventory',alerts:'Alerts',history:'History',downtime:'Downtime',devices:'Manage Devices',reports:'Reports',settings:'Settings', security:'Security'};
+var DEFAULT_TAB_ORDER = ['status','map','discovery','inventory','alerts','history','downtime','devices','reports','security','settings','help'];
+var TAB_LABELS = {status:'Status',map:'Network Map',discovery:'Discovery',inventory:'Inventory',alerts:'Alerts',history:'History',downtime:'Downtime',devices:'Manage Devices',reports:'Reports',settings:'Settings',security:'Security',help:'Help'};
 
 // --- Accent Color ---
 function setAccent(color) {
