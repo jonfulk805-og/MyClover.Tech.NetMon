@@ -650,7 +650,7 @@ a.port-link:hover {
 <div class="header">
     <div style="display:flex;align-items:baseline;">
         <h1>Clover<span class="brand-dot">.</span>tech<span class="brand-dot">.</span>netmon</h1>
-        <span class="subtitle">Network Monitoring System v5.6</span>
+        <span class="subtitle">Network Monitoring System v5.7</span>
     </div>
     <span class="refresh-info" id="refresh-info">Auto-refresh: 30s</span>
 </div>
@@ -1302,8 +1302,8 @@ a.port-link:hover {
         <select id="dt-device"></select>
     </div>
     <div class="form-row">
-        <div class="form-group"><label>Start Time (UTC)</label><input type="datetime-local" id="dt-start" style="color-scheme:var(--input-color-scheme, dark);"></div>
-        <div class="form-group"><label>End Time (UTC)</label><input type="datetime-local" id="dt-end" style="color-scheme:var(--input-color-scheme, dark);"></div>
+        <div class="form-group"><label>Start Time (local)</label><input type="datetime-local" id="dt-start" style="color-scheme:var(--input-color-scheme, dark);"></div>
+        <div class="form-group"><label>End Time (local)</label><input type="datetime-local" id="dt-end" style="color-scheme:var(--input-color-scheme, dark);"></div>
     </div>
     <div class="form-group"><label>Reason</label><textarea id="dt-reason" placeholder="e.g. Firmware upgrade, Hardware replacement"></textarea></div>
     <div class="modal-actions">
@@ -1323,6 +1323,35 @@ a.port-link:hover {
 </div>
 
 <script>
+
+    // === Timezone: auto-detect user's local timezone ===
+    var _userTZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    var _tzShort = (function() {
+        try {
+            var d = new Date();
+            var parts = new Intl.DateTimeFormat('en-US', {timeZoneName:'short'}).formatToParts(d);
+            for (var i = 0; i < parts.length; i++) { if (parts[i].type === 'timeZoneName') return parts[i].value; }
+        } catch(e) {}
+        return '';
+    })();
+
+    function toLocal(utcStr, fmt) {
+        if (!utcStr) return '';
+        // Ensure the string is parsed as UTC
+        var s = utcStr.replace(' ', 'T');
+        if (s.length >= 19 && s.indexOf('Z') === -1 && s.indexOf('+') === -1 && s.lastIndexOf('-') <= 7) {
+            s += 'Z';
+        }
+        var d = new Date(s);
+        if (isNaN(d.getTime())) return utcStr;
+        var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+        var Y = d.getFullYear(), M = pad(d.getMonth()+1), D = pad(d.getDate());
+        var h = pad(d.getHours()), m = pad(d.getMinutes()), sec = pad(d.getSeconds());
+        if (fmt === 'time') return h + ':' + m + ':' + sec;
+        if (fmt === 'short') return h + ':' + m;
+        if (fmt === 'datetimeshort') return Y + '-' + M + '-' + D + ' ' + h + ':' + m;
+        return Y + '-' + M + '-' + D + ' ' + h + ':' + m + ':' + sec;  // 'datetime' default
+    }
 window.onerror = function(msg, url, line, col, err) {
     console.error('[NetMon] Uncaught error:', msg, 'at line', line, ':', err);
     var sc = document.getElementById('status-cards');
@@ -1516,7 +1545,7 @@ function buildStatusData(parentMap, statusMap) {
                     checkLabel: label, status: 'MAINTENANCE', statusClass: 'maint',
                     response: r ? (r.response_ms !== null ? r.response_ms.toFixed(1) + ' ms' : 'N/A') : '--',
                     message: 'Maintenance mode -- alerts paused',
-                    timestamp: r ? (r.timestamp || '').replace('T',' ').substring(0,19) : '',
+                    timestamp: r ? toLocal(r.timestamp, 'datetime') : '',
                     maintenance: true, parentDown: false, parent: dev.parent || ''
                 });
             } else if (parentDown) {
@@ -1525,7 +1554,7 @@ function buildStatusData(parentMap, statusMap) {
                     checkLabel: label, status: 'PARENT_DOWN', statusClass: 'parent-down',
                     response: r ? (r.response_ms !== null ? r.response_ms.toFixed(1) + ' ms' : 'N/A') : '--',
                     message: 'Parent device unreachable -- alerts suppressed',
-                    timestamp: r ? (r.timestamp || '').replace('T',' ').substring(0,19) : '',
+                    timestamp: r ? toLocal(r.timestamp, 'datetime') : '',
                     maintenance: false, parentDown: true, parent: dev.parent || ''
                 });
             } else if (r) {
@@ -1535,7 +1564,7 @@ function buildStatusData(parentMap, statusMap) {
                     checkLabel: label, status: r.status, statusClass: s,
                     response: r.response_ms !== null ? r.response_ms.toFixed(1) + ' ms' : 'N/A',
                     message: r.message || '',
-                    timestamp: (r.timestamp || '').replace('T',' ').substring(0,19),
+                    timestamp: toLocal(r.timestamp, 'datetime'),
                     maintenance: false, parentDown: false, parent: dev.parent || ''
                 });
             } else {
@@ -1746,7 +1775,7 @@ function loadDrawerPerf(deviceName) {
             var canvasId = 'perf-chart-' + escAttr(label).replace(/\s/g,'_');
             var canvas = document.getElementById(canvasId);
             if (!canvas) return;
-            var times = points.map(function(p){ return (p.timestamp||'').replace('T',' ').substring(11,19); });
+            var times = points.map(function(p){ return toLocal(p.timestamp, 'time'); });
             var values = points.map(function(p){ return p.response_ms; });
             var colors = points.map(function(p){ return p.status === 'OK' ? cssVar('--status-ok') : (p.status === 'WARNING' ? cssVar('--status-warning') : cssVar('--status-critical')); });
             var bgColors = points.map(function(p){ return p.status === 'OK' ? 'rgba(46,204,113,0.15)' : (p.status === 'WARNING' ? 'rgba(243,156,18,0.15)' : 'rgba(231,76,60,0.15)'); });
@@ -1806,7 +1835,7 @@ function loadDrawerHistory(deviceName) {
         rows.forEach(function(r) {
             var s = r.status.toLowerCase();
             var ms = r.response_ms !== null ? r.response_ms.toFixed(1) : '--';
-            var ts = (r.timestamp||'').replace('T',' ').substring(11,19);
+            var ts = toLocal(r.timestamp, 'time');
             h += '<tr><td>' + ts + '</td><td>' + esc(r.check_label||'') + '</td>'
                 + '<td><span class="badge ' + s + '">' + esc(r.status) + '</span></td>'
                 + '<td>' + ms + '</td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;">' + esc(r.message||'') + '</td></tr>';
@@ -1838,9 +1867,9 @@ function loadAlerts() {
         var html = '';
         data.forEach(function(a) {
             var s = a.status.toLowerCase();
-            var ts = (a.timestamp||'').replace('T', ' ').substring(0,19);
+            var ts = toLocal(a.timestamp, 'datetime');
             var acked = a.acknowledged;
-            var ackInfo = acked ? (a.acknowledged_by || '') + ' ' + ((a.acknowledged_at||'').replace('T',' ').substring(0,19)) : '';
+            var ackInfo = acked ? (a.acknowledged_by || '') + ' ' + toLocal(a.acknowledged_at, 'datetime') : '';
             html += '<tr' + (acked ? ' style="opacity:0.6;"' : '') + '>'
                 + '<td>' + ts + '</td><td>' + esc(a.device_name) + '</td>'
                 + '<td>' + esc(a.check_label || '') + '</td>'
@@ -1879,7 +1908,7 @@ function loadHistory() {
         data.forEach(function(r) {
             var s = r.status.toLowerCase();
             var ms = r.response_ms !== null ? r.response_ms.toFixed(1) + ' ms' : 'N/A';
-            var ts = (r.timestamp||'').replace('T', ' ').substring(0,19);
+            var ts = toLocal(r.timestamp, 'datetime');
             html += '<tr><td>' + ts + '</td><td>' + esc(r.device_name) + '</td>'
                 + '<td>' + esc(r.check_label || '') + '</td>'
                 + '<td><span class="badge ' + s + '">' + esc(r.status) + '</span></td>'
@@ -1906,12 +1935,12 @@ function loadDowntimes() {
             if (!dt.active) { stClass = 'expired'; stLabel = 'Cancelled'; }
             else if (dt.start_time <= now && dt.end_time >= now) { stClass = 'active'; stLabel = 'Active'; }
             else if (dt.start_time > now) { stClass = 'upcoming'; stLabel = 'Upcoming'; }
-            var start = (dt.start_time||'').replace('T',' ').substring(0,16);
-            var end = (dt.end_time||'').replace('T',' ').substring(0,16);
+            var start = toLocal(dt.start_time, 'datetimeshort');
+            var end = toLocal(dt.end_time, 'datetimeshort');
             html += '<div class="downtime-card">'
                 + '<div class="dt-info">'
                 + '  <div class="dt-device">' + esc(dt.device_name) + '</div>'
-                + '  <div class="dt-times">' + start + ' &rarr; ' + end + ' UTC</div>'
+                + '  <div class="dt-times">' + start + ' &rarr; ' + end + ' ' + _tzShort + '</div>'
                 + (dt.reason ? '  <div class="dt-reason">' + esc(dt.reason) + '</div>' : '')
                 + '</div>'
                 + '<div style="display:flex;align-items:center;gap:10px;">'
@@ -2266,7 +2295,7 @@ function loadScanHistory() {
         if (!scans.length) { el.innerHTML = '<span style="color:#555;font-size:13px;">No previous scans</span>'; return; }
         var html = '<table><thead><tr><th>Scan ID</th><th>Time</th><th>Total</th><th>Alive</th><th>Action</th></tr></thead><tbody>';
         scans.forEach(function(s) {
-            html += '<tr><td style="font-family:monospace;">' + esc(s.scan_id) + '</td><td>' + (s.started||'').replace('T',' ').substring(0,19) + '</td><td>' + s.total_ips + '</td><td style="color:#2ecc71;">' + s.alive_count + '</td><td><button class="btn btn-ghost btn-sm" onclick="loadPastScan(\'' + escAttr(s.scan_id) + '\')">View</button></td></tr>';
+            html += '<tr><td style="font-family:monospace;">' + esc(s.scan_id) + '</td><td>' + toLocal(s.started, 'datetime') + '</td><td>' + s.total_ips + '</td><td style="color:#2ecc71;">' + s.alive_count + '</td><td><button class="btn btn-ghost btn-sm" onclick="loadPastScan(\'' + escAttr(s.scan_id) + '\')">View</button></td></tr>';
         });
         html += '</tbody></table>'; el.innerHTML = html;
     });
@@ -2564,7 +2593,7 @@ function filterInventory() {
             + '<td>' + esc([a.vendor,a.model].filter(function(x){return x;}).join(' ') || '--') + '</td>'
             + '<td>' + esc(a.location || '--') + '</td><td>' + portsHtml + '</td>'
             + '<td><span class="badge ' + stCls + '">' + esc(a.status) + '</span></td>'
-            + '<td>' + (a.last_seen||'').replace('T',' ').substring(0,16) + '</td>'
+            + '<td>' + toLocal(a.last_seen, 'datetimeshort') + '</td>'
             + '<td class="actions"><button class="btn btn-ghost btn-sm" onclick="openEditAsset(' + a.id + ')">Edit</button>'
             + ' <button class="btn btn-danger btn-sm" onclick="openAssetDeleteModal(' + a.id + ',\'' + escAttr(a.ip) + '\')">Delete</button>';
         if (!a.is_monitored) html += ' <button class="btn btn-success btn-sm" onclick="addAssetToMonitor(\'' + escAttr(a.ip) + '\',\'' + escAttr(a.hostname||a.ip) + '\',\'' + escAttr(JSON.stringify(a.open_ports_list||[])) + '\')">Monitor</button>';
@@ -2977,7 +3006,7 @@ function updateWidgets() {
             var ahtml = '';
             alerts.slice(0, 5).forEach(function(a) {
                 var cls = a.status === 'CRITICAL' ? 'critical' : (a.status === 'WARNING' ? 'warning' : 'ok');
-                var ts = (a.timestamp || '').replace('T',' ').substring(11, 16);
+                var ts = toLocal(a.timestamp, 'short');
                 ahtml += '<div class="widget-item"><span class="name">' + esc(a.device_name || '') + '</span><span class="value ' + cls + '">' + (ts || a.status) + '</span></div>';
             });
             alertsBody.innerHTML = ahtml;
@@ -3270,7 +3299,7 @@ function renderSecHistory(scans) {
         var types = s.scan_types || [];
         html += '<tr>'
             + '<td style="font-family:monospace;font-size:12px;">' + esc(s.scan_id) + '</td>'
-            + '<td style="font-size:12px;">' + esc(s.started_at || '') + '</td>'
+            + '<td style="font-size:12px;">' + toLocal(s.started_at, 'datetime') + '</td>'
             + '<td style="font-size:12px;" title="' + escAttr(targets.join(', ')) + '">' + esc(targetStr) + '</td>'
             + '<td style="font-size:12px;">' + esc(types.join(', ')) + '</td>'
             + '<td style="color:var(--status-critical);font-weight:600;">' + (counts.critical || 0) + '</td>'
