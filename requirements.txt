@@ -1,4 +1,4 @@
-# MyClover.Tech.netmon v5.3 - Python Dependencies
+# MyClover.Tech.netmon v5.7 - Python Dependencies
 # Install: pip install -r requirements.txt
 
 PyYAML>=6.0
