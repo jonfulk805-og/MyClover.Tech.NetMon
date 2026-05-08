@@ -2575,7 +2575,7 @@ def create_app():
 
         nodes.append({
             "id": "__netmon__",
-            "label": "Clover.tech",
+            "label": platform.node() or socket.gethostname() or "NetMon Server",
             "type": "hub",
             "status": "hub",
             "group": "",
