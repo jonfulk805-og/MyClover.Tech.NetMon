@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Clover.tech.netmon v5.2 - Network Monitoring System
+MyClover.Tech.netmon v5.4 - Network Monitoring System
 Features: ICMP ping, TCP port, HTTP, SNMP checks; email alerts;
           Flask dashboard with device CRUD, links/notes, maintenance mode,
           device detail drawer, status filters/search,

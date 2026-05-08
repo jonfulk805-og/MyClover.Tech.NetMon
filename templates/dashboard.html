@@ -3,316 +3,520 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Clover.tech.netmon</title>
+<title>MyClover.Tech.netmon</title>
 <script src="https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
+
+/* ===== SKIN / THEME ENGINE (v5.4) ===== */
+:root {
+    /* Base backgrounds */
+    --bg-body: #0f1117;
+    --bg-panel: #161822;
+    --bg-card: #1a1d2b;
+    --bg-card-hover: #1e2133;
+    --bg-input: #0f1117;
+    --bg-deep: #0a0e17;
+
+    /* Borders */
+    --border: #2a2d3a;
+    --border-hover: #3a3d4a;
+    --border-light: #1e2130;
+
+    /* Text */
+    --text-primary: #fff;
+    --text-body: #e0e0e0;
+    --text-secondary: #aaa;
+    --text-muted: #888;
+    --text-dim: #666;
+    --text-faint: #555;
+
+    /* Accent */
+    --accent: #5b9aff;
+    --accent-hover: #4a89ee;
+    --accent-bg: rgba(91,154,255,0.15);
+    --accent-border: rgba(91,154,255,0.2);
+
+    /* Status colors (shared across all skins) */
+    --status-ok: #2ecc71;
+    --status-ok-bg: rgba(46,204,113,0.15);
+    --status-warning: #f39c12;
+    --status-warning-bg: rgba(243,156,18,0.15);
+    --status-critical: #e74c3c;
+    --status-critical-bg: rgba(231,76,60,0.15);
+    --status-maint: #9b59b6;
+    --status-maint-bg: rgba(155,89,182,0.15);
+    --status-parent-down: #e67e22;
+    --status-parent-down-bg: rgba(230,126,34,0.15);
+    --status-unknown: #888;
+    --status-unknown-bg: rgba(136,136,136,0.15);
+    --status-pending: #444;
+
+    /* Buttons */
+    --btn-danger: #e74c3c;
+    --btn-danger-hover: #c0392b;
+    --btn-success: #2ecc71;
+    --btn-success-hover: #27ae60;
+
+    /* Shadows / Overlays */
+    --modal-overlay: rgba(0,0,0,0.6);
+    --drawer-overlay: rgba(0,0,0,0.4);
+
+    /* Card density */
+    --card-min-width: 320px;
+    --card-padding: 16px;
+    --card-gap: 12px;
+    --card-font-name: 15px;
+    --card-font-check: 12px;
+}
+
+/* ----- Skin: Light ----- */
+[data-skin="light"] {
+    --bg-body: #f0f2f5;
+    --bg-panel: #ffffff;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f7f8fa;
+    --bg-input: #f0f2f5;
+    --bg-deep: #e8eaed;
+    --border: #d1d5db;
+    --border-hover: #b0b5be;
+    --border-light: #e5e7eb;
+    --text-primary: #111827;
+    --text-body: #1f2937;
+    --text-secondary: #4b5563;
+    --text-muted: #6b7280;
+    --text-dim: #9ca3af;
+    --text-faint: #d1d5db;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --accent-bg: rgba(37,99,235,0.1);
+    --accent-border: rgba(37,99,235,0.2);
+    --modal-overlay: rgba(0,0,0,0.3);
+    --drawer-overlay: rgba(0,0,0,0.2);
+}
+
+/* ----- Skin: Corporate Blue ----- */
+[data-skin="corporate"] {
+    --bg-body: #0c1929;
+    --bg-panel: #0f2240;
+    --bg-card: #132b4f;
+    --bg-card-hover: #173463;
+    --bg-input: #0c1929;
+    --bg-deep: #091420;
+    --border: #1e3a5f;
+    --border-hover: #2a5080;
+    --border-light: #162d4a;
+    --text-primary: #e8eef5;
+    --text-body: #c4d3e8;
+    --text-secondary: #8ba4c7;
+    --text-muted: #6889b0;
+    --text-dim: #4a6a8f;
+    --text-faint: #344e6e;
+    --accent: #38bdf8;
+    --accent-hover: #0ea5e9;
+    --accent-bg: rgba(56,189,248,0.12);
+    --accent-border: rgba(56,189,248,0.2);
+}
+
+/* ----- Skin: Matrix / Cyber ----- */
+[data-skin="matrix"] {
+    --bg-body: #000000;
+    --bg-panel: #0a0f0a;
+    --bg-card: #0d140d;
+    --bg-card-hover: #111a11;
+    --bg-input: #050a05;
+    --bg-deep: #000000;
+    --border: #1a2e1a;
+    --border-hover: #2a4a2a;
+    --border-light: #0f1e0f;
+    --text-primary: #33ff33;
+    --text-body: #22dd22;
+    --text-secondary: #1ab31a;
+    --text-muted: #118811;
+    --text-dim: #0a660a;
+    --text-faint: #064406;
+    --accent: #00ff88;
+    --accent-hover: #00dd77;
+    --accent-bg: rgba(0,255,136,0.1);
+    --accent-border: rgba(0,255,136,0.2);
+    --status-ok: #00ff88;
+    --status-ok-bg: rgba(0,255,136,0.15);
+}
+
+/* ----- Skin: Amber NOC ----- */
+[data-skin="amber"] {
+    --bg-body: #0d0a06;
+    --bg-panel: #140f08;
+    --bg-card: #1a1408;
+    --bg-card-hover: #201a0c;
+    --bg-input: #0d0a06;
+    --bg-deep: #080604;
+    --border: #2e2510;
+    --border-hover: #4a3a18;
+    --border-light: #1e1a0e;
+    --text-primary: #ffcc00;
+    --text-body: #e6b800;
+    --text-secondary: #cc9900;
+    --text-muted: #997722;
+    --text-dim: #665511;
+    --text-faint: #443a0a;
+    --accent: #ff9900;
+    --accent-hover: #e68a00;
+    --accent-bg: rgba(255,153,0,0.12);
+    --accent-border: rgba(255,153,0,0.2);
+}
+
+/* ----- Skin: Solarized Dark ----- */
+[data-skin="solarized"] {
+    --bg-body: #002b36;
+    --bg-panel: #073642;
+    --bg-card: #0a3e4a;
+    --bg-card-hover: #0d4856;
+    --bg-input: #002b36;
+    --bg-deep: #001f27;
+    --border: #2a5e6a;
+    --border-hover: #3a7888;
+    --border-light: #094555;
+    --text-primary: #fdf6e3;
+    --text-body: #eee8d5;
+    --text-secondary: #93a1a1;
+    --text-muted: #839496;
+    --text-dim: #657b83;
+    --text-faint: #586e75;
+    --accent: #268bd2;
+    --accent-hover: #1a6da8;
+    --accent-bg: rgba(38,139,210,0.15);
+    --accent-border: rgba(38,139,210,0.2);
+}
+
+
+/* Light mode overrides for native elements */
+[data-skin="light"] { color-scheme: light; }
+[data-skin="light"] input[type="datetime-local"],
+[data-skin="light"] input[type="date"] { color-scheme: light; }
+
+/* ----- Card Density Modes ----- */
+[data-density="compact"] {
+    --card-min-width: 260px;
+    --card-padding: 10px;
+    --card-gap: 8px;
+    --card-font-name: 13px;
+    --card-font-check: 11px;
+}
+[data-density="expanded"] {
+    --card-min-width: 400px;
+    --card-padding: 20px;
+    --card-gap: 16px;
+    --card-font-name: 17px;
+    --card-font-check: 13px;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #0f1117; color: #e0e0e0; min-height: 100vh;
+    background: var(--bg-body); color: var(--text-body); min-height: 100vh;
 }
 .header {
-    background: #161822; border-bottom: 1px solid #2a2d3a;
+    background: var(--bg-panel); border-bottom: 1px solid var(--border);
     padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
 }
-.header h1 { font-size: 20px; color: #fff; }
-.header h1 .brand-dot { color: #5b9aff; }
-.header .subtitle { color: #888; font-size: 13px; margin-left: 12px; }
-.header .refresh-info { color: #666; font-size: 12px; }
+.header h1 { font-size: 20px; color: var(--text-primary); }
+.header h1 .brand-dot { color: var(--accent); }
+.header .subtitle { color: var(--text-muted); font-size: 13px; margin-left: 12px; }
+.header .refresh-info { color: var(--text-dim); font-size: 12px; }
 .tabs {
-    display: flex; background: #161822; border-bottom: 1px solid #2a2d3a; padding: 0 24px;
+    display: flex; background: var(--bg-panel); border-bottom: 1px solid var(--border); padding: 0 24px;
     overflow-x: auto;
 }
 .tab {
-    padding: 12px 20px; cursor: pointer; color: #888;
+    padding: 12px 20px; cursor: pointer; color: var(--text-muted);
     border-bottom: 2px solid transparent; font-size: 14px; transition: all 0.2s;
     white-space: nowrap;
 }
-.tab:hover { color: #ccc; }
-.tab.active { color: #5b9aff; border-bottom-color: #5b9aff; }
+.tab:hover { color: var(--text-body); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 .content { padding: 24px; max-width: 1400px; margin: 0 auto; }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 .summary-bar { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
 .summary-item {
-    background: #1a1d2b; border: 1px solid #2a2d3a; border-radius: 8px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
     padding: 12px 20px; display: flex; align-items: center; gap: 10px; min-width: 120px;
 }
-.summary-item .count { font-size: 28px; font-weight: 700; color: #fff; }
-.summary-item .label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
-.summary-item.ok .count { color: #2ecc71; }
-.summary-item.warning .count { color: #f39c12; }
-.summary-item.critical .count { color: #e74c3c; }
-.summary-item.pending .count { color: #888; }
-.summary-item.maint .count { color: #9b59b6; }
-.summary-item.parent-down .count { color: #e67e22; }
+.summary-item .count { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+.summary-item .label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.summary-item.ok .count { color: var(--status-ok); }
+.summary-item.warning .count { color: var(--status-warning); }
+.summary-item.critical .count { color: var(--status-critical); }
+.summary-item.pending .count { color: var(--status-unknown); }
+.summary-item.maint .count { color: var(--status-maint); }
+.summary-item.parent-down .count { color: var(--status-parent-down); }
 .filter-bar {
     display: flex; gap: 10px; margin-bottom: 18px; align-items: center; flex-wrap: wrap;
 }
 .filter-bar input[type="text"] {
-    padding: 8px 14px; background: #1a1d2b; border: 1px solid #2a2d3a;
-    border-radius: 6px; color: #e0e0e0; font-size: 13px; outline: none; width: 220px;
+    padding: 8px 14px; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text-body); font-size: 13px; outline: none; width: 220px;
 }
-.filter-bar input[type="text"]:focus { border-color: #5b9aff; }
+.filter-bar input[type="text"]:focus { border-color: var(--accent); }
 .filter-bar select {
-    padding: 8px 12px; background: #1a1d2b; border: 1px solid #2a2d3a;
-    border-radius: 6px; color: #e0e0e0; font-size: 13px; outline: none;
+    padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text-body); font-size: 13px; outline: none;
 }
-.filter-bar select:focus { border-color: #5b9aff; }
-.filter-label { color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+.filter-bar select:focus { border-color: var(--accent); }
+.filter-label { color: var(--text-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
 .group-title {
-    font-size: 14px; color: #888; text-transform: uppercase;
+    font-size: 14px; color: var(--text-muted); text-transform: uppercase;
     letter-spacing: 1px; margin: 20px 0 10px 0;
 }
 .group-title:first-child { margin-top: 0; }
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px,1fr)); gap: 12px; margin-bottom: 8px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-min-width),1fr)); gap: var(--card-gap); margin-bottom: 8px; }
 .card {
-    background: #1a1d2b; border: 1px solid #2a2d3a; border-radius: 8px;
-    padding: 16px; border-left: 4px solid #2a2d3a; transition: all 0.2s; cursor: pointer;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    padding: var(--card-padding); border-left: 4px solid var(--border); transition: all 0.2s; cursor: pointer;
 }
-.card:hover { border-color: #3a3d4a; background: #1e2133; }
-.card.ok       { border-left-color: #2ecc71; }
-.card.warning  { border-left-color: #f39c12; }
-.card.critical { border-left-color: #e74c3c; }
-.card.unknown  { border-left-color: #888; }
-.card.pending  { border-left-color: #444; }
-.card.maint    { border-left-color: #9b59b6; }
-.card.parent-down { border-left-color: #e67e22; }
+.card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+.card.ok       { border-left-color: var(--status-ok); }
+.card.warning  { border-left-color: var(--status-warning); }
+.card.critical { border-left-color: var(--status-critical); }
+.card.unknown  { border-left-color: var(--status-unknown); }
+.card.pending  { border-left-color: var(--status-pending); }
+.card.maint    { border-left-color: var(--status-maint); }
+.card.parent-down { border-left-color: var(--status-parent-down); }
 .card .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
-.card .device-name { font-weight: 600; font-size: 15px; color: #fff; }
-.card .check-label { color: #888; font-size: 12px; margin-left: 8px; }
+.card .device-name { font-weight: 600; font-size: var(--card-font-name); color: var(--text-primary); }
+.card .check-label { color: var(--text-muted); font-size: var(--card-font-check); margin-left: 8px; }
 .card .maint-badge {
-    background: rgba(155,89,182,0.2); color: #9b59b6; font-size: 10px;
+    background: var(--status-maint-bg); color: var(--status-maint); font-size: 10px;
     padding: 2px 8px; border-radius: 3px; font-weight: 600; text-transform: uppercase;
 }
 .card .downtime-badge {
-    background: rgba(230,126,34,0.2); color: #e67e22; font-size: 10px;
+    background: var(--status-parent-down-bg); color: var(--status-parent-down); font-size: 10px;
     padding: 2px 8px; border-radius: 3px; font-weight: 600; text-transform: uppercase;
 }
 .card .parent-down-badge {
-    background: rgba(230,126,34,0.2); color: #e67e22; font-size: 10px;
+    background: var(--status-parent-down-bg); color: var(--status-parent-down); font-size: 10px;
     padding: 2px 8px; border-radius: 3px; font-weight: 600; text-transform: uppercase;
 }
-.card .host { color: #666; font-size: 12px; margin-top: 4px; }
+.card .host { color: var(--text-dim); font-size: 12px; margin-top: 4px; }
 .card .status-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
 .card .status-badge {
     padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;
 }
-.card .status-badge.ok       { background: rgba(46,204,113,0.15); color: #2ecc71; }
-.card .status-badge.warning  { background: rgba(243,156,18,0.15); color: #f39c12; }
-.card .status-badge.critical { background: rgba(231,76,60,0.15);  color: #e74c3c; }
-.card .status-badge.unknown  { background: rgba(136,136,136,0.15);color: #888; }
-.card .status-badge.pending  { background: rgba(100,100,100,0.15);color: #666; }
-.card .status-badge.maint    { background: rgba(155,89,182,0.15); color: #9b59b6; }
-.card .status-badge.parent-down { background: rgba(230,126,34,0.15); color: #e67e22; }
-.card .response { color: #888; font-size: 13px; }
-.card .message  { color: #777; font-size: 12px; margin-top: 6px; }
-.card .timestamp{ color: #555; font-size: 11px; margin-top: 4px; }
+.card .status-badge.ok       { background: var(--status-ok-bg); color: var(--status-ok); }
+.card .status-badge.warning  { background: var(--status-warning-bg); color: var(--status-warning); }
+.card .status-badge.critical { background: var(--status-critical-bg); color: var(--status-critical); }
+.card .status-badge.unknown  { background: var(--status-unknown-bg); color: var(--status-unknown); }
+.card .status-badge.pending  { background: var(--status-unknown-bg); color: var(--text-dim); }
+.card .status-badge.maint    { background: var(--status-maint-bg); color: var(--status-maint); }
+.card .status-badge.parent-down { background: var(--status-parent-down-bg); color: var(--status-parent-down); }
+.card .response { color: var(--text-muted); font-size: 13px; }
+.card .message  { color: var(--text-muted); font-size: 12px; margin-top: 6px; }
+.card .timestamp{ color: var(--text-faint); font-size: 11px; margin-top: 4px; }
 table { width: 100%; border-collapse: collapse; }
 th {
-    text-align: left; padding: 10px 12px; color: #888; font-size: 12px;
-    text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #2a2d3a; background: #161822;
+    text-align: left; padding: 10px 12px; color: var(--text-muted); font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); background: var(--bg-panel);
 }
-td { padding: 10px 12px; border-bottom: 1px solid #1e2130; font-size: 13px; }
-tr:hover { background: #1a1d2b; }
+td { padding: 10px 12px; border-bottom: 1px solid var(--border-light); font-size: 13px; }
+tr:hover { background: var(--bg-card); }
 .badge { padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; }
-.badge.ok       { background: rgba(46,204,113,0.15); color: #2ecc71; }
-.badge.warning  { background: rgba(243,156,18,0.15); color: #f39c12; }
-.badge.critical { background: rgba(231,76,60,0.15);  color: #e74c3c; }
-.badge.unknown  { background: rgba(136,136,136,0.15);color: #888; }
-.badge.acked    { background: rgba(91,154,255,0.15); color: #5b9aff; }
+.badge.ok       { background: var(--status-ok-bg); color: var(--status-ok); }
+.badge.warning  { background: var(--status-warning-bg); color: var(--status-warning); }
+.badge.critical { background: var(--status-critical-bg); color: var(--status-critical); }
+.badge.unknown  { background: var(--status-unknown-bg); color: var(--status-unknown); }
+.badge.acked    { background: var(--accent-bg); color: var(--accent); }
 .btn {
     padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;
     font-size: 13px; font-weight: 600; transition: all 0.2s;
 }
-.btn-primary { background: #5b9aff; color: #fff; }
-.btn-primary:hover { background: #4a89ee; }
-.btn-danger  { background: #e74c3c; color: #fff; }
-.btn-danger:hover  { background: #c0392b; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-danger  { background: var(--btn-danger); color: #fff; }
+.btn-danger:hover  { background: var(--btn-danger-hover); }
 .btn-sm { padding: 5px 10px; font-size: 12px; }
-.btn-ghost { background: transparent; color: #888; border: 1px solid #2a2d3a; }
-.btn-ghost:hover { background: #1a1d2b; color: #ccc; }
-.btn-success { background: #2ecc71; color: #fff; }
-.btn-success:hover { background: #27ae60; }
-.btn-maint { background: rgba(155,89,182,0.15); color: #9b59b6; border: 1px solid rgba(155,89,182,0.3); }
+.btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--bg-card); color: var(--text-body); }
+.btn-success { background: var(--status-ok); color: #fff; }
+.btn-success:hover { background: var(--btn-success-hover); }
+.btn-maint { background: var(--status-maint-bg); color: var(--status-maint); border: 1px solid rgba(155,89,182,0.3); }
 .btn-maint:hover { background: rgba(155,89,182,0.25); }
-.btn-maint.active-maint { background: #9b59b6; color: #fff; }
-.btn-warning { background: rgba(230,126,34,0.15); color: #e67e22; border: 1px solid rgba(230,126,34,0.3); }
+.btn-maint.active-maint { background: var(--status-maint); color: #fff; }
+.btn-warning { background: var(--status-parent-down-bg); color: var(--status-parent-down); border: 1px solid rgba(230,126,34,0.3); }
 .btn-warning:hover { background: rgba(230,126,34,0.25); }
 .device-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .device-table td.actions { white-space: nowrap; }
 .device-table td.actions .btn { margin-right: 4px; }
 .device-checks-list { display: flex; flex-wrap: wrap; gap: 4px; }
 .device-checks-list .chip {
-    background: #0f1117; border: 1px solid #2a2d3a; border-radius: 4px;
-    padding: 2px 8px; font-size: 11px; color: #aaa;
+    background: var(--bg-body); border: 1px solid var(--border); border-radius: 4px;
+    padding: 2px 8px; font-size: 11px; color: var(--text-secondary);
 }
-.empty-state { text-align: center; padding: 60px 20px; color: #555; }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-faint); }
 .empty-state p { font-size: 15px; margin-bottom: 16px; }
 .modal-overlay {
     display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center;
+    background: var(--modal-overlay); z-index: 1000; align-items: center; justify-content: center;
 }
 .modal-overlay.open { display: flex; }
 .modal {
-    background: #1a1d2b; border: 1px solid #2a2d3a; border-radius: 12px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
     width: 640px; max-width: 95vw; max-height: 90vh; overflow-y: auto; padding: 24px;
 }
-.modal h2 { color: #fff; margin-bottom: 20px; font-size: 18px; }
+.modal h2 { color: var(--text-primary); margin-bottom: 20px; font-size: 18px; }
 .form-group { margin-bottom: 14px; }
 .form-group label {
-    display: block; color: #aaa; font-size: 12px; margin-bottom: 4px;
+    display: block; color: var(--text-secondary); font-size: 12px; margin-bottom: 4px;
     text-transform: uppercase; letter-spacing: 0.5px;
 }
 .form-group input, .form-group select, .form-group textarea {
-    width: 100%; padding: 9px 12px; background: #0f1117; border: 1px solid #2a2d3a;
-    border-radius: 6px; color: #e0e0e0; font-size: 14px; outline: none;
+    width: 100%; padding: 9px 12px; background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text-body); font-size: 14px; outline: none;
     font-family: inherit;
 }
 .form-group textarea { resize: vertical; min-height: 60px; }
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #5b9aff; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
 .form-row { display: flex; gap: 12px; }
 .form-row .form-group { flex: 1; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 .links-section { margin-top: 10px; }
-.links-section h4 { color: #ccc; font-size: 13px; margin-bottom: 8px; }
+.links-section h4 { color: var(--text-body); font-size: 13px; margin-bottom: 8px; }
 .link-item { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
 .link-item input { flex: 1; }
-.link-item .remove-link { background: none; border: none; color: #666; cursor: pointer; font-size: 16px; padding: 4px; }
-.link-item .remove-link:hover { color: #e74c3c; }
+.link-item .remove-link { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 16px; padding: 4px; }
+.link-item .remove-link:hover { color: var(--btn-danger); }
 .checks-section { margin-top: 16px; }
-.checks-section h3 { color: #ccc; font-size: 14px; margin-bottom: 10px; }
+.checks-section h3 { color: var(--text-body); font-size: 14px; margin-bottom: 10px; }
 .check-item {
-    background: #0f1117; border: 1px solid #2a2d3a; border-radius: 8px;
+    background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
     padding: 14px; margin-bottom: 10px; position: relative;
 }
 .check-item .remove-check {
     position: absolute; top: 8px; right: 8px; background: none; border: none;
-    color: #666; cursor: pointer; font-size: 18px; line-height: 1;
+    color: var(--text-dim); cursor: pointer; font-size: 18px; line-height: 1;
 }
-.check-item .remove-check:hover { color: #e74c3c; }
+.check-item .remove-check:hover { color: var(--btn-danger); }
 .drawer-overlay {
     display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.4); z-index: 900;
+    background: var(--drawer-overlay); z-index: 900;
 }
 .drawer-overlay.open { display: block; }
 .drawer {
     position: fixed; top: 0; right: -580px; width: 560px; max-width: 95vw;
-    height: 100vh; background: #161822; border-left: 1px solid #2a2d3a;
+    height: 100vh; background: var(--bg-panel); border-left: 1px solid var(--border);
     z-index: 910; overflow-y: auto; transition: right 0.3s ease; padding: 24px;
 }
 .drawer.open { right: 0; }
 .drawer-close {
     position: absolute; top: 16px; right: 16px; background: none; border: none;
-    color: #888; font-size: 24px; cursor: pointer; z-index: 920;
+    color: var(--text-muted); font-size: 24px; cursor: pointer; z-index: 920;
 }
-.drawer-close:hover { color: #fff; }
-.drawer h2 { color: #fff; font-size: 18px; margin-bottom: 4px; padding-right: 40px; }
-.drawer .drawer-host { color: #888; font-size: 13px; margin-bottom: 16px; }
+.drawer-close:hover { color: var(--text-primary); }
+.drawer h2 { color: var(--text-primary); font-size: 18px; margin-bottom: 4px; padding-right: 40px; }
+.drawer .drawer-host { color: var(--text-muted); font-size: 13px; margin-bottom: 16px; }
 .drawer .drawer-section { margin-bottom: 20px; }
 .drawer .drawer-section h3 {
-    color: #888; font-size: 12px; text-transform: uppercase;
-    letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid #2a2d3a; padding-bottom: 6px;
+    color: var(--text-muted); font-size: 12px; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 6px;
 }
 .drawer .uptime-row { display: flex; gap: 16px; margin-bottom: 8px; }
 .drawer .uptime-item {
-    background: #0f1117; border: 1px solid #2a2d3a; border-radius: 6px;
+    background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px;
     padding: 10px 16px; flex: 1; text-align: center;
 }
-.drawer .uptime-item .val { font-size: 20px; font-weight: 700; color: #2ecc71; }
-.drawer .uptime-item .val.warn { color: #f39c12; }
-.drawer .uptime-item .val.crit { color: #e74c3c; }
-.drawer .uptime-item .val.na   { color: #555; }
-.drawer .uptime-item .per { font-size: 11px; color: #888; margin-top: 2px; }
-.drawer .notes-text { color: #bbb; font-size: 13px; white-space: pre-wrap; line-height: 1.6; }
+.drawer .uptime-item .val { font-size: 20px; font-weight: 700; color: var(--status-ok); }
+.drawer .uptime-item .val.warn { color: var(--status-warning); }
+.drawer .uptime-item .val.crit { color: var(--status-critical); }
+.drawer .uptime-item .val.na   { color: var(--text-faint); }
+.drawer .uptime-item .per { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.drawer .notes-text { color: var(--text-secondary); font-size: 13px; white-space: pre-wrap; line-height: 1.6; }
 .drawer .link-list { list-style: none; }
 .drawer .link-list li { margin-bottom: 6px; }
-.drawer .link-list a { color: #5b9aff; text-decoration: none; font-size: 13px; }
+.drawer .link-list a { color: var(--accent); text-decoration: none; font-size: 13px; }
 .drawer .link-list a:hover { text-decoration: underline; }
 .drawer table { font-size: 12px; }
 .drawer th { font-size: 11px; padding: 6px 8px; }
 .drawer td { padding: 6px 8px; font-size: 12px; }
 .perf-chart-wrap {
-    background: #0f1117; border: 1px solid #2a2d3a; border-radius: 8px;
+    background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
     padding: 12px; margin-bottom: 12px;
 }
-.perf-chart-wrap h4 { color: #aaa; font-size: 12px; margin-bottom: 8px; }
+.perf-chart-wrap h4 { color: var(--text-secondary); font-size: 12px; margin-bottom: 8px; }
 .perf-chart-wrap canvas { max-height: 160px; }
 .perf-period-btns { display: flex; gap: 6px; margin-bottom: 12px; }
 .perf-period-btns button { padding: 4px 10px; font-size: 11px; }
-.perf-period-btns button.active { background: #5b9aff; color: #fff; border-color: #5b9aff; }
+.perf-period-btns button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .scan-controls {
     display: flex; gap: 12px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap;
 }
 .scan-controls .form-group { margin-bottom: 0; }
 .scan-progress {
-    background: #1a1d2b; border: 1px solid #2a2d3a; border-radius: 8px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
     padding: 16px; margin-bottom: 20px;
 }
 .scan-progress .progress-bar-bg {
-    background: #0f1117; border-radius: 4px; height: 8px; overflow: hidden; margin: 10px 0;
+    background: var(--bg-input); border-radius: 4px; height: 8px; overflow: hidden; margin: 10px 0;
 }
 .scan-progress .progress-bar-fill {
-    background: #5b9aff; height: 100%; border-radius: 4px; transition: width 0.3s;
+    background: var(--accent); height: 100%; border-radius: 4px; transition: width 0.3s;
 }
-.scan-progress .progress-text { color: #888; font-size: 13px; }
+.scan-progress .progress-text { color: var(--text-muted); font-size: 13px; }
 .scan-progress .progress-stats {
-    display: flex; gap: 24px; margin-top: 8px; color: #aaa; font-size: 13px;
+    display: flex; gap: 24px; margin-top: 8px; color: var(--text-secondary); font-size: 13px;
 }
-.scan-progress .progress-stats strong { color: #fff; }
+.scan-progress .progress-stats strong { color: var(--text-primary); }
 .scan-results-filter {
     display: flex; gap: 10px; margin-bottom: 12px; align-items: center;
 }
 .scan-results-filter label {
-    color: #888; font-size: 12px; display: flex; align-items: center; gap: 4px; cursor: pointer;
+    color: var(--text-muted); font-size: 12px; display: flex; align-items: center; gap: 4px; cursor: pointer;
 }
-.scan-results-filter input[type="checkbox"] { accent-color: #5b9aff; }
+.scan-results-filter input[type="checkbox"] { accent-color: var(--accent); }
 .port-chip {
-    display: inline-block; background: rgba(91,154,255,0.1); border: 1px solid rgba(91,154,255,0.2);
-    border-radius: 3px; padding: 1px 6px; font-size: 11px; color: #5b9aff; margin: 1px 2px;
+    display: inline-block; background: var(--accent-bg); border: 1px solid var(--accent-border);
+    border-radius: 3px; padding: 1px 6px; font-size: 11px; color: var(--accent); margin: 1px 2px;
 }
 .alive-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
-.alive-dot.up { background: #2ecc71; }
-.alive-dot.down { background: #555; }
+.alive-dot.up { background: var(--status-ok); }
+.alive-dot.down { background: var(--text-faint); }
 .monitored-badge {
-    background: rgba(46,204,113,0.15); color: #2ecc71; padding: 2px 6px;
+    background: var(--status-ok-bg); color: var(--status-ok); padding: 2px 6px;
     border-radius: 3px; font-size: 10px; font-weight: 600;
 }
 #network-map {
-    width: 100%; height: 600px; background: #0f1117;
-    border: 1px solid #2a2d3a; border-radius: 8px; margin-top: 12px;
+    width: 100%; height: 600px; background: var(--bg-input);
+    border: 1px solid var(--border); border-radius: 8px; margin-top: 12px;
 }
 .map-legend { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 12px; }
-.map-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #888; }
+.map-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
 .map-legend-dot { width: 12px; height: 12px; border-radius: 50%; }
 .map-legend-dot.discovered { border: 2px dashed #888; background: transparent; width: 10px; height: 10px; }
 .map-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .inv-stats { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
 .inv-stat {
-    background: #1a1d2b; border: 1px solid #2a2d3a; border-radius: 8px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
     padding: 12px 20px; text-align: center; min-width: 100px;
 }
-.inv-stat .val { font-size: 24px; font-weight: 700; color: #5b9aff; }
-.inv-stat .lbl { font-size: 11px; color: #888; text-transform: uppercase; margin-top: 2px; }
+.inv-stat .val { font-size: 24px; font-weight: 700; color: var(--accent); }
+.inv-stat .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
 .inv-type-chip {
     display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600;
-    background: rgba(91,154,255,0.1); border: 1px solid rgba(91,154,255,0.2); color: #5b9aff;
+    background: var(--accent-bg); border: 1px solid var(--accent-border); color: var(--accent);
 }
-.inv-status-active  { background: rgba(46,204,113,0.15); color: #2ecc71; }
-.inv-status-retired { background: rgba(136,136,136,0.15); color: #888; }
+.inv-status-active  { background: var(--status-ok-bg); color: var(--status-ok); }
+.inv-status-retired { background: var(--status-unknown-bg); color: var(--status-unknown); }
 .downtime-card {
-    background: #1a1d2b; border: 1px solid #2a2d3a; border-radius: 8px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
     padding: 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
 }
 .downtime-card .dt-info { flex: 1; }
-.downtime-card .dt-device { color: #fff; font-weight: 600; font-size: 14px; }
-.downtime-card .dt-times { color: #888; font-size: 12px; margin-top: 4px; }
-.downtime-card .dt-reason { color: #aaa; font-size: 12px; margin-top: 2px; font-style: italic; }
+.downtime-card .dt-device { color: var(--text-primary); font-weight: 600; font-size: 14px; }
+.downtime-card .dt-times { color: var(--text-muted); font-size: 12px; margin-top: 4px; }
+.downtime-card .dt-reason { color: var(--text-secondary); font-size: 12px; margin-top: 2px; font-style: italic; }
 .downtime-card .dt-status { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 3px; }
-.downtime-card .dt-status.active { background: rgba(230,126,34,0.15); color: #e67e22; }
-.downtime-card .dt-status.upcoming { background: rgba(91,154,255,0.15); color: #5b9aff; }
-.downtime-card .dt-status.expired { background: rgba(136,136,136,0.15); color: #666; }
+.downtime-card .dt-status.active { background: var(--status-parent-down-bg); color: var(--status-parent-down); }
+.downtime-card .dt-status.upcoming { background: var(--accent-bg); color: var(--accent); }
+.downtime-card .dt-status.expired { background: var(--status-unknown-bg); color: var(--text-dim); }
 </style>
 </head>
 <body>
@@ -320,7 +524,7 @@ tr:hover { background: #1a1d2b; }
 <div class="header">
     <div style="display:flex;align-items:baseline;">
         <h1>Clover<span class="brand-dot">.</span>tech<span class="brand-dot">.</span>netmon</h1>
-        <span class="subtitle">Network Monitoring System v5</span>
+        <span class="subtitle">Network Monitoring System v5.4</span>
     </div>
     <span class="refresh-info" id="refresh-info">Auto-refresh: 30s</span>
 </div>
@@ -364,18 +568,18 @@ tr:hover { background: #1a1d2b; }
 <div class="content tab-content" id="tab-map">
     <div class="map-toolbar">
         <div class="map-legend">
-            <div class="map-legend-item"><div class="map-legend-dot" style="background:#2ecc71;"></div> OK</div>
-            <div class="map-legend-item"><div class="map-legend-dot" style="background:#f39c12;"></div> Warning</div>
-            <div class="map-legend-item"><div class="map-legend-dot" style="background:#e74c3c;"></div> Critical</div>
-            <div class="map-legend-item"><div class="map-legend-dot" style="background:#9b59b6;"></div> Maintenance</div>
-            <div class="map-legend-item"><div class="map-legend-dot" style="background:#e67e22;"></div> Parent Down</div>
-            <div class="map-legend-item"><div class="map-legend-dot" style="background:#555;"></div> Pending</div>
+            <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--status-ok);"></div> OK</div>
+            <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--status-warning);"></div> Warning</div>
+            <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--status-critical);"></div> Critical</div>
+            <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--status-maint);"></div> Maintenance</div>
+            <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--status-parent-down);"></div> Parent Down</div>
+            <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--text-faint);"></div> Pending</div>
             <div class="map-legend-item"><div class="map-legend-dot discovered"></div> Discovered</div>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="loadNetworkMap()">Refresh Map</button>
     </div>
     <div id="network-map"></div>
-    <p style="color:#555;font-size:12px;margin-top:8px;">Click a monitored device to open its detail drawer. Lines show parent-child dependencies.</p>
+    <p style="color:var(--text-faint);font-size:12px;margin-top:8px;">Click a monitored device to open its detail drawer. Lines show parent-child dependencies.</p>
 </div>
 
 <!-- ========== DISCOVERY TAB ========== -->
@@ -388,13 +592,13 @@ tr:hover { background: #1a1d2b; }
         </div>
         <button class="btn btn-primary" id="scan-btn" onclick="startScan()">Start Scan</button>
     </div>
-    <p style="color:#666;font-size:12px;margin-bottom:16px;">Scans up to 1024 IPs. Pings each host and checks common ports. Only alive hosts are shown. Results auto-import into Inventory.</p>
+    <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px;">Scans up to 1024 IPs. Pings each host and checks common ports. Only alive hosts are shown. Results auto-import into Inventory.</p>
     <div class="scan-progress" id="scan-progress" style="display:none;">
         <div class="progress-text" id="scan-progress-text">Scanning...</div>
         <div class="progress-bar-bg"><div class="progress-bar-fill" id="scan-progress-bar" style="width:0%;"></div></div>
         <div class="progress-stats">
             <span>Scanned: <strong id="scan-scanned">0</strong> / <strong id="scan-total">0</strong></span>
-            <span>Alive: <strong id="scan-alive" style="color:#2ecc71;">0</strong></span>
+            <span>Alive: <strong id="scan-alive" style="color:var(--status-ok);">0</strong></span>
             <span>Target: <strong id="scan-target"></strong></span>
         </div>
     </div>
@@ -403,7 +607,7 @@ tr:hover { background: #1a1d2b; }
     </div>
     <div id="scan-results"></div>
     <div style="margin-top:24px;">
-        <h3 style="color:#888;font-size:13px;margin-bottom:10px;">SCAN HISTORY</h3>
+        <h3 style="color:var(--text-muted);font-size:13px;margin-bottom:10px;">SCAN HISTORY</h3>
         <div id="scan-history"></div>
     </div>
 </div>
@@ -411,7 +615,7 @@ tr:hover { background: #1a1d2b; }
 <!-- ========== INVENTORY TAB ========== -->
 <div class="content tab-content" id="tab-inventory">
     <div class="device-toolbar">
-        <h2 style="color:#fff;font-size:16px;">Asset Inventory</h2>
+        <h2 style="color:var(--text-primary);font-size:16px;">Asset Inventory</h2>
         <div style="display:flex;gap:8px;">
             <button class="btn btn-danger btn-sm" id="inv-remove-sel-btn" style="display:none;" onclick="batchDeleteAssets()">Remove Selected (<span id="inv-sel-count">0</span>)</button>
             <button class="btn btn-ghost btn-sm" onclick="importLatestScan()">Import Latest Scan</button>
@@ -435,7 +639,7 @@ tr:hover { background: #1a1d2b; }
 <!-- ========== ALERTS TAB ========== -->
 <div class="content tab-content" id="tab-alerts">
     <div class="device-toolbar">
-        <h2 style="color:#fff;font-size:16px;">Alerts</h2>
+        <h2 style="color:var(--text-primary);font-size:16px;">Alerts</h2>
         <div style="display:flex;gap:8px;">
             <button class="btn btn-ghost btn-sm" id="ack-all-btn" onclick="ackAllAlerts()">Acknowledge All</button>
         </div>
@@ -457,17 +661,17 @@ tr:hover { background: #1a1d2b; }
 <!-- ========== DOWNTIME TAB ========== -->
 <div class="content tab-content" id="tab-downtime">
     <div class="device-toolbar">
-        <h2 style="color:#fff;font-size:16px;">Scheduled Downtime</h2>
+        <h2 style="color:var(--text-primary);font-size:16px;">Scheduled Downtime</h2>
         <button class="btn btn-primary" onclick="openDowntimeModal()">+ Schedule Downtime</button>
     </div>
-    <p style="color:#666;font-size:12px;margin-bottom:16px;">Plan maintenance windows in advance. Devices in scheduled downtime skip checks and suppress alerts during the window.</p>
+    <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px;">Plan maintenance windows in advance. Devices in scheduled downtime skip checks and suppress alerts during the window.</p>
     <div id="downtime-list"></div>
 </div>
 
 <!-- ========== DEVICES TAB ========== -->
 <div class="content tab-content" id="tab-devices">
     <div class="device-toolbar">
-        <h2 style="color:#fff;font-size:16px;">Devices &amp; Checks</h2>
+        <h2 style="color:var(--text-primary);font-size:16px;">Devices &amp; Checks</h2>
         <button class="btn btn-primary" onclick="openAddDevice()">+ Add Device</button>
     </div>
     <table class="device-table">
@@ -482,12 +686,12 @@ tr:hover { background: #1a1d2b; }
 
 <!-- ========== SETTINGS TAB ========== -->
 <div class="content tab-content" id="tab-reports">
-    <h2 style="color:#fff;font-size:16px;margin-bottom:20px;">SLA & Uptime Reports</h2>
+    <h2 style="color:var(--text-primary);font-size:16px;margin-bottom:20px;">SLA & Uptime Reports</h2>
     <div id="reports-upgrade" style="display:none;"></div>
     <div id="reports-content">
         <div style="display:flex;gap:12px;margin-bottom:20px;align-items:center;">
-            <label style="color:#94a3b8;font-size:13px;">Period:</label>
-            <select id="report-period" style="background:#1a1d2b;border:1px solid #2a2d3a;color:#e2e8f0;padding:6px 12px;border-radius:6px;">
+            <label style="color:var(--text-muted);font-size:13px;">Period:</label>
+            <select id="report-period" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-body);padding:6px 12px;border-radius:6px;">
                 <option value="24">Last 24 hours</option>
                 <option value="168">Last 7 days</option>
                 <option value="720" selected>Last 30 days</option>
@@ -503,45 +707,114 @@ tr:hover { background: #1a1d2b; }
                     <th>Device</th><th>Group</th><th>Uptime %</th><th>Downtime</th>
                     <th>Incidents</th><th>MTTR</th><th>SLA Status</th>
                 </tr></thead>
-                <tbody id="sla-body"><tr><td colspan="7" style="text-align:center;color:#555;padding:40px;">Click "Generate Report" to view SLA data</td></tr></tbody>
+                <tbody id="sla-body"><tr><td colspan="7" style="text-align:center;color:var(--text-faint);padding:40px;">Click "Generate Report" to view SLA data</td></tr></tbody>
             </table>
         </div>
     </div>
 </div>
 
 <div class="content tab-content" id="tab-settings">
-    <h2 style="color:#fff;font-size:16px;margin-bottom:20px;">Settings</h2>
-    <div id="settings-saved-msg" style="display:none;background:rgba(46,204,113,0.15);color:#2ecc71;padding:10px 16px;border-radius:6px;margin-bottom:16px;font-size:13px;">Settings saved successfully.</div>
-    <div id="settings-error-msg" style="display:none;background:rgba(231,76,60,0.15);color:#e74c3c;padding:10px 16px;border-radius:6px;margin-bottom:16px;font-size:13px;"></div>
+    <h2 style="color:var(--text-primary);font-size:16px;margin-bottom:20px;">Settings</h2>
+    <div id="settings-saved-msg" style="display:none;background:var(--status-ok-bg);color:var(--status-ok);padding:10px 16px;border-radius:6px;margin-bottom:16px;font-size:13px;">Settings saved successfully.</div>
+    <div id="settings-error-msg" style="display:none;background:var(--status-critical-bg);color:var(--status-critical);padding:10px 16px;border-radius:6px;margin-bottom:16px;font-size:13px;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+            <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Appearance</h3>
+            <div class="form-group">
+                <label>Skin / Theme</label>
+                <div id="skin-picker" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px;">
+                    <button class="skin-swatch" data-skin="midnight" style="padding:10px 8px;border-radius:6px;border:2px solid var(--border);cursor:pointer;text-align:center;font-size:12px;font-weight:600;background:#0f1117;color:#e0e0e0;" onclick="setSkin('midnight')">
+                        <span style="display:block;font-size:16px;margin-bottom:4px;">&#127761;</span>Midnight
+                    </button>
+                    <button class="skin-swatch" data-skin="light" style="padding:10px 8px;border-radius:6px;border:2px solid var(--border);cursor:pointer;text-align:center;font-size:12px;font-weight:600;background:#f0f2f5;color:#111827;" onclick="setSkin('light')">
+                        <span style="display:block;font-size:16px;margin-bottom:4px;">&#9728;&#65039;</span>Light
+                    </button>
+                    <button class="skin-swatch" data-skin="corporate" style="padding:10px 8px;border-radius:6px;border:2px solid var(--border);cursor:pointer;text-align:center;font-size:12px;font-weight:600;background:#0f2240;color:#c4d3e8;" onclick="setSkin('corporate')">
+                        <span style="display:block;font-size:16px;margin-bottom:4px;">&#128309;</span>Corporate
+                    </button>
+                    <button class="skin-swatch" data-skin="matrix" style="padding:10px 8px;border-radius:6px;border:2px solid var(--border);cursor:pointer;text-align:center;font-size:12px;font-weight:600;background:#000000;color:#33ff33;" onclick="setSkin('matrix')">
+                        <span style="display:block;font-size:16px;margin-bottom:4px;">&#129001;</span>Matrix
+                    </button>
+                    <button class="skin-swatch" data-skin="amber" style="padding:10px 8px;border-radius:6px;border:2px solid var(--border);cursor:pointer;text-align:center;font-size:12px;font-weight:600;background:#0d0a06;color:#ffcc00;" onclick="setSkin('amber')">
+                        <span style="display:block;font-size:16px;margin-bottom:4px;">&#128992;</span>Amber NOC
+                    </button>
+                    <button class="skin-swatch" data-skin="solarized" style="padding:10px 8px;border-radius:6px;border:2px solid var(--border);cursor:pointer;text-align:center;font-size:12px;font-weight:600;background:#002b36;color:#fdf6e3;" onclick="setSkin('solarized')">
+                        <span style="display:block;font-size:16px;margin-bottom:4px;">&#128995;</span>Solarized
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+            <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Dashboard Customization</h3>
+            <div class="form-group">
+                <label>Default Tab</label>
+                <select id="pref-default-tab" onchange="savePref('defaultTab', this.value)">
+                    <option value="status">Status</option>
+                    <option value="map">Network Map</option>
+                    <option value="discovery">Discovery</option>
+                    <option value="inventory">Inventory</option>
+                    <option value="alerts">Alerts</option>
+                    <option value="history">History</option>
+                    <option value="downtime">Downtime</option>
+                    <option value="devices">Manage Devices</option>
+                    <option value="reports">Reports</option>
+                    <option value="settings">Settings</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Card Density</label>
+                <select id="pref-density" onchange="setDensity(this.value)">
+                    <option value="comfortable">Comfortable (default)</option>
+                    <option value="compact">Compact</option>
+                    <option value="expanded">Expanded</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Auto-Refresh Interval</label>
+                <select id="pref-refresh" onchange="setRefreshInterval(this.value)">
+                    <option value="5">5 seconds</option>
+                    <option value="15">15 seconds</option>
+                    <option value="30" selected>30 seconds (default)</option>
+                    <option value="60">60 seconds</option>
+                    <option value="0">Off</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;">
+                    <input type="checkbox" id="pref-show-summary" checked onchange="savePref('showSummary', this.checked); toggleSummaryBar()" style="accent-color:var(--accent);width:16px;height:16px;"> Show summary bar on Status tab
+                </label>
+            </div>
+        </div>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
         <div>
-            <div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:20px;margin-bottom:20px;">
-                <h3 style="color:#ccc;font-size:14px;margin-bottom:16px;border-bottom:1px solid #2a2d3a;padding-bottom:8px;">General</h3>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px;">
+                <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">General</h3>
                 <div class="form-group">
                     <label>Check Interval (seconds)</label>
                     <input type="number" id="set-interval" min="5" placeholder="60">
-                    <span style="color:#555;font-size:11px;">Minimum 5 seconds.</span>
+                    <span style="color:var(--text-faint);font-size:11px;">Minimum 5 seconds.</span>
                 </div>
             </div>
-            <div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:20px;">
-                <h3 style="color:#ccc;font-size:14px;margin-bottom:16px;border-bottom:1px solid #2a2d3a;padding-bottom:8px;">Dashboard</h3>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+                <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Dashboard</h3>
                 <div class="form-row">
                     <div class="form-group"><label>Listen Host</label><input type="text" id="set-dash-host" placeholder="0.0.0.0"></div>
                     <div class="form-group"><label>Port</label><input type="number" id="set-dash-port" placeholder="8080"></div>
                 </div>
-                <span style="color:#f39c12;font-size:11px;">Changes take effect on next restart.</span>
+                <span style="color:var(--status-warning);font-size:11px;">Changes take effect on next restart.</span>
             </div>
         </div>
         <div>
-            <div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:20px;">
-                <h3 style="color:#ccc;font-size:14px;margin-bottom:16px;border-bottom:1px solid #2a2d3a;padding-bottom:8px;">Email Notifications (SMTP)</h3>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+                <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Email Notifications (SMTP)</h3>
                 <div class="form-row">
                     <div class="form-group" style="flex:2;"><label>SMTP Host</label><input type="text" id="set-smtp-host" placeholder="smtp.gmail.com"></div>
                     <div class="form-group" style="flex:1;"><label>Port</label><input type="number" id="set-smtp-port" placeholder="587"></div>
                 </div>
                 <div class="form-group">
                     <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;">
-                        <input type="checkbox" id="set-smtp-tls" style="accent-color:#5b9aff;width:16px;height:16px;"> Use TLS (STARTTLS)
+                        <input type="checkbox" id="set-smtp-tls" style="accent-color:var(--accent);width:16px;height:16px;"> Use TLS (STARTTLS)
                     </label>
                 </div>
                 <div class="form-row">
@@ -562,8 +835,8 @@ tr:hover { background: #1a1d2b; }
         </div>
     </div>
     <div style="margin-top:20px;">
-        <div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:20px;">
-            <h3 style="color:#ccc;font-size:14px;margin-bottom:16px;border-bottom:1px solid #2a2d3a;padding-bottom:8px;">License</h3>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+            <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">License</h3>
             <div id="license-tier-badge" style="display:inline-block;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;text-transform:uppercase;margin-bottom:12px;background:#333;color:#888;">Community (Free)</div>
             <div id="license-usage" style="font-size:12px;color:#888;margin-bottom:12px;"></div>
             <div class="form-group" style="margin-bottom:12px;">
@@ -574,13 +847,13 @@ tr:hover { background: #1a1d2b; }
                 </div>
             </div>
             <div id="license-result" style="font-size:12px;margin-top:6px;"></div>
-            <div style="margin-top:8px;"><a href="https://myclover.tech/#pricing" target="_blank" style="font-size:12px;color:#5b9aff;text-decoration:none;">Purchase a license at myclover.tech &rarr;</a></div>
+            <div style="margin-top:8px;"><a href="https://myclover.tech/#pricing" target="_blank" style="font-size:12px;color:var(--accent);text-decoration:none;">Purchase a license at myclover.tech &rarr;</a></div>
         </div>
     </div>
     <div id="ent-settings" style="display:none;margin-top:20px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
-            <div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:20px;">
-                <h3 style="color:#ccc;font-size:14px;margin-bottom:16px;border-bottom:1px solid #2a2d3a;padding-bottom:8px;">Webhook Notifications <span style="font-size:10px;color:#a78bfa;background:rgba(167,139,250,0.15);padding:2px 8px;border-radius:4px;margin-left:8px;">Enterprise</span></h3>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+                <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Webhook Notifications <span style="font-size:10px;color:#a78bfa;background:rgba(167,139,250,0.15);padding:2px 8px;border-radius:4px;margin-left:8px;">Enterprise</span></h3>
                 <div id="webhook-list"></div>
                 <button class="btn btn-ghost btn-sm" onclick="addWebhookRow()" style="margin-top:10px;">+ Add Webhook</button>
                 <div style="margin-top:12px;display:flex;gap:8px;">
@@ -588,18 +861,18 @@ tr:hover { background: #1a1d2b; }
                     <span id="webhook-save-result" style="font-size:12px;color:#22c55e;"></span>
                 </div>
             </div>
-            <div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:20px;">
-                <h3 style="color:#ccc;font-size:14px;margin-bottom:16px;border-bottom:1px solid #2a2d3a;padding-bottom:8px;">Enterprise Tools</h3>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+                <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Enterprise Tools</h3>
                 <div style="margin-bottom:12px;">
-                    <a href="/noc" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:rgba(34,197,94,0.1);border:1px solid #22c55e;border-radius:8px;color:#22c55e;text-decoration:none;font-weight:600;">
+                    <a href="/noc" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:var(--status-ok-bg);border:1px solid var(--status-ok);border-radius:8px;color:var(--status-ok);text-decoration:none;font-weight:600;">
                         &#128250; Open NOC Display
                     </a>
-                    <p style="font-size:11px;color:#64748b;margin-top:6px;">Full-screen view for wall-mounted monitors. Auto-refreshes every 10s.</p>
+                    <p style="font-size:11px;color:var(--text-dim);margin-top:6px;">Full-screen view for wall-mounted monitors. Auto-refreshes every 10s.</p>
                 </div>
                 <div style="margin-bottom:12px;">
                     <div style="font-size:13px;color:#e2e8f0;margin-bottom:4px;">Custom Plugins</div>
-                    <div id="plugin-list" style="font-size:12px;color:#64748b;">Loading...</div>
-                    <p style="font-size:11px;color:#64748b;margin-top:6px;">Place .py scripts in the <code style="background:#0a0e17;padding:2px 6px;border-radius:3px;font-size:11px;">plugins/</code> folder. Use check type "plugin" in device config.</p>
+                    <div id="plugin-list" style="font-size:12px;color:var(--text-dim);">Loading...</div>
+                    <p style="font-size:11px;color:var(--text-dim);margin-top:6px;">Place .py scripts in the <code style="background:var(--bg-deep);padding:2px 6px;border-radius:3px;font-size:11px;">plugins/</code> folder. Use check type "plugin" in device config.</p>
                 </div>
             </div>
         </div>
@@ -625,7 +898,7 @@ tr:hover { background: #1a1d2b; }
         <div class="form-group">
             <label>Parent Device (Dependency)</label>
             <select id="dev-parent"><option value="">-- None (root) --</option></select>
-            <span style="color:#555;font-size:11px;">If parent goes down, alerts for this device are suppressed.</span>
+            <span style="color:var(--text-faint);font-size:11px;">If parent goes down, alerts for this device are suppressed.</span>
         </div>
     </div>
     <div class="form-group"><label>Notes</label><textarea id="dev-notes" placeholder="Free-text notes about this device"></textarea></div>
@@ -654,7 +927,7 @@ tr:hover { background: #1a1d2b; }
 <div class="modal-overlay" id="delete-modal">
 <div class="modal" style="width:400px;">
     <h2>Delete Device</h2>
-    <p style="color:#aaa;margin-bottom:20px;">Are you sure you want to delete <strong id="delete-device-name" style="color:#fff;"></strong>? This cannot be undone.</p>
+    <p style="color:#aaa;margin-bottom:20px;">Are you sure you want to delete <strong id="delete-device-name" style="color:var(--text-primary);"></strong>? This cannot be undone.</p>
     <div class="modal-actions">
         <button class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button>
         <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
@@ -693,7 +966,7 @@ tr:hover { background: #1a1d2b; }
     </div>
     <div class="form-row">
         <div class="form-group"><label>Serial Number</label><input type="text" id="asset-serial"></div>
-        <div class="form-group"><label>Purchase Date</label><input type="date" id="asset-purchase" style="color-scheme:dark;"></div>
+        <div class="form-group"><label>Purchase Date</label><input type="date" id="asset-purchase" style="color-scheme:var(--input-color-scheme, dark);"></div>
     </div>
     <div class="form-row">
         <div class="form-group"><label>Status</label><select id="asset-status"><option value="active">Active</option><option value="retired">Retired</option></select></div>
@@ -711,7 +984,7 @@ tr:hover { background: #1a1d2b; }
 <div class="modal-overlay" id="asset-delete-modal">
 <div class="modal" style="width:400px;">
     <h2>Delete Asset</h2>
-    <p style="color:#aaa;margin-bottom:20px;">Delete asset <strong id="asset-delete-ip" style="color:#fff;"></strong>?</p>
+    <p style="color:#aaa;margin-bottom:20px;">Delete asset <strong id="asset-delete-ip" style="color:var(--text-primary);"></strong>?</p>
     <div class="modal-actions">
         <button class="btn btn-ghost" onclick="closeAssetDeleteModal()">Cancel</button>
         <button class="btn btn-danger" onclick="confirmDeleteAsset()">Delete</button>
@@ -728,8 +1001,8 @@ tr:hover { background: #1a1d2b; }
         <select id="dt-device"></select>
     </div>
     <div class="form-row">
-        <div class="form-group"><label>Start Time (UTC)</label><input type="datetime-local" id="dt-start" style="color-scheme:dark;"></div>
-        <div class="form-group"><label>End Time (UTC)</label><input type="datetime-local" id="dt-end" style="color-scheme:dark;"></div>
+        <div class="form-group"><label>Start Time (UTC)</label><input type="datetime-local" id="dt-start" style="color-scheme:var(--input-color-scheme, dark);"></div>
+        <div class="form-group"><label>End Time (UTC)</label><input type="datetime-local" id="dt-end" style="color-scheme:var(--input-color-scheme, dark);"></div>
     </div>
     <div class="form-group"><label>Reason</label><textarea id="dt-reason" placeholder="e.g. Firmware upgrade, Hardware replacement"></textarea></div>
     <div class="modal-actions">
@@ -850,7 +1123,7 @@ function buildStatusData(parentMap, statusMap) {
 
     if (!devices.length) {
         summaryBar.innerHTML = '';
-        container.innerHTML = '<div class="empty-state"><p>No devices configured yet.</p><p style="font-size:13px;color:#666;">Go to <strong>Manage Devices</strong> to add your first device.</p></div>';
+        container.innerHTML = '<div class="empty-state"><p>No devices configured yet.</p><p style="font-size:13px;color:var(--text-dim);">Go to <strong>Manage Devices</strong> to add your first device.</p></div>';
         _allCards = []; _allGroups = [];
         return;
     }
@@ -1017,7 +1290,7 @@ function openDrawer(deviceName) {
         + '<button class="btn btn-maint btn-sm' + (isMaint ? ' active-maint' : '') + '" '
         + 'onclick="toggleMaint(\'' + escAttr(deviceName) + '\',' + (!isMaint ? 'true' : 'false') + ')">'
         + (isMaint ? 'Disable Maintenance' : 'Enable Maintenance') + '</button>'
-        + (isMaint ? ' <span style="color:#9b59b6;font-size:12px;margin-left:8px;">Alerts paused</span>' : '')
+        + (isMaint ? ' <span style="color:var(--status-maint);font-size:12px;margin-left:8px;">Alerts paused</span>' : '')
         + '</div>';
 
     var links = dev.links || [];
@@ -1104,7 +1377,7 @@ function loadDrawerPerf(deviceName) {
             if (!canvas) return;
             var times = points.map(function(p){ return (p.timestamp||'').replace('T',' ').substring(11,19); });
             var values = points.map(function(p){ return p.response_ms; });
-            var colors = points.map(function(p){ return p.status === 'OK' ? '#2ecc71' : (p.status === 'WARNING' ? '#f39c12' : '#e74c3c'); });
+            var colors = points.map(function(p){ return p.status === 'OK' ? cssVar('--status-ok') : (p.status === 'WARNING' ? cssVar('--status-warning') : cssVar('--status-critical')); });
             var bgColors = points.map(function(p){ return p.status === 'OK' ? 'rgba(46,204,113,0.15)' : (p.status === 'WARNING' ? 'rgba(243,156,18,0.15)' : 'rgba(231,76,60,0.15)'); });
             var chart = new Chart(canvas.getContext('2d'), {
                 type: 'line',
@@ -1113,7 +1386,7 @@ function loadDrawerPerf(deviceName) {
                     datasets: [{
                         label: 'Response (ms)',
                         data: values,
-                        borderColor: '#5b9aff',
+                        borderColor: cssVar('--accent'),
                         backgroundColor: 'rgba(91,154,255,0.1)',
                         borderWidth: 1.5,
                         pointRadius: values.length > 50 ? 0 : 2,
@@ -1127,8 +1400,8 @@ function loadDrawerPerf(deviceName) {
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { display: true, ticks: { color: '#555', maxTicksLimit: 8, font: {size: 10} }, grid: { color: '#1e2130' } },
-                        y: { display: true, ticks: { color: '#555', font: {size: 10} }, grid: { color: '#1e2130' }, beginAtZero: true,
+                        x: { display: true, ticks: { color: '#555', maxTicksLimit: 8, font: {size: 10} }, grid: { color: cssVar('--border-light') } },
+                        y: { display: true, ticks: { color: '#555', font: {size: 10} }, grid: { color: cssVar('--border-light') }, beginAtZero: true,
                              title: { display: true, text: 'ms', color: '#555', font: {size: 10} } }
                     },
                     interaction: { mode: 'index', intersect: false },
@@ -1190,7 +1463,7 @@ function toggleMaint(name, enable) {
 function loadAlerts() {
     fetch('/api/alerts?hours=48').then(function(r){ return r.json(); }).then(function(data) {
         var tbody = document.getElementById('alerts-body');
-        if (!data.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#555;padding:40px;">No alerts in the last 48 hours</td></tr>'; return; }
+        if (!data.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-faint);padding:40px;">No alerts in the last 48 hours</td></tr>'; return; }
         var html = '';
         data.forEach(function(a) {
             var s = a.status.toLowerCase();
@@ -1230,7 +1503,7 @@ function ackAllAlerts() {
 function loadHistory() {
     fetch('/api/history?hours=24').then(function(r){ return r.json(); }).then(function(data) {
         var tbody = document.getElementById('history-body');
-        if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#555;padding:40px;">No history yet</td></tr>'; return; }
+        if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-faint);padding:40px;">No history yet</td></tr>'; return; }
         var html = '';
         data.forEach(function(r) {
             var s = r.status.toLowerCase();
@@ -1253,7 +1526,7 @@ function loadDowntimes() {
     }).then(function(data) {
         if (!data) return;
         var el = document.getElementById('downtime-list');
-        if (!data.length) { el.innerHTML = '<div class="empty-state"><p>No scheduled downtimes.</p><p style="font-size:13px;color:#666;">Click "+ Schedule Downtime" to plan a maintenance window.</p></div>'; return; }
+        if (!data.length) { el.innerHTML = '<div class="empty-state"><p>No scheduled downtimes.</p><p style="font-size:13px;color:var(--text-dim);">Click "+ Schedule Downtime" to plan a maintenance window.</p></div>'; return; }
         var now = new Date().toISOString();
         var html = '';
         data.forEach(function(dt) {
@@ -1352,7 +1625,7 @@ function loadDevices() {
             if ((d.notes || '').length > 40) notesSnip += '...';
             var maintLabel = d.maintenance ? ' <span class="maint-badge" style="margin-left:6px;">Maint</span>' : '';
             html += '<tr>'
-                + '<td><strong style="color:#fff;">' + esc(d.name) + '</strong>' + maintLabel + '</td>'
+                + '<td><strong style="color:var(--text-primary);">' + esc(d.name) + '</strong>' + maintLabel + '</td>'
                 + '<td>' + esc(d.host) + '</td>'
                 + '<td>' + esc(d.group || 'Default') + '</td>'
                 + '<td>' + esc(d.parent || '--') + '</td>'
@@ -1645,14 +1918,14 @@ function loadNetworkMap() {
 
 function renderNetworkMap(data) {
     var container = document.getElementById('network-map');
-    var statusColors = { 'hub':'#5b9aff', 'OK':'#2ecc71', 'WARNING':'#f39c12', 'CRITICAL':'#e74c3c', 'MAINTENANCE':'#9b59b6', 'PARENT_DOWN':'#e67e22', 'PENDING':'#555555', 'discovered':'#888888' };
+    var statusColors = { 'hub': cssVar('--accent'), 'OK': cssVar('--status-ok'), 'WARNING': cssVar('--status-warning'), 'CRITICAL': cssVar('--status-critical'), 'MAINTENANCE': cssVar('--status-maint'), 'PARENT_DOWN': cssVar('--status-parent-down'), 'PENDING': cssVar('--text-faint'), 'discovered': cssVar('--text-muted') };
     var nodes = [], edges = [];
     data.nodes.forEach(function(n) {
-        var color = statusColors[n.status] || '#555';
+        var color = statusColors[n.status] || cssVar('--text-faint');
         var nodeOpts = { id: n.id, label: n.label, title: n.host ? (n.label + '\n' + n.host) : n.label, group: n.group || 'Default' };
         if (n.type === 'hub') {
             nodeOpts.shape = 'diamond'; nodeOpts.size = 30;
-            nodeOpts.color = { background: '#5b9aff', border: '#4a89ee', highlight: { background: '#6faeff', border: '#5b9aff' }};
+            nodeOpts.color = { background: cssVar('--accent'), border: cssVar('--accent-hover'), highlight: { background: cssVar('--accent'), border: cssVar('--accent-hover') }};
             nodeOpts.font = { color: '#fff', size: 14, bold: true };
         } else if (n.type === 'discovered') {
             nodeOpts.shape = 'dot'; nodeOpts.size = 14;
@@ -1669,7 +1942,7 @@ function renderNetworkMap(data) {
         nodes.push(nodeOpts);
     });
     data.edges.forEach(function(e) {
-        edges.push({ from: e.from, to: e.to, color: { color: '#2a2d3a', highlight: '#5b9aff' }, width: 1, smooth: { type: 'continuous' }, arrows: { to: { enabled: true, scaleFactor: 0.5 }} });
+        edges.push({ from: e.from, to: e.to, color: { color: cssVar('--border'), highlight: cssVar('--accent') }, width: 1, smooth: { type: 'continuous' }, arrows: { to: { enabled: true, scaleFactor: 0.5 }} });
     });
     var visData = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
     var options = {
@@ -1778,7 +2051,7 @@ function renderWebhooks() {
     var html = '';
     _webhookData.forEach(function(w, i) {
         html += '<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">'
-            + '<select onchange="_webhookData[' + i + '].type=this.value" style="background:#0a0e17;border:1px solid #2a2d3a;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:12px;width:100px;">'
+            + '<select onchange="_webhookData[' + i + '].type=this.value" style="background:var(--bg-deep);border:1px solid var(--border);color:var(--text-body);padding:4px 8px;border-radius:4px;font-size:12px;width:100px;">'
             + '<option value="slack"' + (w.type === 'slack' ? ' selected' : '') + '>Slack</option>'
             + '<option value="teams"' + (w.type === 'teams' ? ' selected' : '') + '>Teams</option>'
             + '<option value="pagerduty"' + (w.type === 'pagerduty' ? ' selected' : '') + '>PagerDuty</option>'
@@ -1786,9 +2059,9 @@ function renderWebhooks() {
             + '</select>'
             + '<input type="text" value="' + escAttr(w.url || w.routing_key || '') + '" '
             + 'onchange="_webhookData[' + i + '].url=this.value" '
-            + 'placeholder="Webhook URL" style="flex:1;background:#0a0e17;border:1px solid #2a2d3a;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:12px;">'
+            + 'placeholder="Webhook URL" style="flex:1;background:var(--bg-deep);border:1px solid var(--border);color:var(--text-body);padding:4px 8px;border-radius:4px;font-size:12px;">'
             + '<button onclick="_webhookData.splice(' + i + ',1);renderWebhooks();" '
-            + 'style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;" title="Remove">&times;</button>'
+            + 'style="background:none;border:none;color:var(--btn-danger);cursor:pointer;font-size:16px;" title="Remove">&times;</button>'
             + '</div>';
     });
     el.innerHTML = html;
@@ -1906,15 +2179,15 @@ function filterInventory() {
     var wrap = document.getElementById('inv-table-wrap');
     if (!filtered.length) { wrap.innerHTML = '<div class="empty-state"><p>No assets found.</p></div>'; updateInvSelBtn(); return; }
     var html = '<table><thead><tr>'
-        + '<th style="width:36px;"><input type="checkbox" id="inv-select-all" onchange="toggleAllInvCheckboxes(this)" style="accent-color:#5b9aff;width:16px;height:16px;cursor:pointer;"></th>'
+        + '<th style="width:36px;"><input type="checkbox" id="inv-select-all" onchange="toggleAllInvCheckboxes(this)" style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer;"></th>'
         + '<th>IP</th><th>Hostname</th><th>Type</th><th>Vendor / Model</th><th>Location</th><th>Ports</th><th>Status</th><th>Last Seen</th><th style="width:180px;">Actions</th></tr></thead><tbody>';
     filtered.forEach(function(a) {
         var portsHtml = ''; (a.open_ports_list || []).slice(0,6).forEach(function(p) { portsHtml += '<span class="port-chip">' + (PORT_NAMES[p]||p) + '</span>'; });
-        if ((a.open_ports_list||[]).length > 6) portsHtml += '<span style="color:#555;font-size:11px;">+' + ((a.open_ports_list||[]).length-6) + '</span>';
+        if ((a.open_ports_list||[]).length > 6) portsHtml += '<span style="color:var(--text-faint);font-size:11px;">+' + ((a.open_ports_list||[]).length-6) + '</span>';
         if (!portsHtml) portsHtml = '<span style="color:#444;">--</span>';
         var stCls = a.status === 'active' ? 'inv-status-active' : 'inv-status-retired';
         var monBadge = a.is_monitored ? ' <span class="monitored-badge">Monitored</span>' : '';
-        html += '<tr><td><input type="checkbox" class="inv-row-cb" value="' + a.id + '" onchange="updateInvSelBtn()" style="accent-color:#5b9aff;width:16px;height:16px;cursor:pointer;"></td>'
+        html += '<tr><td><input type="checkbox" class="inv-row-cb" value="' + a.id + '" onchange="updateInvSelBtn()" style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer;"></td>'
             + '<td style="font-family:monospace;">' + esc(a.ip) + monBadge + '</td><td>' + esc(a.hostname || '') + '</td>'
             + '<td>' + (a.device_type ? '<span class="inv-type-chip">' + esc(a.device_type) + '</span>' : '--') + '</td>'
             + '<td>' + esc([a.vendor,a.model].filter(function(x){return x;}).join(' ') || '--') + '</td>'
@@ -2024,13 +2297,13 @@ function loadSLAReport() {
         var totalUp = 0, totalDev = devs.length, incidents = 0;
         devs.forEach(function(d) { if (d.uptime_pct !== null) totalUp += d.uptime_pct; incidents += d.incident_count; });
         var avgUp = totalDev > 0 ? (totalUp / totalDev).toFixed(2) : 'N/A';
-        var sumHtml = '<div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:16px 24px;text-align:center;">'
+        var sumHtml = '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px 24px;text-align:center;">'
             + '<div style="font-size:28px;font-weight:700;color:#22c55e;">' + avgUp + '%</div>'
             + '<div style="font-size:11px;color:#64748b;text-transform:uppercase;">Avg Uptime</div></div>'
-            + '<div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:16px 24px;text-align:center;">'
+            + '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px 24px;text-align:center;">'
             + '<div style="font-size:28px;font-weight:700;color:#94a3b8;">' + totalDev + '</div>'
             + '<div style="font-size:11px;color:#64748b;text-transform:uppercase;">Devices</div></div>'
-            + '<div style="background:#1a1d2b;border:1px solid #2a2d3a;border-radius:8px;padding:16px 24px;text-align:center;">'
+            + '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px 24px;text-align:center;">'
             + '<div style="font-size:28px;font-weight:700;color:#f59e0b;">' + incidents + '</div>'
             + '<div style="font-size:11px;color:#64748b;text-transform:uppercase;">Incidents</div></div>';
         document.getElementById('sla-summary').innerHTML = sumHtml;
@@ -2049,7 +2322,7 @@ function loadSLAReport() {
                 + '<td>' + d.incident_count + '</td><td>' + mttr + '</td>'
                 + '<td><span class="badge ' + slaClass + '">' + slaLabel + '</span></td></tr>';
         });
-        if (!html) html = '<tr><td colspan="7" style="text-align:center;color:#555;padding:40px;">No data for this period</td></tr>';
+        if (!html) html = '<tr><td colspan="7" style="text-align:center;color:var(--text-faint);padding:40px;">No data for this period</td></tr>';
         document.getElementById('sla-body').innerHTML = html;
     });
 }
@@ -2062,10 +2335,123 @@ function downloadSLACSV() {
 function esc(s) { if (s === null || s === undefined) return ''; var d = document.createElement('div'); d.appendChild(document.createTextNode(String(s))); return d.innerHTML; }
 function escAttr(s) { return esc(String(s === null || s === undefined ? '' : s)).replace(/"/g, '&quot;'); }
 
+
+// ===== Skin & Customization Engine (v5.4) =====
+var _refreshTimer = null;
+var _refreshMs = 30000;
+
+function setSkin(name) {
+    if (name === 'midnight' || !name) {
+        document.documentElement.removeAttribute('data-skin');
+    } else {
+        document.documentElement.setAttribute('data-skin', name);
+    }
+    localStorage.setItem('netmon-skin', name || 'midnight');
+    highlightActiveSkin();
+}
+
+function highlightActiveSkin() {
+    var current = localStorage.getItem('netmon-skin') || 'midnight';
+    document.querySelectorAll('.skin-swatch').forEach(function(btn) {
+        if (btn.getAttribute('data-skin') === current) {
+            btn.style.borderColor = 'var(--accent)';
+            btn.style.boxShadow = '0 0 0 1px var(--accent)';
+        } else {
+            btn.style.borderColor = 'var(--border)';
+            btn.style.boxShadow = 'none';
+        }
+    });
+}
+
+function setDensity(val) {
+    if (val === 'comfortable' || !val) {
+        document.documentElement.removeAttribute('data-density');
+    } else {
+        document.documentElement.setAttribute('data-density', val);
+    }
+    localStorage.setItem('netmon-density', val || 'comfortable');
+}
+
+function setRefreshInterval(seconds) {
+    seconds = parseInt(seconds) || 0;
+    localStorage.setItem('netmon-refresh', seconds);
+    _refreshMs = seconds * 1000;
+    if (_refreshTimer) { clearInterval(_refreshTimer); _refreshTimer = null; }
+    if (seconds > 0) {
+        _refreshTimer = setInterval(refreshAll, _refreshMs);
+        document.getElementById('refresh-info').textContent = 'Auto-refresh: ' + seconds + 's';
+    } else {
+        document.getElementById('refresh-info').textContent = 'Auto-refresh: off';
+    }
+}
+
+function toggleSummaryBar() {
+    var show = document.getElementById('pref-show-summary').checked;
+    var bar = document.getElementById('summary-bar');
+    if (bar) bar.style.display = show ? 'flex' : 'none';
+}
+
+function savePref(key, value) {
+    localStorage.setItem('netmon-' + key, JSON.stringify(value));
+}
+
+function loadPrefs() {
+    // Skin
+    var skin = localStorage.getItem('netmon-skin') || 'midnight';
+    setSkin(skin);
+
+    // Density
+    var density = localStorage.getItem('netmon-density') || 'comfortable';
+    setDensity(density);
+    var densityEl = document.getElementById('pref-density');
+    if (densityEl) densityEl.value = density;
+
+    // Refresh
+    var refresh = localStorage.getItem('netmon-refresh');
+    if (refresh !== null) {
+        setRefreshInterval(parseInt(refresh));
+        var refreshEl = document.getElementById('pref-refresh');
+        if (refreshEl) refreshEl.value = refresh;
+    }
+
+    // Default tab
+    var defaultTab = null;
+    try { defaultTab = JSON.parse(localStorage.getItem('netmon-defaultTab')); } catch(e) {}
+    if (defaultTab) {
+        var tabEl = document.getElementById('pref-default-tab');
+        if (tabEl) tabEl.value = defaultTab;
+        // Activate on first load
+        if (!window._tabInitDone) {
+            var targetTab = document.querySelector('.tab[data-tab="' + defaultTab + '"]');
+            if (targetTab) targetTab.click();
+            window._tabInitDone = true;
+        }
+    }
+
+    // Summary bar
+    var showSummary = true;
+    try { var s = JSON.parse(localStorage.getItem('netmon-showSummary')); if (s === false) showSummary = false; } catch(e) {}
+    var sumCb = document.getElementById('pref-show-summary');
+    if (sumCb) sumCb.checked = showSummary;
+    toggleSummaryBar();
+
+    highlightActiveSkin();
+}
+
+// Load prefs on startup
+loadPrefs();
+
+
+// Helper to read computed CSS variable values
+function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 // ===== Auto-refresh =====
 function refreshAll() { loadStatus(); loadAlerts(); loadHistory(); }
 refreshAll();
-setInterval(refreshAll, 30000);
+// Start default refresh timer (loadPrefs may override)
+if (!_refreshTimer) { _refreshTimer = setInterval(refreshAll, _refreshMs); }
 </script>
 </body>
 </html>
