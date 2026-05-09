@@ -35,6 +35,24 @@ webhooks: []
 #  - type: generic
 #    url: "https://your-endpoint.com/webhook"
 
+# Helpdesk / PSA integration (Pro+)
+# Supported providers: freshservice, connectwise
+helpdesk:
+  provider: ""
+  sync_interval_minutes: 5
+  auto_create_tickets: false
+  freshservice:
+    domain: ""
+    api_key: ""
+    default_requester_email: ""
+  connectwise:
+    site_url: ""
+    company_id: ""
+    public_key: ""
+    private_key: ""
+    client_id: ""
+    default_board_id: ""
+
 check_interval_seconds: 60
 
 dashboard:

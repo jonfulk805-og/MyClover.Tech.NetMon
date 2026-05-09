@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MyClover.Tech.netmon v5.4 - Network Monitoring System
+MyClover.Tech.netmon v5.7 - Network Monitoring System
 Features: ICMP ping, TCP port, HTTP, SNMP checks; email alerts;
           Flask dashboard with device CRUD, links/notes, maintenance mode,
           device detail drawer, status filters/search,
@@ -36,6 +36,7 @@ import secrets
 import base64
 import csv
 import io
+import zipfile
 import glob as glob_mod
 import functools
 from pathlib import Path
@@ -56,7 +57,7 @@ except ImportError:
     print("[WARN] requests not installed. HTTP checks disabled. Run: pip install requests")
 
 try:
-    from flask import Flask, jsonify, request, render_template, abort
+    from flask import Flask, jsonify, request, render_template, abort, send_file
     HAS_FLASK = True
 except ImportError:
     HAS_FLASK = False
@@ -105,7 +106,7 @@ TIER_FEATURES = {
         "max_devices": 0,  # 0 = unlimited
         "max_sensors": 0,
         "tabs": ["status", "alerts", "history", "devices", "settings",
-                 "inventory", "map", "discovery", "downtime"],
+                 "inventory", "map", "discovery", "downtime", "helpdesk"],
         "api_write": True,
         "multi_recipient": True,
     },
@@ -113,11 +114,12 @@ TIER_FEATURES = {
         "max_devices": 0,
         "max_sensors": 0,
         "tabs": ["status", "alerts", "history", "devices", "settings",
-                 "inventory", "map", "discovery", "downtime", "noc",
-                 "reports"],
+                 "inventory", "map", "discovery", "downtime", "helpdesk",
+                 "noc", "security", "reports"],
         "api_write": True,
         "multi_recipient": True,
         "noc_mode": True,
+        "security_scan": True,
         "sla_reports": True,
         "user_auth": True,
         "custom_plugins": True,
@@ -374,6 +376,58 @@ def init_db():
                  ON perf_data(device_name, check_label, timestamp)""")
     c.execute("""CREATE INDEX IF NOT EXISTS idx_downtime_device
                  ON scheduled_downtime(device_name, start_time)""")
+    # Helpdesk ticket cache
+    c.execute("""CREATE TABLE IF NOT EXISTS helpdesk_tickets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        remote_id TEXT NOT NULL,
+        provider TEXT NOT NULL,
+        subject TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        status TEXT DEFAULT '',
+        priority TEXT DEFAULT '',
+        ticket_type TEXT DEFAULT '',
+        assignee TEXT DEFAULT '',
+        requester TEXT DEFAULT '',
+        created_at TEXT DEFAULT '',
+        updated_at TEXT DEFAULT '',
+        due_date TEXT DEFAULT '',
+        device_name TEXT DEFAULT '',
+        url TEXT DEFAULT '',
+        raw_json TEXT DEFAULT '{}',
+        synced_at TEXT NOT NULL
+    )""")
+    c.execute("""CREATE UNIQUE INDEX IF NOT EXISTS idx_helpdesk_remote
+                 ON helpdesk_tickets(provider, remote_id)""")
+    c.execute("""CREATE INDEX IF NOT EXISTS idx_helpdesk_device
+                 ON helpdesk_tickets(device_name)""")
+    c.execute("""CREATE INDEX IF NOT EXISTS idx_helpdesk_status
+                 ON helpdesk_tickets(status)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS security_scans (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        scan_id TEXT UNIQUE NOT NULL,
+        started_at TEXT NOT NULL,
+        finished_at TEXT,
+        targets TEXT NOT NULL,
+        scan_types TEXT NOT NULL,
+        status TEXT DEFAULT 'running',
+        summary TEXT DEFAULT '{}'
+    )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS security_findings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        scan_id TEXT NOT NULL,
+        target TEXT NOT NULL,
+        category TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        details TEXT DEFAULT '{}',
+        remediation TEXT DEFAULT ''
+    )""")
+    c.execute("""CREATE INDEX IF NOT EXISTS idx_secscans_id
+                 ON security_scans(scan_id)""")
+    c.execute("""CREATE INDEX IF NOT EXISTS idx_secfindings_scan
+                 ON security_findings(scan_id)""")
+
     # Migrate: add acknowledged columns to alerts if missing
     try:
         c.execute("SELECT acknowledged FROM alerts LIMIT 1")
@@ -431,7 +485,7 @@ def get_latest_per_check():
 def get_alerts(hours=48):
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
-    since = (datetime.datetime.utcnow() - datetime.timedelta(hours=hours)).isoformat()
+    since = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - datetime.timedelta(hours=hours)).isoformat()
     rows = conn.execute(
         "SELECT * FROM alerts WHERE timestamp >= ? ORDER BY timestamp DESC LIMIT 500",
         (since,)).fetchall()
@@ -442,7 +496,7 @@ def get_alerts(hours=48):
 def get_history(hours=24):
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
-    since = (datetime.datetime.utcnow() - datetime.timedelta(hours=hours)).isoformat()
+    since = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - datetime.timedelta(hours=hours)).isoformat()
     rows = conn.execute(
         "SELECT * FROM check_results WHERE timestamp >= ? ORDER BY timestamp DESC LIMIT 1000",
         (since,)).fetchall()
@@ -469,7 +523,7 @@ def get_device_history(device_name, check_label=None, limit=50):
 
 def get_device_uptime(device_name, hours=24):
     conn = sqlite3.connect(str(DB_PATH))
-    since = (datetime.datetime.utcnow() - datetime.timedelta(hours=hours)).isoformat()
+    since = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - datetime.timedelta(hours=hours)).isoformat()
     total = conn.execute(
         "SELECT COUNT(*) FROM check_results WHERE device_name=? AND timestamp>=?",
         (device_name, since)).fetchone()[0]
@@ -486,7 +540,7 @@ def get_perf_data(device_name, check_label, hours=24, max_points=200):
     """Get performance time-series data for graphing."""
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
-    since = (datetime.datetime.utcnow() - datetime.timedelta(hours=hours)).isoformat()
+    since = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - datetime.timedelta(hours=hours)).isoformat()
     rows = conn.execute(
         "SELECT timestamp, status, response_ms FROM perf_data "
         "WHERE device_name=? AND check_label=? AND timestamp>=? "
@@ -507,7 +561,7 @@ def get_perf_data(device_name, check_label, hours=24, max_points=200):
 
 def get_active_downtimes():
     """Return list of device names currently in scheduled downtime."""
-    now = datetime.datetime.utcnow().isoformat()
+    now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     rows = conn.execute(
@@ -579,7 +633,7 @@ def is_parent_down(device_name, parent_map, status_map):
 
 def import_scan_to_inventory(scan_id):
     """Import alive hosts from a scan into the inventory table."""
-    now = datetime.datetime.utcnow().isoformat()
+    now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     rows = conn.execute(
@@ -780,7 +834,7 @@ def run_check(device, check):
     elif ctype == "plugin":
         pr = run_plugin_check(device, check)
         return {
-            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "timestamp": datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat(),
             "device_name": device["name"],
             "host": host,
             "check_type": ctype,
@@ -802,7 +856,7 @@ def run_check(device, check):
         status = "OK"
 
     return {
-        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "timestamp": datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat(),
         "device_name": device["name"],
         "host": host,
         "check_type": ctype,
@@ -828,7 +882,7 @@ def send_alert_email(result, smtp_cfg):
     if key in _last_alert_email and (now - _last_alert_email[key]) < cooldown:
         return False
 
-    subject = "[Clover.tech.netmon %s] %s - %s" % (result["status"], result["device_name"],
+    subject = "[MyClover.Tech.netmon %s] %s - %s" % (result["status"], result["device_name"],
                                                      result.get("check_label", ""))
     body_text = (
         "Device: %s\nHost: %s\nCheck: %s\nStatus: %s\nMessage: %s\nTime: %s"
@@ -941,7 +995,7 @@ def _send_slack_webhook(result, url):
                 {"title": "Status", "value": result["status"], "short": True},
                 {"title": "Message", "value": result.get("message", ""), "short": False},
             ],
-            "footer": "Clover.tech.netmon",
+            "footer": "MyClover.Tech.netmon",
             "ts": int(time.time()),
         }]
     }
@@ -1137,7 +1191,7 @@ def generate_sla_report(hours=720, device_filter=None):
     """
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
-    since = (datetime.datetime.utcnow() - datetime.timedelta(hours=hours)).isoformat()
+    since = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - datetime.timedelta(hours=hours)).isoformat()
 
     # Get all device names
     with _config_lock:
@@ -1437,11 +1491,11 @@ def run_scan(ip_range_str, scan_port_list=None, port_timeout=1000, max_threads=5
     except ValueError as e:
         with _scan_lock:
             _scan_state["running"] = False
-            _scan_state["finished_at"] = datetime.datetime.utcnow().isoformat()
+            _scan_state["finished_at"] = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
         log.error("Scan parse error: %s", e)
         return
 
-    scan_id = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    scan_id = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).strftime("%Y%m%d_%H%M%S")
 
     with _scan_lock:
         _scan_state["running"] = True
@@ -1450,7 +1504,7 @@ def run_scan(ip_range_str, scan_port_list=None, port_timeout=1000, max_threads=5
         _scan_state["scanned"] = 0
         _scan_state["alive"] = 0
         _scan_state["target"] = ip_range_str
-        _scan_state["started_at"] = datetime.datetime.utcnow().isoformat()
+        _scan_state["started_at"] = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
         _scan_state["finished_at"] = None
         _scan_state["results"] = []
 
@@ -1485,7 +1539,7 @@ def run_scan(ip_range_str, scan_port_list=None, port_timeout=1000, max_threads=5
         conn.execute(
             "INSERT INTO scan_results (scan_id,timestamp,ip,hostname,is_alive,open_ports,response_ms,added_to_devices) "
             "VALUES (?,?,?,?,?,?,?,0)",
-            (scan_id, datetime.datetime.utcnow().isoformat(), r["ip"], r["hostname"],
+            (scan_id, datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat(), r["ip"], r["hostname"],
              int(r["is_alive"]), ",".join(str(p) for p in r["open_ports"]),
              r["response_ms"]))
     conn.commit()
@@ -1493,7 +1547,7 @@ def run_scan(ip_range_str, scan_port_list=None, port_timeout=1000, max_threads=5
 
     with _scan_lock:
         _scan_state["running"] = False
-        _scan_state["finished_at"] = datetime.datetime.utcnow().isoformat()
+        _scan_state["finished_at"] = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
         _scan_state["results"] = alive_results
 
     if auto_inventory:
@@ -1574,6 +1628,13 @@ def monitoring_loop():
                     webhooks = cfg.get("webhooks", [])
                     if webhooks:
                         send_webhook_notification(r, webhooks)
+                    # Auto-create helpdesk ticket (Pro+)
+                    if status_str == "CRITICAL":
+                        threading.Thread(
+                            target=create_ticket_from_alert,
+                            args=(dict(r),),
+                            daemon=True,
+                        ).start()
             elif status_str == "OK" and prev in ("WARNING", "CRITICAL"):
                 # Recovery: clear ack so future failures trigger alerts again
                 _acked_keys.discard(key)
@@ -1585,8 +1646,971 @@ def monitoring_loop():
 
 
 # ---------------------------------------------------------------------------
+# Helpdesk Connector (Pro+)
+# ---------------------------------------------------------------------------
+# Integrates with Freshservice and ConnectWise Manage to pull tickets into
+# the dashboard and optionally auto-create tickets from Critical alerts.
+# ---------------------------------------------------------------------------
+
+_helpdesk_sync_state = {
+    "running": False,
+    "last_sync": None,
+    "last_error": None,
+    "ticket_count": 0,
+}
+_helpdesk_lock = threading.Lock()
+
+
+def _get_helpdesk_config():
+    """Get helpdesk config from main config."""
+    with _config_lock:
+        return dict(_config.get("helpdesk", {}))
+
+
+def _freshservice_fetch_tickets(cfg):
+    """Fetch tickets from Freshservice REST API v2."""
+    if not req_lib:
+        raise RuntimeError("requests library required for helpdesk integration")
+
+    domain = cfg.get("domain", "").strip()
+    api_key = cfg.get("api_key", "").strip()
+    if not domain or not api_key:
+        raise ValueError("Freshservice domain and API key are required")
+
+    # Ensure domain format
+    if not domain.startswith("http"):
+        domain = "https://%s" % domain
+    if ".freshservice.com" not in domain:
+        domain = domain.rstrip("/") + ".freshservice.com"
+
+    base_url = domain.rstrip("/")
+    headers = {"Content-Type": "application/json"}
+    auth = (api_key, "X")  # Freshservice uses API key as username, X as password
+
+    tickets = []
+    page = 1
+    per_page = 100
+    max_pages = 10  # Safety limit
+
+    while page <= max_pages:
+        url = "%s/api/v2/tickets?per_page=%d&page=%d&include=requester" % (
+            base_url, per_page, page)
+        resp = req_lib.get(url, auth=auth, headers=headers, timeout=30)
+        if resp.status_code == 401:
+            raise ValueError("Freshservice authentication failed -- check API key")
+        if resp.status_code == 404:
+            raise ValueError("Freshservice domain not found -- check domain setting")
+        resp.raise_for_status()
+
+        data = resp.json()
+        page_tickets = data.get("tickets", [])
+        if not page_tickets:
+            break
+
+        for t in page_tickets:
+            priority_map = {1: "Low", 2: "Medium", 3: "High", 4: "Urgent"}
+            status_map = {2: "Open", 3: "Pending", 4: "Resolved", 5: "Closed"}
+            tickets.append({
+                "remote_id": str(t.get("id", "")),
+                "provider": "freshservice",
+                "subject": t.get("subject", ""),
+                "description": (t.get("description_text") or "")[:2000],
+                "status": status_map.get(t.get("status"), str(t.get("status", ""))),
+                "priority": priority_map.get(t.get("priority"), str(t.get("priority", ""))),
+                "ticket_type": t.get("type") or "",
+                "assignee": "",
+                "requester": t.get("requester", {}).get("name", "") if isinstance(t.get("requester"), dict) else "",
+                "created_at": t.get("created_at", ""),
+                "updated_at": t.get("updated_at", ""),
+                "due_date": t.get("due_by", ""),
+                "url": "%s/a/tickets/%s" % (base_url, t.get("id", "")),
+                "raw_json": json_mod.dumps(t, default=str),
+            })
+
+        if len(page_tickets) < per_page:
+            break
+        page += 1
+
+    return tickets
+
+
+def _freshservice_create_ticket(cfg, subject, description, priority="Medium",
+                                 requester_email=""):
+    """Create a ticket in Freshservice."""
+    if not req_lib:
+        raise RuntimeError("requests library required")
+
+    domain = cfg.get("domain", "").strip()
+    api_key = cfg.get("api_key", "").strip()
+    if not domain or not api_key:
+        raise ValueError("Freshservice domain and API key are required")
+
+    if not domain.startswith("http"):
+        domain = "https://%s" % domain
+    if ".freshservice.com" not in domain:
+        domain = domain.rstrip("/") + ".freshservice.com"
+
+    base_url = domain.rstrip("/")
+    auth = (api_key, "X")
+
+    priority_map = {"Low": 1, "Medium": 2, "High": 3, "Urgent": 4}
+    payload = {
+        "subject": subject,
+        "description": description,
+        "priority": priority_map.get(priority, 2),
+        "status": 2,  # Open
+    }
+    if requester_email:
+        payload["email"] = requester_email
+    else:
+        payload["email"] = cfg.get("default_requester_email", "netmon@localhost")
+
+    resp = req_lib.post(
+        "%s/api/v2/tickets" % base_url,
+        auth=auth,
+        json=payload,
+        headers={"Content-Type": "application/json"},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    return resp.json().get("ticket", {})
+
+
+def _connectwise_fetch_tickets(cfg):
+    """Fetch tickets from ConnectWise Manage REST API."""
+    if not req_lib:
+        raise RuntimeError("requests library required for helpdesk integration")
+
+    site_url = cfg.get("site_url", "").strip().rstrip("/")
+    company_id = cfg.get("company_id", "").strip()
+    public_key = cfg.get("public_key", "").strip()
+    private_key = cfg.get("private_key", "").strip()
+    client_id = cfg.get("client_id", "").strip()
+
+    if not all([site_url, company_id, public_key, private_key, client_id]):
+        raise ValueError(
+            "ConnectWise requires site_url, company_id, public_key, "
+            "private_key, and client_id"
+        )
+
+    # ConnectWise uses Basic auth: company_id+public_key:private_key
+    auth_token = base64.b64encode(
+        ("%s+%s:%s" % (company_id, public_key, private_key)).encode()
+    ).decode()
+
+    headers = {
+        "Authorization": "Basic %s" % auth_token,
+        "Content-Type": "application/json",
+        "clientId": client_id,
+    }
+
+    tickets = []
+    page = 1
+    page_size = 200
+    max_pages = 10
+
+    while page <= max_pages:
+        url = "%s/v4_6_release/apis/3.0/service/tickets" % site_url
+        params = {
+            "pageSize": page_size,
+            "page": page,
+            "orderBy": "id desc",
+        }
+        resp = req_lib.get(url, headers=headers, params=params, timeout=30)
+        if resp.status_code == 401:
+            raise ValueError("ConnectWise authentication failed -- check credentials")
+        resp.raise_for_status()
+
+        page_tickets = resp.json()
+        if not page_tickets:
+            break
+
+        for t in page_tickets:
+            priority_name = ""
+            if isinstance(t.get("priority"), dict):
+                priority_name = t["priority"].get("name", "")
+            status_name = ""
+            if isinstance(t.get("status"), dict):
+                status_name = t["status"].get("name", "")
+            assignee_name = ""
+            if isinstance(t.get("owner"), dict):
+                assignee_name = t["owner"].get("name", "")
+            requester_name = ""
+            if isinstance(t.get("contact"), dict):
+                requester_name = t["contact"].get("name", "")
+            company_name = ""
+            if isinstance(t.get("company"), dict):
+                company_name = t["company"].get("name", "")
+
+            tickets.append({
+                "remote_id": str(t.get("id", "")),
+                "provider": "connectwise",
+                "subject": t.get("summary", ""),
+                "description": (t.get("initialDescription") or "")[:2000],
+                "status": status_name,
+                "priority": priority_name,
+                "ticket_type": t.get("type", {}).get("name", "") if isinstance(t.get("type"), dict) else "",
+                "assignee": assignee_name,
+                "requester": requester_name or company_name,
+                "created_at": t.get("dateEntered", ""),
+                "updated_at": t.get("lastUpdated", ""),
+                "due_date": t.get("requiredDate", ""),
+                "url": "%s/v4_6_release/services/system_io/Service/fv_sr100_request.rails?service_recid=%s" % (
+                    site_url, t.get("id", "")),
+                "raw_json": json_mod.dumps(t, default=str),
+            })
+
+        if len(page_tickets) < page_size:
+            break
+        page += 1
+
+    return tickets
+
+
+def _connectwise_create_ticket(cfg, subject, description, priority="Medium",
+                                company_id_ref=None):
+    """Create a ticket in ConnectWise Manage."""
+    if not req_lib:
+        raise RuntimeError("requests library required")
+
+    site_url = cfg.get("site_url", "").strip().rstrip("/")
+    company_id = cfg.get("company_id", "").strip()
+    public_key = cfg.get("public_key", "").strip()
+    private_key = cfg.get("private_key", "").strip()
+    client_id = cfg.get("client_id", "").strip()
+
+    auth_token = base64.b64encode(
+        ("%s+%s:%s" % (company_id, public_key, private_key)).encode()
+    ).decode()
+
+    headers = {
+        "Authorization": "Basic %s" % auth_token,
+        "Content-Type": "application/json",
+        "clientId": client_id,
+    }
+
+    payload = {
+        "summary": subject,
+        "initialDescription": description,
+    }
+    if company_id_ref:
+        payload["company"] = {"id": company_id_ref}
+    default_board = cfg.get("default_board_id")
+    if default_board:
+        payload["board"] = {"id": int(default_board)}
+
+    resp = req_lib.post(
+        "%s/v4_6_release/apis/3.0/service/tickets" % site_url,
+        headers=headers,
+        json=payload,
+        timeout=30,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def sync_helpdesk_tickets(force=False):
+    """Sync tickets from the configured helpdesk provider into local DB."""
+    hd_cfg = _get_helpdesk_config()
+    provider = hd_cfg.get("provider", "").strip().lower()
+
+    if not provider:
+        return {"ok": False, "error": "No helpdesk provider configured"}
+
+    with _helpdesk_lock:
+        if _helpdesk_sync_state["running"] and not force:
+            return {"ok": False, "error": "Sync already in progress"}
+        _helpdesk_sync_state["running"] = True
+
+    try:
+        if provider == "freshservice":
+            fs_cfg = hd_cfg.get("freshservice", {})
+            tickets = _freshservice_fetch_tickets(fs_cfg)
+        elif provider == "connectwise":
+            cw_cfg = hd_cfg.get("connectwise", {})
+            tickets = _connectwise_fetch_tickets(cw_cfg)
+        else:
+            raise ValueError("Unknown helpdesk provider: %s" % provider)
+
+        # Upsert into local DB
+        now = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        conn = sqlite3.connect(str(DB_PATH))
+        c = conn.cursor()
+
+        for t in tickets:
+            c.execute(
+                "SELECT id FROM helpdesk_tickets WHERE provider=? AND remote_id=?",
+                (t["provider"], t["remote_id"]),
+            )
+            existing = c.fetchone()
+            if existing:
+                c.execute(
+                    """UPDATE helpdesk_tickets SET
+                        subject=?, description=?, status=?, priority=?,
+                        ticket_type=?, assignee=?, requester=?,
+                        created_at=?, updated_at=?, due_date=?,
+                        url=?, raw_json=?, synced_at=?
+                    WHERE provider=? AND remote_id=?""",
+                    (
+                        t["subject"], t["description"], t["status"], t["priority"],
+                        t["ticket_type"], t["assignee"], t["requester"],
+                        t["created_at"], t["updated_at"], t["due_date"],
+                        t["url"], t["raw_json"], now,
+                        t["provider"], t["remote_id"],
+                    ),
+                )
+            else:
+                c.execute(
+                    """INSERT INTO helpdesk_tickets
+                        (remote_id, provider, subject, description, status,
+                         priority, ticket_type, assignee, requester,
+                         created_at, updated_at, due_date, url, raw_json, synced_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        t["remote_id"], t["provider"], t["subject"],
+                        t["description"], t["status"], t["priority"],
+                        t["ticket_type"], t["assignee"], t["requester"],
+                        t["created_at"], t["updated_at"], t["due_date"],
+                        t["url"], t["raw_json"], now,
+                    ),
+                )
+
+        conn.commit()
+        conn.close()
+
+        with _helpdesk_lock:
+            _helpdesk_sync_state["running"] = False
+            _helpdesk_sync_state["last_sync"] = now
+            _helpdesk_sync_state["last_error"] = None
+            _helpdesk_sync_state["ticket_count"] = len(tickets)
+
+        log.info("Helpdesk sync complete: %d tickets from %s", len(tickets), provider)
+        return {"ok": True, "synced": len(tickets), "provider": provider}
+
+    except Exception as e:
+        log.error("Helpdesk sync failed: %s", e)
+        with _helpdesk_lock:
+            _helpdesk_sync_state["running"] = False
+            _helpdesk_sync_state["last_error"] = str(e)
+        return {"ok": False, "error": str(e)}
+
+
+def helpdesk_sync_loop():
+    """Background thread that periodically syncs helpdesk tickets."""
+    time.sleep(10)  # Initial delay
+    while True:
+        hd_cfg = _get_helpdesk_config()
+        provider = hd_cfg.get("provider", "").strip()
+        interval = int(hd_cfg.get("sync_interval_minutes", 5))
+        if interval < 1:
+            interval = 1
+
+        if provider:
+            sync_helpdesk_tickets()
+
+        time.sleep(interval * 60)
+
+
+def create_ticket_from_alert(result):
+    """Auto-create a helpdesk ticket from a monitoring alert result."""
+    hd_cfg = _get_helpdesk_config()
+    provider = hd_cfg.get("provider", "").strip().lower()
+    if not hd_cfg.get("auto_create_tickets", False) or not provider:
+        return None
+
+    subject = "[NetMon Alert] %s -- %s %s" % (
+        result.get("device_name", "Unknown"),
+        result.get("status", "CRITICAL"),
+        result.get("check_label", ""),
+    )
+    description = (
+        "MyClover.Tech.netmon auto-generated ticket\n\n"
+        "Device: %s\n"
+        "Host: %s\n"
+        "Check: %s (%s)\n"
+        "Status: %s\n"
+        "Message: %s\n"
+        "Response Time: %s\n"
+        "Timestamp: %s"
+    ) % (
+        result.get("device_name", ""),
+        result.get("host", ""),
+        result.get("check_label", ""),
+        result.get("check_type", ""),
+        result.get("status", ""),
+        result.get("message", ""),
+        ("%.1fms" % result["response_ms"]) if result.get("response_ms") is not None else "N/A",
+        result.get("timestamp", ""),
+    )
+    priority = "Urgent" if result.get("status") == "CRITICAL" else "High"
+
+    try:
+        if provider == "freshservice":
+            fs_cfg = hd_cfg.get("freshservice", {})
+            ticket = _freshservice_create_ticket(fs_cfg, subject, description, priority)
+            log.info("Auto-created Freshservice ticket #%s for %s",
+                     ticket.get("id", "?"), result.get("device_name", ""))
+            return ticket
+        elif provider == "connectwise":
+            cw_cfg = hd_cfg.get("connectwise", {})
+            ticket = _connectwise_create_ticket(cw_cfg, subject, description, priority)
+            log.info("Auto-created ConnectWise ticket #%s for %s",
+                     ticket.get("id", "?"), result.get("device_name", ""))
+            return ticket
+    except Exception as e:
+        log.error("Failed to auto-create helpdesk ticket: %s", e)
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Flask dashboard + API
 # ---------------------------------------------------------------------------
+
+
+
+# ---------------------------------------------------------------------------
+# Security Scanner (Enterprise)
+# ---------------------------------------------------------------------------
+
+_secscan_lock = threading.Lock()
+_secscan_state = {}  # current running scan state
+
+SEC_COMMON_PORTS = {
+    21: "FTP", 22: "SSH", 23: "Telnet", 25: "SMTP", 53: "DNS",
+    80: "HTTP", 110: "POP3", 111: "RPCbind", 135: "MSRPC",
+    139: "NetBIOS", 143: "IMAP", 161: "SNMP", 389: "LDAP",
+    443: "HTTPS", 445: "SMB", 465: "SMTPS", 514: "Syslog",
+    587: "Submission", 636: "LDAPS", 993: "IMAPS", 995: "POP3S",
+    1433: "MSSQL", 1521: "Oracle", 3306: "MySQL", 3389: "RDP",
+    5432: "PostgreSQL", 5900: "VNC", 5985: "WinRM", 6379: "Redis",
+    8080: "HTTP-Alt", 8443: "HTTPS-Alt", 9090: "WebUI",
+    9200: "Elasticsearch", 27017: "MongoDB",
+}
+
+WEAK_SSL_PROTOCOLS = ["SSLv2", "SSLv3", "TLSv1", "TLSv1.1"]
+
+HTTP_SECURITY_HEADERS = [
+    "Strict-Transport-Security",
+    "Content-Security-Policy",
+    "X-Content-Type-Options",
+    "X-Frame-Options",
+    "X-XSS-Protection",
+    "Referrer-Policy",
+    "Permissions-Policy",
+]
+
+SNMP_DEFAULT_COMMUNITIES = ["public", "private", "community", "snmp", "monitor",
+                            "admin", "default", "test", "read", "write"]
+
+
+def _sec_port_scan(host, timeout_s=2):
+    """Scan common ports on a host. Returns list of (port, service, banner)."""
+    open_ports = []
+    for port, svc in sorted(SEC_COMMON_PORTS.items()):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(timeout_s)
+            result = s.connect_ex((host, port))
+            if result == 0:
+                banner = ""
+                try:
+                    if port not in (80, 443, 8080, 8443):
+                        s.settimeout(2)
+                        s.sendall(b"\r\n")
+                        banner = s.recv(1024).decode("utf-8", errors="replace").strip()
+                        banner = banner[:200]
+                except Exception:
+                    pass
+                open_ports.append({"port": port, "service": svc, "banner": banner})
+            s.close()
+        except Exception:
+            pass
+    return open_ports
+
+
+def _sec_ssl_check(host, port=443, timeout_s=5):
+    """Check SSL/TLS configuration. Returns dict of findings."""
+    findings = []
+    cert_info = {}
+    try:
+        ctx = ssl_mod.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl_mod.CERT_NONE
+        with socket.create_connection((host, port), timeout=timeout_s) as sock:
+            with ctx.wrap_socket(sock, server_hostname=host) as ssock:
+                cert = ssock.getpeercert(binary_form=False)
+                cipher = ssock.cipher()
+                protocol = ssock.version()
+                cert_info["protocol"] = protocol or "Unknown"
+                cert_info["cipher"] = cipher[0] if cipher else "Unknown"
+                cert_info["bits"] = cipher[2] if cipher and len(cipher) > 2 else 0
+                if cert:
+                    not_after = cert.get("notAfter", "")
+                    not_before = cert.get("notBefore", "")
+                    subject = dict(x[0] for x in cert.get("subject", ()) if x)
+                    issuer = dict(x[0] for x in cert.get("issuer", ()) if x)
+                    cert_info["subject_cn"] = subject.get("commonName", "")
+                    cert_info["issuer_cn"] = issuer.get("commonName", "")
+                    cert_info["not_before"] = not_before
+                    cert_info["not_after"] = not_after
+                    if not_after:
+                        try:
+                            exp = datetime.datetime.strptime(not_after, "%b %d %H:%M:%S %Y %Z")
+                            days_left = (exp - datetime.datetime.now(datetime.UTC).replace(tzinfo=None)).days
+                            cert_info["days_until_expiry"] = days_left
+                            if days_left < 0:
+                                findings.append({
+                                    "severity": "critical",
+                                    "title": "SSL certificate expired",
+                                    "description": "Certificate expired %d days ago" % abs(days_left),
+                                    "remediation": "Renew the SSL certificate immediately.",
+                                })
+                            elif days_left < 30:
+                                findings.append({
+                                    "severity": "high",
+                                    "title": "SSL certificate expiring soon",
+                                    "description": "Certificate expires in %d days (on %s)" % (days_left, not_after),
+                                    "remediation": "Renew the SSL certificate before it expires.",
+                                })
+                        except Exception:
+                            pass
+                else:
+                    findings.append({
+                        "severity": "high",
+                        "title": "No SSL certificate presented",
+                        "description": "The server did not present a certificate.",
+                        "remediation": "Configure a valid SSL certificate.",
+                    })
+                if protocol in WEAK_SSL_PROTOCOLS:
+                    findings.append({
+                        "severity": "high",
+                        "title": "Weak SSL/TLS protocol: %s" % protocol,
+                        "description": "Server uses %s which has known vulnerabilities." % protocol,
+                        "remediation": "Disable %s and use TLS 1.2 or 1.3." % protocol,
+                    })
+                if cipher and cipher[2] < 128:
+                    findings.append({
+                        "severity": "high",
+                        "title": "Weak cipher: %s (%d-bit)" % (cipher[0], cipher[2]),
+                        "description": "Cipher uses less than 128-bit encryption.",
+                        "remediation": "Configure stronger cipher suites (AES-128 or AES-256).",
+                    })
+    except ssl_mod.SSLError as e:
+        findings.append({
+            "severity": "medium",
+            "title": "SSL connection error",
+            "description": str(e)[:200],
+            "remediation": "Check SSL/TLS configuration on the server.",
+        })
+    except (socket.timeout, ConnectionRefusedError, OSError):
+        cert_info["error"] = "Cannot connect to %s:%d" % (host, port)
+    try:
+        ctx2 = ssl_mod.create_default_context()
+        with socket.create_connection((host, port), timeout=timeout_s) as sock:
+            with ctx2.wrap_socket(sock, server_hostname=host) as ssock:
+                pass
+        cert_info["trusted"] = True
+    except ssl_mod.SSLCertVerificationError as e:
+        cert_info["trusted"] = False
+        findings.append({
+            "severity": "medium",
+            "title": "SSL certificate not trusted",
+            "description": str(e)[:200],
+            "remediation": "Use a certificate from a trusted CA (e.g., Let's Encrypt).",
+        })
+    except Exception:
+        pass
+    return {"cert_info": cert_info, "findings": findings}
+
+
+def _sec_http_headers(host, port=80, use_ssl=False, timeout_s=5):
+    """Check HTTP security headers. Returns list of findings."""
+    findings = []
+    headers_found = {}
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(timeout_s)
+        if use_ssl:
+            ctx = ssl_mod.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl_mod.CERT_NONE
+            s = ctx.wrap_socket(s, server_hostname=host)
+        s.connect((host, port))
+        req = "GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n" % host
+        s.sendall(req.encode("utf-8"))
+        response = b""
+        while True:
+            chunk = s.recv(4096)
+            if not chunk:
+                break
+            response += chunk
+            if len(response) > 16384:
+                break
+        s.close()
+        header_block = response.split(b"\r\n\r\n")[0].decode("utf-8", errors="replace")
+        for line in header_block.split("\r\n")[1:]:
+            if ":" in line:
+                k, v = line.split(":", 1)
+                headers_found[k.strip()] = v.strip()
+        for hdr in HTTP_SECURITY_HEADERS:
+            found = False
+            for k in headers_found:
+                if k.lower() == hdr.lower():
+                    found = True
+                    break
+            if not found:
+                sev = "high" if hdr in ("Strict-Transport-Security", "Content-Security-Policy") else "medium"
+                findings.append({
+                    "severity": sev,
+                    "title": "Missing HTTP header: %s" % hdr,
+                    "description": "The %s header is not set." % hdr,
+                    "remediation": "Add the %s header to your web server configuration." % hdr,
+                })
+        server_hdr = headers_found.get("Server", "")
+        if not server_hdr:
+            for k, v in headers_found.items():
+                if k.lower() == "server":
+                    server_hdr = v
+                    break
+        if server_hdr and any(s in server_hdr.lower() for s in ["apache/", "nginx/", "iis/", "lighttpd/"]):
+            findings.append({
+                "severity": "low",
+                "title": "Server version disclosed: %s" % server_hdr,
+                "description": "The Server header reveals software version information.",
+                "remediation": "Remove or obfuscate the Server header to reduce information leakage.",
+            })
+        powered = headers_found.get("X-Powered-By", "")
+        if not powered:
+            for k, v in headers_found.items():
+                if k.lower() == "x-powered-by":
+                    powered = v
+                    break
+        if powered:
+            findings.append({
+                "severity": "low",
+                "title": "X-Powered-By disclosed: %s" % powered,
+                "description": "The X-Powered-By header reveals technology stack.",
+                "remediation": "Remove the X-Powered-By header.",
+            })
+    except Exception:
+        pass
+    return {"headers": headers_found, "findings": findings}
+
+
+def _sec_snmp_check(host, timeout_s=3):
+    """Check for default SNMP community strings."""
+    findings = []
+    weak_communities = []
+    for community in SNMP_DEFAULT_COMMUNITIES:
+        try:
+            result = subprocess.run(
+                ["snmpget", "-v2c", "-c", community, "-t", str(timeout_s),
+                 "-r", "0", host, "1.3.6.1.2.1.1.1.0"],
+                capture_output=True, text=True, timeout=timeout_s + 2
+            )
+            if result.returncode == 0 and "SNMPv2" in result.stdout:
+                weak_communities.append(community)
+        except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+            pass
+    if weak_communities:
+        findings.append({
+            "severity": "critical" if "public" in weak_communities or "private" in weak_communities else "high",
+            "title": "Default SNMP community string(s) accepted",
+            "description": "The following default community strings are accepted: %s" % ", ".join(weak_communities),
+            "remediation": "Change SNMP community strings to unique, complex values. "
+                           "Consider using SNMPv3 with authentication and encryption.",
+        })
+    return {"weak_communities": weak_communities, "findings": findings}
+
+
+def _sec_dns_check(host, timeout_s=5):
+    """Check DNS for zone transfer vulnerability."""
+    findings = []
+    try:
+        result = subprocess.run(
+            ["nslookup", "-type=AXFR", host, host],
+            capture_output=True, text=True, timeout=timeout_s + 2
+        )
+        output = result.stdout + result.stderr
+        if "transfer" in output.lower() and "failed" not in output.lower():
+            findings.append({
+                "severity": "high",
+                "title": "DNS zone transfer may be allowed",
+                "description": "The DNS server at %s may allow zone transfers (AXFR)." % host,
+                "remediation": "Restrict DNS zone transfers to authorized secondary servers only.",
+            })
+    except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+        pass
+    return {"findings": findings}
+
+
+def _sec_service_checks(host, open_ports):
+    """Check for risky service configurations on open ports."""
+    findings = []
+    port_numbers = [p["port"] for p in open_ports]
+    if 21 in port_numbers:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(5)
+            s.connect((host, 21))
+            banner = s.recv(1024).decode("utf-8", errors="replace")
+            s.sendall(b"USER anonymous\r\n")
+            resp = s.recv(1024).decode("utf-8", errors="replace")
+            if "331" in resp:
+                s.sendall(b"PASS anonymous@\r\n")
+                resp2 = s.recv(1024).decode("utf-8", errors="replace")
+                if "230" in resp2:
+                    findings.append({
+                        "severity": "critical",
+                        "title": "FTP anonymous login enabled",
+                        "description": "The FTP server allows anonymous login.",
+                        "remediation": "Disable anonymous FTP access unless explicitly required.",
+                    })
+            s.close()
+        except Exception:
+            pass
+    if 23 in port_numbers:
+        findings.append({
+            "severity": "high",
+            "title": "Telnet service running (port 23)",
+            "description": "Telnet transmits data in cleartext including credentials.",
+            "remediation": "Replace Telnet with SSH. Disable the Telnet service.",
+        })
+    if 3389 in port_numbers:
+        findings.append({
+            "severity": "medium",
+            "title": "RDP service exposed (port 3389)",
+            "description": "Remote Desktop is accessible. Verify NLA is enabled.",
+            "remediation": "Enable Network Level Authentication (NLA). Use VPN to restrict RDP access.",
+        })
+    db_ports = {3306: "MySQL", 5432: "PostgreSQL", 1433: "MSSQL",
+                1521: "Oracle", 6379: "Redis", 27017: "MongoDB",
+                9200: "Elasticsearch"}
+    for p, name in db_ports.items():
+        if p in port_numbers:
+            findings.append({
+                "severity": "high",
+                "title": "%s exposed (port %d)" % (name, p),
+                "description": "%s is listening on a network interface." % name,
+                "remediation": "Bind %s to localhost or use firewall rules. "
+                               "Never expose databases directly to the network." % name,
+            })
+    if 6379 in port_numbers:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(3)
+            s.connect((host, 6379))
+            s.sendall(b"PING\r\n")
+            resp = s.recv(1024).decode("utf-8", errors="replace")
+            s.close()
+            if "+PONG" in resp:
+                findings.append({
+                    "severity": "critical",
+                    "title": "Redis accessible without authentication",
+                    "description": "Redis responds to PING without credentials.",
+                    "remediation": "Enable Redis AUTH and bind to localhost.",
+                })
+        except Exception:
+            pass
+    if 5900 in port_numbers:
+        findings.append({
+            "severity": "high",
+            "title": "VNC service exposed (port 5900)",
+            "description": "VNC is accessible on the network.",
+            "remediation": "Restrict VNC access via VPN or firewall. Use SSH tunneling.",
+        })
+    if 445 in port_numbers:
+        findings.append({
+            "severity": "medium",
+            "title": "SMB service exposed (port 445)",
+            "description": "SMB/CIFS is accessible. Check for SMBv1 and guest access.",
+            "remediation": "Disable SMBv1. Require authentication. Restrict via firewall.",
+        })
+    return findings
+
+
+def run_security_scan(targets, scan_types, scan_id=None):
+    """Run a security scan against one or more targets."""
+    if scan_id is None:
+        scan_id = "sec-%s" % secrets.token_hex(6)
+    started = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).strftime("%Y-%m-%dT%H:%M:%SZ")
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.execute(
+        "INSERT INTO security_scans (scan_id, started_at, targets, scan_types, status) "
+        "VALUES (?, ?, ?, ?, 'running')",
+        (scan_id, started, json_mod.dumps(targets), json_mod.dumps(scan_types))
+    )
+    conn.commit()
+    conn.close()
+    with _secscan_lock:
+        _secscan_state["scan_id"] = scan_id
+        _secscan_state["status"] = "running"
+        _secscan_state["targets"] = targets
+        _secscan_state["progress"] = 0
+        _secscan_state["current_target"] = ""
+        _secscan_state["current_test"] = ""
+    all_findings = []
+    total_steps = len(targets) * len(scan_types)
+    step = 0
+    def _cancelled():
+        with _secscan_lock:
+            return _secscan_state.get("status") == "cancelling"
+    for target in targets:
+        if _cancelled():
+            break
+        with _secscan_lock:
+            _secscan_state["current_target"] = target
+        target_findings = []
+        open_ports = []
+        if "ports" in scan_types and not _cancelled():
+            with _secscan_lock:
+                _secscan_state["current_test"] = "Port scan"
+            open_ports = _sec_port_scan(target)
+            if not open_ports:
+                target_findings.append({
+                    "target": target, "category": "ports", "severity": "info",
+                    "title": "No common ports open",
+                    "description": "None of the %d scanned common ports are open." % len(SEC_COMMON_PORTS),
+                    "details": json_mod.dumps({"scanned_count": len(SEC_COMMON_PORTS)}),
+                    "remediation": "",
+                })
+            else:
+                target_findings.append({
+                    "target": target, "category": "ports", "severity": "info",
+                    "title": "%d open port(s) found" % len(open_ports),
+                    "description": "Open: %s" % ", ".join(
+                        "%d/%s" % (p["port"], p["service"]) for p in open_ports),
+                    "details": json_mod.dumps({"open_ports": open_ports}),
+                    "remediation": "Review each open port and close unnecessary services.",
+                })
+                if len(open_ports) > 10:
+                    target_findings.append({
+                        "target": target, "category": "ports", "severity": "medium",
+                        "title": "Large number of open ports (%d)" % len(open_ports),
+                        "description": "Having many open ports increases the attack surface.",
+                        "remediation": "Close unnecessary ports. Apply firewall rules.",
+                    })
+            step += 1
+            with _secscan_lock:
+                _secscan_state["progress"] = int(step * 100 / total_steps)
+        if "ssl" in scan_types and not _cancelled():
+            with _secscan_lock:
+                _secscan_state["current_test"] = "SSL/TLS analysis"
+            ssl_ports = [p["port"] for p in open_ports if p["port"] in (443, 8443, 993, 995, 636)]
+            if not ssl_ports and not open_ports:
+                ssl_ports = [443]
+            for sp in ssl_ports:
+                ssl_result = _sec_ssl_check(target, sp)
+                for f in ssl_result.get("findings", []):
+                    f["target"] = target
+                    f["category"] = "ssl"
+                    f["details"] = json_mod.dumps(ssl_result.get("cert_info", {}))
+                    target_findings.append(f)
+                if ssl_result.get("cert_info") and not ssl_result.get("cert_info", {}).get("error"):
+                    ci = ssl_result["cert_info"]
+                    target_findings.append({
+                        "target": target, "category": "ssl", "severity": "info",
+                        "title": "SSL certificate on port %d" % sp,
+                        "description": "Protocol: %s, Cipher: %s (%s-bit), CN: %s, Issuer: %s" % (
+                            ci.get("protocol", "?"), ci.get("cipher", "?"),
+                            ci.get("bits", "?"), ci.get("subject_cn", "?"),
+                            ci.get("issuer_cn", "?")),
+                        "details": json_mod.dumps(ci),
+                        "remediation": "",
+                    })
+            step += 1
+            with _secscan_lock:
+                _secscan_state["progress"] = int(step * 100 / total_steps)
+        if "http" in scan_types and not _cancelled():
+            with _secscan_lock:
+                _secscan_state["current_test"] = "HTTP headers"
+            http_ports = [(p["port"], p["port"] in (443, 8443))
+                          for p in open_ports if p["port"] in (80, 443, 8080, 8443)]
+            if not http_ports and not open_ports:
+                http_ports = [(80, False)]
+            for hp, use_ssl in http_ports:
+                hdr_result = _sec_http_headers(target, hp, use_ssl)
+                for f in hdr_result.get("findings", []):
+                    f["target"] = target
+                    f["category"] = "http"
+                    f["details"] = json_mod.dumps({"port": hp, "headers": hdr_result.get("headers", {})})
+                    target_findings.append(f)
+            step += 1
+            with _secscan_lock:
+                _secscan_state["progress"] = int(step * 100 / total_steps)
+        if "snmp" in scan_types and not _cancelled():
+            with _secscan_lock:
+                _secscan_state["current_test"] = "SNMP community"
+            snmp_result = _sec_snmp_check(target)
+            for f in snmp_result.get("findings", []):
+                f["target"] = target
+                f["category"] = "snmp"
+                f["details"] = json_mod.dumps({"weak_communities": snmp_result.get("weak_communities", [])})
+                target_findings.append(f)
+            step += 1
+            with _secscan_lock:
+                _secscan_state["progress"] = int(step * 100 / total_steps)
+        if "dns" in scan_types and not _cancelled():
+            with _secscan_lock:
+                _secscan_state["current_test"] = "DNS security"
+            dns_result = _sec_dns_check(target)
+            for f in dns_result.get("findings", []):
+                f["target"] = target
+                f["category"] = "dns"
+                f["details"] = "{}"
+                target_findings.append(f)
+            step += 1
+            with _secscan_lock:
+                _secscan_state["progress"] = int(step * 100 / total_steps)
+        if "services" in scan_types and not _cancelled():
+            with _secscan_lock:
+                _secscan_state["current_test"] = "Service vulnerabilities"
+            svc_findings = _sec_service_checks(target, open_ports)
+            for f in svc_findings:
+                f["target"] = target
+                f["category"] = "services"
+                f["details"] = "{}"
+                target_findings.append(f)
+            step += 1
+            with _secscan_lock:
+                _secscan_state["progress"] = int(step * 100 / total_steps)
+        all_findings.extend(target_findings)
+    was_cancelled = _cancelled()
+    final_status = "cancelled" if was_cancelled else "completed"
+    finished = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).strftime("%Y-%m-%dT%H:%M:%SZ")
+    severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+    conn = sqlite3.connect(str(DB_PATH))
+    for f in all_findings:
+        sev = f.get("severity", "info")
+        severity_counts[sev] = severity_counts.get(sev, 0) + 1
+        conn.execute(
+            "INSERT INTO security_findings "
+            "(scan_id, target, category, severity, title, description, details, remediation) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (scan_id, f["target"], f["category"], sev,
+             f["title"], f["description"], f.get("details", "{}"),
+             f.get("remediation", ""))
+        )
+    summary = {
+        "total_findings": len(all_findings),
+        "severity_counts": severity_counts,
+        "targets_scanned": len(targets),
+        "scan_types": scan_types,
+    }
+    conn.execute(
+        "UPDATE security_scans SET finished_at=?, status=?, summary=? "
+        "WHERE scan_id=?",
+        (finished, final_status, json_mod.dumps(summary), scan_id)
+    )
+    conn.commit()
+    conn.close()
+    with _secscan_lock:
+        _secscan_state["status"] = final_status
+        _secscan_state["progress"] = 100 if not was_cancelled else _secscan_state.get("progress", 0)
+        _secscan_state["current_test"] = ""
+    log.info("Security scan %s %s: %d findings across %d targets",
+             scan_id, final_status, len(all_findings), len(targets))
+    return {"scan_id": scan_id, "summary": summary}
 
 def create_app():
     app = Flask(__name__, template_folder=str(BASE_DIR / "templates"))
@@ -1649,7 +2673,7 @@ def create_app():
         """Acknowledge an alert to suppress repeat notifications."""
         data = request.get_json(force=True) if request.data else {}
         ack_by = str(data.get("by", "dashboard")).strip() or "dashboard"
-        now = datetime.datetime.utcnow().isoformat()
+        now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
         conn = sqlite3.connect(str(DB_PATH))
         row = conn.execute("SELECT device_name, check_label FROM alerts WHERE id=?",
                            (alert_id,)).fetchone()
@@ -1669,7 +2693,7 @@ def create_app():
     @app.route("/api/alerts/acknowledge-all", methods=["POST"])
     def api_acknowledge_all():
         """Acknowledge all unacknowledged alerts."""
-        now = datetime.datetime.utcnow().isoformat()
+        now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
         data = request.get_json(force=True) if request.data else {}
         ack_by = str(data.get("by", "dashboard")).strip() or "dashboard"
         conn = sqlite3.connect(str(DB_PATH))
@@ -1838,7 +2862,7 @@ def create_app():
             found = any(d["name"] == device_name for d in _config.get("devices", []))
         if not found:
             abort(404, description="Device not found")
-        now = datetime.datetime.utcnow().isoformat()
+        now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
         conn = sqlite3.connect(str(DB_PATH))
         conn.execute(
             "INSERT INTO scheduled_downtime (device_name,start_time,end_time,reason,created_by,created_at,active) "
@@ -2001,7 +3025,7 @@ def create_app():
 
         nodes.append({
             "id": "__netmon__",
-            "label": "Clover.tech",
+            "label": platform.node() or socket.gethostname() or "NetMon Server",
             "type": "hub",
             "status": "hub",
             "group": "",
@@ -2154,8 +3178,8 @@ def create_app():
             return jsonify({"ok": False, "error": "No recipients configured"}), 400
         try:
             from_addr = smtp_cfg.get("from_addr", smtp_cfg.get("username", "netmon@localhost"))
-            subject = "Clover.tech.netmon Test Alert"
-            body = "This is a test alert from Clover.tech.netmon. If you received this, your email settings are working correctly."
+            subject = "MyClover.Tech.netmon Test Alert"
+            body = "This is a test alert from MyClover.Tech.netmon. If you received this, your email settings are working correctly."
             msg = email.mime.multipart.MIMEMultipart("alternative")
             msg["Subject"] = subject
             msg["From"] = from_addr
@@ -2230,7 +3254,7 @@ def create_app():
                          "critical": crit},
             "devices": dev_list,
             "alerts": alerts,
-            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "timestamp": datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat(),
         })
 
     # --- SLA / Uptime Reports (Enterprise) ---
@@ -2253,7 +3277,7 @@ def create_app():
 
         return jsonify({
             "period_hours": hours,
-            "generated_at": datetime.datetime.utcnow().isoformat(),
+            "generated_at": datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat(),
             "devices": reports,
         })
 
@@ -2399,14 +3423,14 @@ def create_app():
     def api_test_webhook():
         data = request.get_json(force=True) if request.data else {}
         test_result = {
-            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "timestamp": datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat(),
             "device_name": "Test Device",
             "host": "127.0.0.1",
             "check_type": "test",
             "check_label": "Test Check",
             "status": "WARNING",
             "response_ms": 42.0,
-            "message": "This is a test notification from Clover.tech.netmon",
+            "message": "This is a test notification from MyClover.Tech.netmon",
         }
         try:
             hook_type = data.get("type", "generic")
@@ -2477,7 +3501,7 @@ def create_app():
         ip = str(data.get("ip", "")).strip()
         if not ip:
             abort(400, description="IP address is required")
-        now = datetime.datetime.utcnow().isoformat()
+        now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
         conn = sqlite3.connect(str(DB_PATH))
         existing = conn.execute("SELECT id FROM inventory WHERE ip=?", (ip,)).fetchone()
         if existing:
@@ -2600,6 +3624,488 @@ def create_app():
             "monitored_count": len(monitored_ips),
         })
 
+    # --- Backup & Restore ---
+
+    @app.route("/api/backup", methods=["GET"])
+    def api_backup():
+        """Create a zip backup of the database and config."""
+        import sqlite3 as _sqlite3
+        ts = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).strftime("%Y%m%d_%H%M%S")
+        buf = io.BytesIO()
+        tmp_db = DB_PATH.parent / ".netmon_backup_tmp.db"
+        try:
+            with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+                # Database -- use SQLite backup API for a consistent snapshot
+                if DB_PATH.exists():
+                    try:
+                        src = _sqlite3.connect(str(DB_PATH))
+                        dst = _sqlite3.connect(str(tmp_db))
+                        src.backup(dst)
+                        dst.close()
+                        src.close()
+                        zf.write(str(tmp_db), "netmon.db")
+                    finally:
+                        if tmp_db.exists():
+                            tmp_db.unlink()
+                # Config
+                cfg_path = DEFAULT_CFG
+                if cfg_path.exists():
+                    zf.write(str(cfg_path), "config.yaml")
+                # Plugins
+                if PLUGIN_DIR.exists():
+                    for pf in PLUGIN_DIR.glob("*.py"):
+                        zf.write(str(pf), "plugins/" + pf.name)
+            buf.seek(0)
+            return send_file(
+                buf,
+                mimetype="application/zip",
+                as_attachment=True,
+                download_name="netmon_backup_%s.zip" % ts,
+            )
+        except Exception as exc:
+            log.exception("Backup failed: %s", exc)
+            return jsonify({"error": "Backup failed: %s" % str(exc)}), 500
+
+    @app.route("/api/restore", methods=["POST"])
+    def api_restore():
+        """Restore from a backup zip uploaded via multipart form."""
+        if "file" not in request.files:
+            abort(400, description="No file uploaded.")
+        f = request.files["file"]
+        if not f.filename or not f.filename.lower().endswith(".zip"):
+            abort(400, description="Upload must be a .zip file.")
+        buf = io.BytesIO(f.read())
+        try:
+            zf = zipfile.ZipFile(buf, "r")
+        except zipfile.BadZipFile:
+            abort(400, description="Invalid zip file.")
+        names = zf.namelist()
+        restored = []
+        # Restore database
+        if "netmon.db" in names:
+            db_bytes = zf.read("netmon.db")
+            with open(str(DB_PATH), "wb") as out:
+                out.write(db_bytes)
+            restored.append("netmon.db")
+        # Restore config
+        if "config.yaml" in names:
+            cfg_bytes = zf.read("config.yaml")
+            with open(str(DEFAULT_CFG), "wb") as out:
+                out.write(cfg_bytes)
+            restored.append("config.yaml")
+            _reload_config()
+        # Restore plugins
+        for n in names:
+            if n.startswith("plugins/") and n.endswith(".py"):
+                PLUGIN_DIR.mkdir(exist_ok=True)
+                plugin_bytes = zf.read(n)
+                dest = PLUGIN_DIR / Path(n).name
+                with open(str(dest), "wb") as out:
+                    out.write(plugin_bytes)
+                restored.append(n)
+        zf.close()
+        if not restored:
+            abort(400, description="Zip contained no recognized files (netmon.db, config.yaml, plugins/*.py).")
+        return jsonify({"status": "restored", "files": restored,
+                        "message": "Restored %d file(s). Restart netmon for full effect." % len(restored)})
+
+
+
+    # --- Security Scanner API (Enterprise) ---
+
+    @app.route("/api/security/scan", methods=["POST"])
+    @require_tier(TIER_ENT)
+    def api_security_scan():
+        """Start a security scan."""
+        with _secscan_lock:
+            if _secscan_state.get("status") == "running":
+                return jsonify({"error": "A scan is already running",
+                                "scan_id": _secscan_state.get("scan_id", "")}), 409
+        data = request.get_json(force=True) if request.data else {}
+        targets = data.get("targets", [])
+        scan_types = data.get("scan_types", ["ports", "ssl", "http", "services"])
+        if not targets:
+            with _config_lock:
+                targets = list(set(d.get("host", "") for d in _config.get("devices", []) if d.get("host")))
+        if not targets:
+            return jsonify({"error": "No targets specified and no devices configured"}), 400
+        valid_types = ["ports", "ssl", "http", "snmp", "dns", "services"]
+        scan_types = [t for t in scan_types if t in valid_types]
+        if not scan_types:
+            scan_types = ["ports", "ssl", "http", "services"]
+        scan_id = "sec-%s" % secrets.token_hex(6)
+        t = threading.Thread(target=run_security_scan,
+                             args=(targets, scan_types, scan_id), daemon=True)
+        t.start()
+        return jsonify({
+            "scan_id": scan_id,
+            "targets": targets,
+            "scan_types": scan_types,
+            "status": "started",
+        })
+
+    @app.route("/api/security/status")
+    @require_tier(TIER_ENT)
+    def api_security_status():
+        """Get current scan progress."""
+        with _secscan_lock:
+            state = dict(_secscan_state)
+        return jsonify(state)
+
+    @app.route("/api/security/cancel", methods=["POST"])
+    @require_tier(TIER_ENT)
+    def api_security_cancel():
+        """Cancel a running security scan."""
+        with _secscan_lock:
+            if _secscan_state.get("status") != "running":
+                return jsonify({"error": "No scan is currently running"}), 400
+            _secscan_state["status"] = "cancelling"
+        return jsonify({"status": "cancelling",
+                        "scan_id": _secscan_state.get("scan_id", "")})
+
+    @app.route("/api/security/scans")
+    @require_tier(TIER_ENT)
+    def api_security_scans():
+        """List all security scans."""
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT * FROM security_scans ORDER BY id DESC LIMIT 50"
+        ).fetchall()
+        conn.close()
+        results = []
+        for r in rows:
+            d = dict(r)
+            d["targets"] = json_mod.loads(d.get("targets", "[]"))
+            d["scan_types"] = json_mod.loads(d.get("scan_types", "[]"))
+            d["summary"] = json_mod.loads(d.get("summary", "{}"))
+            results.append(d)
+        return jsonify(results)
+
+    @app.route("/api/security/scans/<scan_id>")
+    @require_tier(TIER_ENT)
+    def api_security_scan_detail(scan_id):
+        """Get scan details with all findings."""
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        scan = conn.execute(
+            "SELECT * FROM security_scans WHERE scan_id = ?", (scan_id,)
+        ).fetchone()
+        if not scan:
+            conn.close()
+            return jsonify({"error": "Scan not found"}), 404
+        findings = conn.execute(
+            "SELECT * FROM security_findings WHERE scan_id = ? ORDER BY "
+            "CASE severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 "
+            "WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END, id",
+            (scan_id,)
+        ).fetchall()
+        conn.close()
+        scan_dict = dict(scan)
+        scan_dict["targets"] = json_mod.loads(scan_dict.get("targets", "[]"))
+        scan_dict["scan_types"] = json_mod.loads(scan_dict.get("scan_types", "[]"))
+        scan_dict["summary"] = json_mod.loads(scan_dict.get("summary", "{}"))
+        findings_list = []
+        for f in findings:
+            fd = dict(f)
+            fd["details"] = json_mod.loads(fd.get("details", "{}"))
+            findings_list.append(fd)
+        scan_dict["findings"] = findings_list
+        return jsonify(scan_dict)
+
+    @app.route("/api/security/scans/<scan_id>", methods=["DELETE"])
+    @require_tier(TIER_ENT)
+    def api_security_scan_delete(scan_id):
+        """Delete a security scan and its findings."""
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.execute("DELETE FROM security_findings WHERE scan_id = ?", (scan_id,))
+        conn.execute("DELETE FROM security_scans WHERE scan_id = ?", (scan_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({"status": "deleted", "scan_id": scan_id})
+
+    # --- Helpdesk Connector API (Pro+) ---
+
+    @app.route("/api/helpdesk/tickets", methods=["GET"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_tickets():
+        """List cached helpdesk tickets with optional filters."""
+        status_filter = request.args.get("status", "").strip()
+        priority_filter = request.args.get("priority", "").strip()
+        assignee_filter = request.args.get("assignee", "").strip()
+        search = request.args.get("search", "").strip()
+        device_filter = request.args.get("device", "").strip()
+        limit = min(int(request.args.get("limit", 500)), 2000)
+        offset = int(request.args.get("offset", 0))
+
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+
+        query = "SELECT * FROM helpdesk_tickets WHERE 1=1"
+        params = []
+
+        if status_filter:
+            query += " AND LOWER(status) = LOWER(?)"
+            params.append(status_filter)
+        if priority_filter:
+            query += " AND LOWER(priority) = LOWER(?)"
+            params.append(priority_filter)
+        if assignee_filter:
+            query += " AND LOWER(assignee) LIKE LOWER(?)"
+            params.append("%" + assignee_filter + "%")
+        if device_filter:
+            query += " AND LOWER(device_name) LIKE LOWER(?)"
+            params.append("%" + device_filter + "%")
+        if search:
+            query += " AND (LOWER(subject) LIKE LOWER(?) OR LOWER(description) LIKE LOWER(?) OR LOWER(requester) LIKE LOWER(?))"
+            params.extend(["%" + search + "%"] * 3)
+
+        # Count total
+        count_q = query.replace("SELECT *", "SELECT COUNT(*)", 1)
+        total = conn.execute(count_q, params).fetchone()[0]
+
+        query += " ORDER BY updated_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        rows = conn.execute(query, params).fetchall()
+        conn.close()
+
+        tickets = []
+        for r in rows:
+            d = dict(r)
+            d.pop("raw_json", None)  # Don't send raw JSON in list view
+            tickets.append(d)
+
+        return jsonify({"tickets": tickets, "total": total})
+
+    @app.route("/api/helpdesk/tickets/<int:ticket_id>", methods=["GET"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_ticket_detail(ticket_id):
+        """Get a single cached ticket with full details."""
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM helpdesk_tickets WHERE id=?", (ticket_id,)
+        ).fetchone()
+        conn.close()
+        if not row:
+            return jsonify({"error": "Ticket not found"}), 404
+        d = dict(row)
+        try:
+            d["raw_json"] = json_mod.loads(d.get("raw_json", "{}"))
+        except Exception:
+            d["raw_json"] = {}
+        return jsonify(d)
+
+    @app.route("/api/helpdesk/tickets/<int:ticket_id>/link", methods=["POST"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_link_device(ticket_id):
+        """Link a ticket to a monitored device."""
+        data = request.get_json(force=True)
+        device_name = data.get("device_name", "").strip()
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.execute(
+            "UPDATE helpdesk_tickets SET device_name=? WHERE id=?",
+            (device_name, ticket_id),
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({"ok": True})
+
+    @app.route("/api/helpdesk/sync", methods=["POST"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_sync():
+        """Force a helpdesk ticket sync."""
+        result = sync_helpdesk_tickets(force=True)
+        return jsonify(result)
+
+    @app.route("/api/helpdesk/status", methods=["GET"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_status():
+        """Get helpdesk connector status."""
+        with _helpdesk_lock:
+            state = dict(_helpdesk_sync_state)
+        hd_cfg = _get_helpdesk_config()
+        state["provider"] = hd_cfg.get("provider", "")
+        state["auto_create_tickets"] = hd_cfg.get("auto_create_tickets", False)
+        state["sync_interval_minutes"] = hd_cfg.get("sync_interval_minutes", 5)
+        return jsonify(state)
+
+    @app.route("/api/helpdesk/settings", methods=["GET"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_settings():
+        """Get helpdesk configuration (masks sensitive fields)."""
+        hd_cfg = _get_helpdesk_config()
+        result = {
+            "provider": hd_cfg.get("provider", ""),
+            "sync_interval_minutes": hd_cfg.get("sync_interval_minutes", 5),
+            "auto_create_tickets": hd_cfg.get("auto_create_tickets", False),
+            "freshservice": {
+                "domain": hd_cfg.get("freshservice", {}).get("domain", ""),
+                "api_key": "***" if hd_cfg.get("freshservice", {}).get("api_key") else "",
+                "default_requester_email": hd_cfg.get("freshservice", {}).get("default_requester_email", ""),
+            },
+            "connectwise": {
+                "site_url": hd_cfg.get("connectwise", {}).get("site_url", ""),
+                "company_id": hd_cfg.get("connectwise", {}).get("company_id", ""),
+                "public_key": "***" if hd_cfg.get("connectwise", {}).get("public_key") else "",
+                "private_key": "***" if hd_cfg.get("connectwise", {}).get("private_key") else "",
+                "client_id": hd_cfg.get("connectwise", {}).get("client_id", ""),
+                "default_board_id": hd_cfg.get("connectwise", {}).get("default_board_id", ""),
+            },
+        }
+        return jsonify(result)
+
+    @app.route("/api/helpdesk/settings", methods=["PUT"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_settings_update():
+        """Update helpdesk configuration."""
+        data = request.get_json(force=True)
+        with _config_lock:
+            cfg = _config
+            if "helpdesk" not in cfg:
+                cfg["helpdesk"] = {}
+            hd = cfg["helpdesk"]
+
+            if "provider" in data:
+                hd["provider"] = str(data["provider"]).strip().lower()
+            if "sync_interval_minutes" in data:
+                hd["sync_interval_minutes"] = max(1, int(data["sync_interval_minutes"]))
+            if "auto_create_tickets" in data:
+                hd["auto_create_tickets"] = bool(data["auto_create_tickets"])
+
+            # Freshservice settings
+            if "freshservice" in data:
+                if "freshservice" not in hd:
+                    hd["freshservice"] = {}
+                fs = data["freshservice"]
+                if "domain" in fs:
+                    hd["freshservice"]["domain"] = str(fs["domain"]).strip()
+                if "api_key" in fs and fs["api_key"] != "***":
+                    hd["freshservice"]["api_key"] = str(fs["api_key"]).strip()
+                if "default_requester_email" in fs:
+                    hd["freshservice"]["default_requester_email"] = str(
+                        fs["default_requester_email"]
+                    ).strip()
+
+            # ConnectWise settings
+            if "connectwise" in data:
+                if "connectwise" not in hd:
+                    hd["connectwise"] = {}
+                cw = data["connectwise"]
+                for field in ["site_url", "company_id", "client_id", "default_board_id"]:
+                    if field in cw:
+                        hd["connectwise"][field] = str(cw[field]).strip()
+                if "public_key" in cw and cw["public_key"] != "***":
+                    hd["connectwise"]["public_key"] = str(cw["public_key"]).strip()
+                if "private_key" in cw and cw["private_key"] != "***":
+                    hd["connectwise"]["private_key"] = str(cw["private_key"]).strip()
+
+            save_config(cfg)
+        return jsonify({"ok": True})
+
+    @app.route("/api/helpdesk/test", methods=["POST"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_test():
+        """Test helpdesk connection with current settings."""
+        hd_cfg = _get_helpdesk_config()
+        provider = hd_cfg.get("provider", "").strip().lower()
+        if not provider:
+            return jsonify({"ok": False, "error": "No provider configured"}), 400
+
+        try:
+            if provider == "freshservice":
+                fs_cfg = hd_cfg.get("freshservice", {})
+                tickets = _freshservice_fetch_tickets(fs_cfg)
+                return jsonify({
+                    "ok": True,
+                    "message": "Connected to Freshservice -- found %d tickets" % len(tickets),
+                    "ticket_count": len(tickets),
+                })
+            elif provider == "connectwise":
+                cw_cfg = hd_cfg.get("connectwise", {})
+                tickets = _connectwise_fetch_tickets(cw_cfg)
+                return jsonify({
+                    "ok": True,
+                    "message": "Connected to ConnectWise -- found %d tickets" % len(tickets),
+                    "ticket_count": len(tickets),
+                })
+            else:
+                return jsonify({"ok": False, "error": "Unknown provider: %s" % provider}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+
+    @app.route("/api/helpdesk/create-ticket", methods=["POST"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_create_ticket():
+        """Manually create a ticket in the helpdesk from the dashboard."""
+        data = request.get_json(force=True)
+        subject = data.get("subject", "").strip()
+        description = data.get("description", "").strip()
+        priority = data.get("priority", "Medium")
+
+        if not subject:
+            return jsonify({"ok": False, "error": "Subject is required"}), 400
+
+        hd_cfg = _get_helpdesk_config()
+        provider = hd_cfg.get("provider", "").strip().lower()
+        if not provider:
+            return jsonify({"ok": False, "error": "No helpdesk provider configured"}), 400
+
+        try:
+            if provider == "freshservice":
+                fs_cfg = hd_cfg.get("freshservice", {})
+                ticket = _freshservice_create_ticket(
+                    fs_cfg, subject, description, priority,
+                    data.get("requester_email", ""),
+                )
+                return jsonify({"ok": True, "ticket": ticket})
+            elif provider == "connectwise":
+                cw_cfg = hd_cfg.get("connectwise", {})
+                ticket = _connectwise_create_ticket(
+                    cw_cfg, subject, description, priority,
+                )
+                return jsonify({"ok": True, "ticket": ticket})
+            else:
+                return jsonify({"ok": False, "error": "Unknown provider"}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+
+    @app.route("/api/helpdesk/stats", methods=["GET"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_stats():
+        """Get ticket statistics for dashboard widgets."""
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        try:
+            total = conn.execute("SELECT COUNT(*) FROM helpdesk_tickets").fetchone()[0]
+            open_count = conn.execute(
+                "SELECT COUNT(*) FROM helpdesk_tickets WHERE LOWER(status) IN ('open','new','pending')"
+            ).fetchone()[0]
+            urgent_count = conn.execute(
+                "SELECT COUNT(*) FROM helpdesk_tickets WHERE LOWER(priority) IN ('urgent','critical','high') AND LOWER(status) IN ('open','new','pending')"
+            ).fetchone()[0]
+            by_status = conn.execute(
+                "SELECT status, COUNT(*) as cnt FROM helpdesk_tickets GROUP BY status ORDER BY cnt DESC"
+            ).fetchall()
+            by_priority = conn.execute(
+                "SELECT priority, COUNT(*) as cnt FROM helpdesk_tickets WHERE LOWER(status) IN ('open','new','pending') GROUP BY priority ORDER BY cnt DESC"
+            ).fetchall()
+            by_assignee = conn.execute(
+                "SELECT assignee, COUNT(*) as cnt FROM helpdesk_tickets WHERE LOWER(status) IN ('open','new','pending') AND assignee != '' GROUP BY assignee ORDER BY cnt DESC LIMIT 10"
+            ).fetchall()
+        finally:
+            conn.close()
+
+        return jsonify({
+            "total": total,
+            "open": open_count,
+            "urgent": urgent_count,
+            "by_status": [{"status": r["status"], "count": r["cnt"]} for r in by_status],
+            "by_priority": [{"priority": r["priority"], "count": r["cnt"]} for r in by_priority],
+            "by_assignee": [{"assignee": r["assignee"], "count": r["cnt"]} for r in by_assignee],
+        })
+
     return app
 
 
@@ -2608,7 +4114,7 @@ def create_app():
 # ---------------------------------------------------------------------------
 
 def main():
-    log.info("Clover.tech.netmon v5 starting...")
+    log.info("MyClover.Tech.netmon v5.7 starting...")
     _reload_config()
 
     with _config_lock:
@@ -2624,6 +4130,15 @@ def main():
     mon = threading.Thread(target=monitoring_loop, daemon=True)
     mon.start()
     log.info("Monitoring thread started")
+
+    # Start helpdesk sync thread
+    hd_provider = cfg.get("helpdesk", {}).get("provider", "")
+    if hd_provider:
+        hd_thread = threading.Thread(target=helpdesk_sync_loop, daemon=True)
+        hd_thread.start()
+        log.info("Helpdesk sync thread started (provider: %s)", hd_provider)
+    else:
+        log.info("Helpdesk integration not configured -- skipping sync thread")
 
     if HAS_FLASK:
         dash_cfg = cfg.get("dashboard", {})
