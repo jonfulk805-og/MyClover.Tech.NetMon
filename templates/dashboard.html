@@ -683,6 +683,7 @@ a.port-link:hover {
     <div class="tab" data-tab="downtime" draggable="true"><span class="tab-grip">&#9776;</span>Downtime</div>
     <div class="tab" data-tab="devices" draggable="true"><span class="tab-grip">&#9776;</span>Manage Devices</div>
     <div class="tab" data-tab="reports" draggable="true"><span class="tab-grip">&#9776;</span>Reports</div>
+    <div class="tab" data-tab="helpdesk" draggable="true"><span class="tab-grip">&#9776;</span>Helpdesk</div>
     <div class="tab" data-tab="security" draggable="true"><span class="tab-grip">&#9776;</span>Security</div>
     <div class="tab" data-tab="settings" draggable="true"><span class="tab-grip">&#9776;</span>Settings</div>
     <div class="tab" data-tab="help" draggable="true"><span class="tab-grip">&#9776;</span>Help</div>
@@ -881,6 +882,147 @@ a.port-link:hover {
     </div>
 </div>
 
+
+<!-- ========== HELPDESK TAB ========== -->
+<div class="content tab-content" id="tab-helpdesk">
+    <h2 style="color:var(--text-primary);font-size:16px;margin-bottom:20px;">Helpdesk Tickets</h2>
+    <div id="helpdesk-upgrade" style="display:none;"></div>
+    <div id="helpdesk-content">
+        <!-- Connector status bar -->
+        <div id="hd-status-bar" style="display:flex;justify-content:space-between;align-items:center;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:12px 20px;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span id="hd-provider-badge" style="background:var(--accent);color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase;">Not configured</span>
+                <span id="hd-sync-status" style="color:var(--text-dim);font-size:12px;">No sync data</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-sm" onclick="syncHelpdesk()" id="hd-sync-btn" style="font-size:12px;">Sync Now</button>
+                <button class="btn btn-primary btn-sm" onclick="openCreateTicket()" style="font-size:12px;">+ New Ticket</button>
+            </div>
+        </div>
+
+        <!-- Stats cards -->
+        <div id="hd-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;">
+                <div style="font-size:28px;font-weight:700;color:var(--text-primary);" id="hd-stat-total">--</div>
+                <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;">Total Tickets</div>
+            </div>
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;">
+                <div style="font-size:28px;font-weight:700;color:var(--status-warning);" id="hd-stat-open">--</div>
+                <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;">Open</div>
+            </div>
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;">
+                <div style="font-size:28px;font-weight:700;color:var(--status-critical);" id="hd-stat-urgent">--</div>
+                <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;">Urgent/High</div>
+            </div>
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;">
+                <div style="font-size:28px;font-weight:700;color:var(--status-ok);" id="hd-stat-resolved">--</div>
+                <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;">Resolved</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="hd-search" placeholder="Search tickets..." onkeyup="if(event.key==='Enter')loadHelpdeskTickets()" style="flex:1;min-width:200px;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:6px;font-size:13px;">
+            <select id="hd-filter-status" onchange="loadHelpdeskTickets()" style="background:var(--card-bg);border:1px solid var(--border);color:var(--text-primary);padding:6px 12px;border-radius:6px;font-size:12px;">
+                <option value="">All Statuses</option>
+                <option value="open">Open</option>
+                <option value="pending">Pending</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+            </select>
+            <select id="hd-filter-priority" onchange="loadHelpdeskTickets()" style="background:var(--card-bg);border:1px solid var(--border);color:var(--text-primary);padding:6px 12px;border-radius:6px;font-size:12px;">
+                <option value="">All Priorities</option>
+                <option value="urgent">Urgent</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+            </select>
+            <button class="btn btn-sm" onclick="loadHelpdeskTickets()" style="font-size:12px;">Search</button>
+        </div>
+
+        <!-- Tickets table -->
+        <div style="overflow-x:auto;">
+            <table class="data-table" id="hd-tickets-table">
+                <thead><tr>
+                    <th style="width:60px;">ID</th>
+                    <th style="width:70px;">Priority</th>
+                    <th>Subject</th>
+                    <th style="width:100px;">Status</th>
+                    <th style="width:120px;">Requester</th>
+                    <th style="width:120px;">Assignee</th>
+                    <th style="width:100px;">Device</th>
+                    <th style="width:140px;">Updated</th>
+                    <th style="width:80px;">Actions</th>
+                </tr></thead>
+                <tbody id="hd-tickets-body">
+                    <tr><td colspan="9" style="text-align:center;color:var(--text-faint);padding:40px;">
+                        Configure a helpdesk provider in Settings to view tickets
+                    </td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="hd-pagination" style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12px;color:var(--text-dim);">
+            <span id="hd-page-info"></span>
+            <div style="display:flex;gap:6px;">
+                <button class="btn btn-sm" onclick="hdPrevPage()" id="hd-prev-btn" style="display:none;font-size:11px;">Prev</button>
+                <button class="btn btn-sm" onclick="hdNextPage()" id="hd-next-btn" style="display:none;font-size:11px;">Next</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Helpdesk: Create Ticket Modal -->
+<div id="hd-create-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:none;align-items:center;justify-content:center;">
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:28px;width:520px;max-width:90vw;max-height:85vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <h3 style="color:var(--text-primary);font-size:16px;margin:0;">Create Ticket</h3>
+            <button onclick="closeCreateTicket()" style="background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;">&times;</button>
+        </div>
+        <div class="form-group" style="margin-bottom:14px;">
+            <label style="color:var(--text-dim);font-size:12px;display:block;margin-bottom:4px;">Subject *</label>
+            <input type="text" id="hd-new-subject" style="width:100%;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:6px;font-size:13px;">
+        </div>
+        <div class="form-group" style="margin-bottom:14px;">
+            <label style="color:var(--text-dim);font-size:12px;display:block;margin-bottom:4px;">Description</label>
+            <textarea id="hd-new-desc" rows="5" style="width:100%;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:6px;font-size:13px;resize:vertical;"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+            <div>
+                <label style="color:var(--text-dim);font-size:12px;display:block;margin-bottom:4px;">Priority</label>
+                <select id="hd-new-priority" style="width:100%;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:6px;font-size:13px;">
+                    <option value="Low">Low</option>
+                    <option value="Medium" selected>Medium</option>
+                    <option value="High">High</option>
+                    <option value="Urgent">Urgent</option>
+                </select>
+            </div>
+            <div>
+                <label style="color:var(--text-dim);font-size:12px;display:block;margin-bottom:4px;">Requester Email</label>
+                <input type="email" id="hd-new-email" placeholder="optional" style="width:100%;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:6px;font-size:13px;">
+            </div>
+        </div>
+        <div id="hd-create-error" style="display:none;background:var(--status-critical-bg);color:var(--status-critical);padding:8px 14px;border-radius:6px;margin-bottom:12px;font-size:12px;"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button class="btn" onclick="closeCreateTicket()" style="font-size:13px;">Cancel</button>
+            <button class="btn btn-primary" onclick="submitCreateTicket()" id="hd-create-submit-btn" style="font-size:13px;">Create Ticket</button>
+        </div>
+    </div>
+</div>
+
+<!-- Helpdesk: Ticket Detail Modal -->
+<div id="hd-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:28px;width:600px;max-width:90vw;max-height:85vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <h3 style="color:var(--text-primary);font-size:16px;margin:0;" id="hd-detail-title">Ticket Details</h3>
+            <button onclick="closeTicketDetail()" style="background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;">&times;</button>
+        </div>
+        <div id="hd-detail-body" style="color:var(--text-body);font-size:13px;"></div>
+        <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">
+            <a id="hd-detail-link" href="#" target="_blank" class="btn btn-primary" style="font-size:13px;text-decoration:none;">Open in Helpdesk</a>
+            <button class="btn" onclick="closeTicketDetail()" style="font-size:13px;">Close</button>
+        </div>
+    </div>
+</div>
 
 <div class="content tab-content" id="tab-security">
     <h2 style="color:var(--text-primary);font-size:16px;margin-bottom:20px;">Security Scanner</h2>
@@ -1132,6 +1274,83 @@ a.port-link:hover {
                     <button class="btn btn-ghost btn-sm" onclick="testEmail()" id="test-email-btn">Send Test Email</button>
                     <span id="test-email-result" style="font-size:12px;margin-left:10px;"></span>
                 </div>
+            </div>
+        </div>
+    </div>
+    <div style="margin-top:20px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+            <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Helpdesk / PSA Integration (Pro+)</h3>
+            <div class="form-group" style="margin-bottom:14px;">
+                <label>Provider</label>
+                <select id="hd-set-provider" onchange="toggleHelpdeskFields()" style="width:100%;">
+                    <option value="">-- None --</option>
+                    <option value="freshservice">Freshservice</option>
+                    <option value="connectwise">ConnectWise Manage</option>
+                </select>
+            </div>
+            <!-- Freshservice fields -->
+            <div id="hd-fs-fields" style="display:none;">
+                <div class="form-group" style="margin-bottom:10px;">
+                    <label>Freshservice Domain</label>
+                    <input type="text" id="hd-fs-domain" placeholder="yourcompany.freshservice.com">
+                </div>
+                <div class="form-group" style="margin-bottom:10px;">
+                    <label>API Key</label>
+                    <input type="password" id="hd-fs-apikey" placeholder="Freshservice API Key">
+                </div>
+                <div class="form-group" style="margin-bottom:10px;">
+                    <label>Default Requester Email</label>
+                    <input type="email" id="hd-fs-email" placeholder="netmon@yourcompany.com">
+                </div>
+            </div>
+            <!-- ConnectWise fields -->
+            <div id="hd-cw-fields" style="display:none;">
+                <div class="form-group" style="margin-bottom:10px;">
+                    <label>Site URL</label>
+                    <input type="text" id="hd-cw-url" placeholder="https://na.myconnectwise.net">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div class="form-group" style="margin-bottom:10px;">
+                        <label>Company ID</label>
+                        <input type="text" id="hd-cw-company">
+                    </div>
+                    <div class="form-group" style="margin-bottom:10px;">
+                        <label>Client ID</label>
+                        <input type="text" id="hd-cw-clientid" placeholder="From developer.connectwise.com">
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div class="form-group" style="margin-bottom:10px;">
+                        <label>Public Key</label>
+                        <input type="password" id="hd-cw-pubkey">
+                    </div>
+                    <div class="form-group" style="margin-bottom:10px;">
+                        <label>Private Key</label>
+                        <input type="password" id="hd-cw-privkey">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom:10px;">
+                    <label>Default Board ID (optional)</label>
+                    <input type="text" id="hd-cw-boardid" placeholder="Board ID for auto-created tickets">
+                </div>
+            </div>
+            <!-- Common settings -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                <div class="form-group">
+                    <label>Sync Interval (minutes)</label>
+                    <input type="number" id="hd-set-interval" min="1" max="60" value="5">
+                </div>
+                <div class="form-group" style="display:flex;align-items:flex-end;">
+                    <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;padding-bottom:4px;">
+                        <input type="checkbox" id="hd-set-autocreate" style="accent-color:var(--accent);width:16px;height:16px;">
+                        Auto-create tickets on Critical alerts
+                    </label>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <button class="btn btn-primary btn-sm" onclick="saveHelpdeskSettings()">Save Helpdesk Settings</button>
+                <button class="btn btn-sm" onclick="testHelpdeskConnection()">Test Connection</button>
+                <span id="hd-settings-result" style="font-size:12px;"></span>
             </div>
         </div>
     </div>
@@ -2275,6 +2494,262 @@ function portServiceLink(port, ip) {
 
 var _currentTier = 'community';
 var _tierFeatures = {};
+/* ---------- Helpdesk Connector ---------- */
+var _hdOffset = 0, _hdLimit = 50, _hdTotal = 0;
+
+function loadHelpdeskTab() {
+    var tabs = (_tierFeatures && _tierFeatures.tabs) || [];
+    if (tabs.indexOf('helpdesk') === -1) {
+        document.getElementById('helpdesk-upgrade').innerHTML = upgradeHTML('Helpdesk Integration');
+        document.getElementById('helpdesk-upgrade').style.display = '';
+        document.getElementById('helpdesk-content').style.display = 'none';
+        return;
+    }
+    document.getElementById('helpdesk-upgrade').style.display = 'none';
+    document.getElementById('helpdesk-content').style.display = '';
+    loadHelpdeskStatus();
+    loadHelpdeskStats();
+    loadHelpdeskTickets();
+}
+
+function loadHelpdeskStatus() {
+    safeFetch('/api/helpdesk/status', {}).then(function(d) {
+        var badge = document.getElementById('hd-provider-badge');
+        var info = document.getElementById('hd-sync-status');
+        if (d.provider) {
+            badge.textContent = d.provider;
+            badge.style.background = 'var(--accent)';
+            var msg = d.last_sync ? 'Last sync: ' + new Date(d.last_sync).toLocaleString() + ' (' + (d.ticket_count||0) + ' tickets)' : 'Not synced yet';
+            if (d.last_error) msg += ' | Error: ' + d.last_error;
+            info.textContent = msg;
+        } else {
+            badge.textContent = 'Not configured';
+            badge.style.background = '#555';
+            info.textContent = 'Configure a provider in Settings > Helpdesk';
+        }
+    });
+}
+
+function loadHelpdeskStats() {
+    safeFetch('/api/helpdesk/stats', {}).then(function(d) {
+        document.getElementById('hd-stat-total').textContent = d.total != null ? d.total : '--';
+        document.getElementById('hd-stat-open').textContent = d.open != null ? d.open : '--';
+        document.getElementById('hd-stat-urgent').textContent = d.urgent != null ? d.urgent : '--';
+        var resolved = 0;
+        if (d.by_status) {
+            d.by_status.forEach(function(s) {
+                if (s.status && s.status.toLowerCase() === 'resolved') resolved = s.count;
+            });
+        }
+        document.getElementById('hd-stat-resolved').textContent = resolved;
+    });
+}
+
+function loadHelpdeskTickets() {
+    var status = document.getElementById('hd-filter-status').value;
+    var priority = document.getElementById('hd-filter-priority').value;
+    var search = document.getElementById('hd-search').value;
+    var url = '/api/helpdesk/tickets?limit=' + _hdLimit + '&offset=' + _hdOffset;
+    if (status) url += '&status=' + encodeURIComponent(status);
+    if (priority) url += '&priority=' + encodeURIComponent(priority);
+    if (search) url += '&search=' + encodeURIComponent(search);
+
+    safeFetch(url, {tickets:[], total:0}).then(function(d) {
+        _hdTotal = d.total || 0;
+        var tbody = document.getElementById('hd-tickets-body');
+        if (!d.tickets || d.tickets.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-faint);padding:40px;">No tickets found</td></tr>';
+            document.getElementById('hd-page-info').textContent = '';
+            document.getElementById('hd-prev-btn').style.display = 'none';
+            document.getElementById('hd-next-btn').style.display = 'none';
+            return;
+        }
+        var html = '';
+        d.tickets.forEach(function(t) {
+            var priClass = 'color:var(--text-dim)';
+            var priLow = (t.priority || '').toLowerCase();
+            if (priLow === 'urgent' || priLow === 'critical') priClass = 'color:var(--status-critical);font-weight:600';
+            else if (priLow === 'high') priClass = 'color:var(--status-warning);font-weight:600';
+            else if (priLow === 'medium') priClass = 'color:var(--status-info)';
+
+            var statusColor = 'var(--text-dim)';
+            var sLow = (t.status || '').toLowerCase();
+            if (sLow === 'open' || sLow === 'new') statusColor = 'var(--status-warning)';
+            else if (sLow === 'pending') statusColor = 'var(--status-info)';
+            else if (sLow === 'resolved') statusColor = 'var(--status-ok)';
+            else if (sLow === 'closed') statusColor = 'var(--text-faint)';
+
+            var updated = t.updated_at ? new Date(t.updated_at).toLocaleDateString() : '';
+
+            html += '<tr style="cursor:pointer;" onclick="viewTicketDetail(' + t.id + ')">'
+                + '<td style="font-family:monospace;font-size:11px;">#' + esc(t.remote_id) + '</td>'
+                + '<td style="' + priClass + ';font-size:11px;">' + esc(t.priority || '--') + '</td>'
+                + '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(t.subject) + '</td>'
+                + '<td><span style="color:' + statusColor + ';font-size:11px;font-weight:600;">' + esc(t.status || '--') + '</span></td>'
+                + '<td style="font-size:11px;">' + esc(t.requester || '--') + '</td>'
+                + '<td style="font-size:11px;">' + esc(t.assignee || '--') + '</td>'
+                + '<td style="font-size:11px;">' + esc(t.device_name || '') + '</td>'
+                + '<td style="font-size:11px;">' + updated + '</td>'
+                + '<td><a href="' + esc(t.url || '#') + '" target="_blank" onclick="event.stopPropagation();" style="color:var(--accent);font-size:11px;text-decoration:none;">Open</a></td>'
+                + '</tr>';
+        });
+        tbody.innerHTML = html;
+
+        // Pagination
+        var showing = Math.min(_hdOffset + _hdLimit, _hdTotal);
+        document.getElementById('hd-page-info').textContent = 'Showing ' + (_hdOffset+1) + '-' + showing + ' of ' + _hdTotal;
+        document.getElementById('hd-prev-btn').style.display = _hdOffset > 0 ? '' : 'none';
+        document.getElementById('hd-next-btn').style.display = (_hdOffset + _hdLimit < _hdTotal) ? '' : 'none';
+    });
+}
+
+function hdPrevPage() { _hdOffset = Math.max(0, _hdOffset - _hdLimit); loadHelpdeskTickets(); }
+function hdNextPage() { _hdOffset += _hdLimit; loadHelpdeskTickets(); }
+
+function syncHelpdesk() {
+    var btn = document.getElementById('hd-sync-btn');
+    btn.textContent = 'Syncing...'; btn.disabled = true;
+    fetch('/api/helpdesk/sync', {method:'POST'}).then(function(r){ return r.json(); }).then(function(d) {
+        btn.textContent = 'Sync Now'; btn.disabled = false;
+        if (d.ok) {
+            loadHelpdeskStatus(); loadHelpdeskStats(); loadHelpdeskTickets();
+        } else {
+            alert('Sync failed: ' + (d.error || 'Unknown error'));
+        }
+    }).catch(function(e) { btn.textContent = 'Sync Now'; btn.disabled = false; alert('Sync error: ' + e); });
+}
+
+function viewTicketDetail(id) {
+    fetch('/api/helpdesk/tickets/' + id).then(function(r){ return r.json(); }).then(function(t) {
+        if (t.error) { alert(t.error); return; }
+        document.getElementById('hd-detail-title').textContent = '#' + (t.remote_id||'') + ' - ' + (t.subject||'');
+        var html = '<div style="display:grid;grid-template-columns:120px 1fr;gap:8px 16px;margin-bottom:16px;">'
+            + '<span style="color:var(--text-dim);">Status:</span><span style="font-weight:600;">' + esc(t.status||'--') + '</span>'
+            + '<span style="color:var(--text-dim);">Priority:</span><span style="font-weight:600;">' + esc(t.priority||'--') + '</span>'
+            + '<span style="color:var(--text-dim);">Type:</span><span>' + esc(t.ticket_type||'--') + '</span>'
+            + '<span style="color:var(--text-dim);">Requester:</span><span>' + esc(t.requester||'--') + '</span>'
+            + '<span style="color:var(--text-dim);">Assignee:</span><span>' + esc(t.assignee||'--') + '</span>'
+            + '<span style="color:var(--text-dim);">Created:</span><span>' + (t.created_at ? new Date(t.created_at).toLocaleString() : '--') + '</span>'
+            + '<span style="color:var(--text-dim);">Updated:</span><span>' + (t.updated_at ? new Date(t.updated_at).toLocaleString() : '--') + '</span>'
+            + '<span style="color:var(--text-dim);">Due:</span><span>' + (t.due_date ? new Date(t.due_date).toLocaleString() : '--') + '</span>'
+            + '<span style="color:var(--text-dim);">Device:</span><span>' + esc(t.device_name||'None') + '</span>'
+            + '</div>';
+        if (t.description) {
+            html += '<div style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">'
+                + '<label style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:1px;">Description</label>'
+                + '<div style="margin-top:6px;white-space:pre-wrap;font-size:12px;max-height:300px;overflow-y:auto;background:var(--bg-deep);padding:12px;border-radius:6px;">' + esc(t.description) + '</div></div>';
+        }
+        document.getElementById('hd-detail-body').innerHTML = html;
+        document.getElementById('hd-detail-link').href = t.url || '#';
+        document.getElementById('hd-detail-modal').style.display = 'flex';
+    });
+}
+function closeTicketDetail() { document.getElementById('hd-detail-modal').style.display = 'none'; }
+
+function openCreateTicket() {
+    document.getElementById('hd-new-subject').value = '';
+    document.getElementById('hd-new-desc').value = '';
+    document.getElementById('hd-new-priority').value = 'Medium';
+    document.getElementById('hd-new-email').value = '';
+    document.getElementById('hd-create-error').style.display = 'none';
+    document.getElementById('hd-create-modal').style.display = 'flex';
+}
+function closeCreateTicket() { document.getElementById('hd-create-modal').style.display = 'none'; }
+
+function submitCreateTicket() {
+    var subject = document.getElementById('hd-new-subject').value.trim();
+    if (!subject) { document.getElementById('hd-create-error').textContent = 'Subject is required'; document.getElementById('hd-create-error').style.display = ''; return; }
+    var btn = document.getElementById('hd-create-submit-btn');
+    btn.textContent = 'Creating...'; btn.disabled = true;
+    fetch('/api/helpdesk/create-ticket', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+            subject: subject,
+            description: document.getElementById('hd-new-desc').value,
+            priority: document.getElementById('hd-new-priority').value,
+            requester_email: document.getElementById('hd-new-email').value
+        })
+    }).then(function(r){ return r.json(); }).then(function(d) {
+        btn.textContent = 'Create Ticket'; btn.disabled = false;
+        if (d.ok) { closeCreateTicket(); syncHelpdesk(); }
+        else { document.getElementById('hd-create-error').textContent = d.error || 'Failed'; document.getElementById('hd-create-error').style.display = ''; }
+    }).catch(function(e) { btn.textContent = 'Create Ticket'; btn.disabled = false; alert('Error: ' + e); });
+}
+
+/* Helpdesk settings in the Settings tab */
+function toggleHelpdeskFields() {
+    var p = document.getElementById('hd-set-provider').value;
+    document.getElementById('hd-fs-fields').style.display = (p === 'freshservice') ? '' : 'none';
+    document.getElementById('hd-cw-fields').style.display = (p === 'connectwise') ? '' : 'none';
+}
+
+function loadHelpdeskSettings() {
+    safeFetch('/api/helpdesk/settings', {}).then(function(d) {
+        if (!d.provider && d.provider !== '') return;
+        document.getElementById('hd-set-provider').value = d.provider || '';
+        document.getElementById('hd-set-interval').value = d.sync_interval_minutes || 5;
+        document.getElementById('hd-set-autocreate').checked = !!d.auto_create_tickets;
+        if (d.freshservice) {
+            document.getElementById('hd-fs-domain').value = d.freshservice.domain || '';
+            document.getElementById('hd-fs-apikey').value = d.freshservice.api_key === '***' ? '' : (d.freshservice.api_key || '');
+            document.getElementById('hd-fs-apikey').placeholder = d.freshservice.api_key === '***' ? '(saved - enter new to change)' : 'Freshservice API Key';
+            document.getElementById('hd-fs-email').value = d.freshservice.default_requester_email || '';
+        }
+        if (d.connectwise) {
+            document.getElementById('hd-cw-url').value = d.connectwise.site_url || '';
+            document.getElementById('hd-cw-company').value = d.connectwise.company_id || '';
+            document.getElementById('hd-cw-clientid').value = d.connectwise.client_id || '';
+            document.getElementById('hd-cw-pubkey').value = '';
+            document.getElementById('hd-cw-pubkey').placeholder = d.connectwise.public_key === '***' ? '(saved)' : 'Public Key';
+            document.getElementById('hd-cw-privkey').value = '';
+            document.getElementById('hd-cw-privkey').placeholder = d.connectwise.private_key === '***' ? '(saved)' : 'Private Key';
+            document.getElementById('hd-cw-boardid').value = d.connectwise.default_board_id || '';
+        }
+        toggleHelpdeskFields();
+    });
+}
+
+function saveHelpdeskSettings() {
+    var payload = {
+        provider: document.getElementById('hd-set-provider').value,
+        sync_interval_minutes: parseInt(document.getElementById('hd-set-interval').value) || 5,
+        auto_create_tickets: document.getElementById('hd-set-autocreate').checked,
+        freshservice: {
+            domain: document.getElementById('hd-fs-domain').value,
+            default_requester_email: document.getElementById('hd-fs-email').value
+        },
+        connectwise: {
+            site_url: document.getElementById('hd-cw-url').value,
+            company_id: document.getElementById('hd-cw-company').value,
+            client_id: document.getElementById('hd-cw-clientid').value,
+            default_board_id: document.getElementById('hd-cw-boardid').value
+        }
+    };
+    var fsKey = document.getElementById('hd-fs-apikey').value;
+    if (fsKey) payload.freshservice.api_key = fsKey;
+    var cwPub = document.getElementById('hd-cw-pubkey').value;
+    if (cwPub) payload.connectwise.public_key = cwPub;
+    var cwPriv = document.getElementById('hd-cw-privkey').value;
+    if (cwPriv) payload.connectwise.private_key = cwPriv;
+
+    var res = document.getElementById('hd-settings-result');
+    res.textContent = 'Saving...'; res.style.color = 'var(--text-dim)';
+    fetch('/api/helpdesk/settings', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)})
+    .then(function(r){ return r.json(); }).then(function(d) {
+        if (d.ok) { res.textContent = 'Saved!'; res.style.color = 'var(--status-ok)'; }
+        else { res.textContent = 'Error: ' + (d.error||''); res.style.color = 'var(--status-critical)'; }
+    }).catch(function(e) { res.textContent = 'Error: ' + e; res.style.color = 'var(--status-critical)'; });
+}
+
+function testHelpdeskConnection() {
+    var res = document.getElementById('hd-settings-result');
+    res.textContent = 'Testing...'; res.style.color = 'var(--text-dim)';
+    fetch('/api/helpdesk/test', {method:'POST'}).then(function(r){ return r.json(); }).then(function(d) {
+        if (d.ok) { res.textContent = d.message; res.style.color = 'var(--status-ok)'; }
+        else { res.textContent = 'Failed: ' + (d.error||''); res.style.color = 'var(--status-critical)'; }
+    }).catch(function(e) { res.textContent = 'Error: ' + e; res.style.color = 'var(--status-critical)'; });
+}
+
 function loadLicense() {
     return fetch('/api/license').then(function(r){ return r.json(); }).then(function(data) {
         _currentTier = data.tier || 'community';
@@ -2309,6 +2784,7 @@ document.querySelectorAll('.tab').forEach(function(tab) {
         if (tab.dataset.tab === 'map') loadNetworkMap();
         if (tab.dataset.tab === 'reports') loadReportsTab();
         if (tab.dataset.tab === 'security') loadSecurityTab();
+        if (tab.dataset.tab === 'helpdesk') loadHelpdeskTab();
         if (tab.dataset.tab === 'settings') loadSettings();
         if (tab.dataset.tab === 'inventory') loadInventory();
         if (tab.dataset.tab === 'downtime') loadDowntimes();
@@ -3263,6 +3739,7 @@ function loadSettings() {
         usage.innerHTML = 'Devices: ' + u.devices + ' / ' + maxD + ' &middot; Sensors: ' + u.sensors + ' / ' + maxS;
         document.getElementById('set-license-key').value = '';
         loadEntSettings();
+        loadHelpdeskSettings();
     }).catch(function(){});
 }
 
