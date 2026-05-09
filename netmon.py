@@ -106,7 +106,7 @@ TIER_FEATURES = {
         "max_devices": 0,  # 0 = unlimited
         "max_sensors": 0,
         "tabs": ["status", "alerts", "history", "devices", "settings",
-                 "inventory", "map", "discovery", "downtime"],
+                 "inventory", "map", "discovery", "downtime", "helpdesk"],
         "api_write": True,
         "multi_recipient": True,
     },
@@ -114,8 +114,8 @@ TIER_FEATURES = {
         "max_devices": 0,
         "max_sensors": 0,
         "tabs": ["status", "alerts", "history", "devices", "settings",
-                 "inventory", "map", "discovery", "downtime", "noc", "security",
-                 "reports"],
+                 "inventory", "map", "discovery", "downtime", "helpdesk",
+                 "noc", "security", "reports"],
         "api_write": True,
         "multi_recipient": True,
         "noc_mode": True,
@@ -376,6 +376,32 @@ def init_db():
                  ON perf_data(device_name, check_label, timestamp)""")
     c.execute("""CREATE INDEX IF NOT EXISTS idx_downtime_device
                  ON scheduled_downtime(device_name, start_time)""")
+    # Helpdesk ticket cache
+    c.execute("""CREATE TABLE IF NOT EXISTS helpdesk_tickets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        remote_id TEXT NOT NULL,
+        provider TEXT NOT NULL,
+        subject TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        status TEXT DEFAULT '',
+        priority TEXT DEFAULT '',
+        ticket_type TEXT DEFAULT '',
+        assignee TEXT DEFAULT '',
+        requester TEXT DEFAULT '',
+        created_at TEXT DEFAULT '',
+        updated_at TEXT DEFAULT '',
+        due_date TEXT DEFAULT '',
+        device_name TEXT DEFAULT '',
+        url TEXT DEFAULT '',
+        raw_json TEXT DEFAULT '{}',
+        synced_at TEXT NOT NULL
+    )""")
+    c.execute("""CREATE UNIQUE INDEX IF NOT EXISTS idx_helpdesk_remote
+                 ON helpdesk_tickets(provider, remote_id)""")
+    c.execute("""CREATE INDEX IF NOT EXISTS idx_helpdesk_device
+                 ON helpdesk_tickets(device_name)""")
+    c.execute("""CREATE INDEX IF NOT EXISTS idx_helpdesk_status
+                 ON helpdesk_tickets(status)""")
     c.execute("""CREATE TABLE IF NOT EXISTS security_scans (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         scan_id TEXT UNIQUE NOT NULL,
@@ -1602,6 +1628,13 @@ def monitoring_loop():
                     webhooks = cfg.get("webhooks", [])
                     if webhooks:
                         send_webhook_notification(r, webhooks)
+                    # Auto-create helpdesk ticket (Pro+)
+                    if status_str == "CRITICAL":
+                        threading.Thread(
+                            target=create_ticket_from_alert,
+                            args=(dict(r),),
+                            daemon=True,
+                        ).start()
             elif status_str == "OK" and prev in ("WARNING", "CRITICAL"):
                 # Recovery: clear ack so future failures trigger alerts again
                 _acked_keys.discard(key)
@@ -1610,6 +1643,423 @@ def monitoring_loop():
 
         log.info("-- Cycle done. Next in %ds --", interval)
         time.sleep(interval)
+
+
+# ---------------------------------------------------------------------------
+# Helpdesk Connector (Pro+)
+# ---------------------------------------------------------------------------
+# Integrates with Freshservice and ConnectWise Manage to pull tickets into
+# the dashboard and optionally auto-create tickets from Critical alerts.
+# ---------------------------------------------------------------------------
+
+_helpdesk_sync_state = {
+    "running": False,
+    "last_sync": None,
+    "last_error": None,
+    "ticket_count": 0,
+}
+_helpdesk_lock = threading.Lock()
+
+
+def _get_helpdesk_config():
+    """Get helpdesk config from main config."""
+    with _config_lock:
+        return dict(_config.get("helpdesk", {}))
+
+
+def _freshservice_fetch_tickets(cfg):
+    """Fetch tickets from Freshservice REST API v2."""
+    if not req_lib:
+        raise RuntimeError("requests library required for helpdesk integration")
+
+    domain = cfg.get("domain", "").strip()
+    api_key = cfg.get("api_key", "").strip()
+    if not domain or not api_key:
+        raise ValueError("Freshservice domain and API key are required")
+
+    # Ensure domain format
+    if not domain.startswith("http"):
+        domain = "https://%s" % domain
+    if ".freshservice.com" not in domain:
+        domain = domain.rstrip("/") + ".freshservice.com"
+
+    base_url = domain.rstrip("/")
+    headers = {"Content-Type": "application/json"}
+    auth = (api_key, "X")  # Freshservice uses API key as username, X as password
+
+    tickets = []
+    page = 1
+    per_page = 100
+    max_pages = 10  # Safety limit
+
+    while page <= max_pages:
+        url = "%s/api/v2/tickets?per_page=%d&page=%d&include=requester" % (
+            base_url, per_page, page)
+        resp = req_lib.get(url, auth=auth, headers=headers, timeout=30)
+        if resp.status_code == 401:
+            raise ValueError("Freshservice authentication failed -- check API key")
+        if resp.status_code == 404:
+            raise ValueError("Freshservice domain not found -- check domain setting")
+        resp.raise_for_status()
+
+        data = resp.json()
+        page_tickets = data.get("tickets", [])
+        if not page_tickets:
+            break
+
+        for t in page_tickets:
+            priority_map = {1: "Low", 2: "Medium", 3: "High", 4: "Urgent"}
+            status_map = {2: "Open", 3: "Pending", 4: "Resolved", 5: "Closed"}
+            tickets.append({
+                "remote_id": str(t.get("id", "")),
+                "provider": "freshservice",
+                "subject": t.get("subject", ""),
+                "description": (t.get("description_text") or "")[:2000],
+                "status": status_map.get(t.get("status"), str(t.get("status", ""))),
+                "priority": priority_map.get(t.get("priority"), str(t.get("priority", ""))),
+                "ticket_type": t.get("type") or "",
+                "assignee": "",
+                "requester": t.get("requester", {}).get("name", "") if isinstance(t.get("requester"), dict) else "",
+                "created_at": t.get("created_at", ""),
+                "updated_at": t.get("updated_at", ""),
+                "due_date": t.get("due_by", ""),
+                "url": "%s/a/tickets/%s" % (base_url, t.get("id", "")),
+                "raw_json": json_mod.dumps(t, default=str),
+            })
+
+        if len(page_tickets) < per_page:
+            break
+        page += 1
+
+    return tickets
+
+
+def _freshservice_create_ticket(cfg, subject, description, priority="Medium",
+                                 requester_email=""):
+    """Create a ticket in Freshservice."""
+    if not req_lib:
+        raise RuntimeError("requests library required")
+
+    domain = cfg.get("domain", "").strip()
+    api_key = cfg.get("api_key", "").strip()
+    if not domain or not api_key:
+        raise ValueError("Freshservice domain and API key are required")
+
+    if not domain.startswith("http"):
+        domain = "https://%s" % domain
+    if ".freshservice.com" not in domain:
+        domain = domain.rstrip("/") + ".freshservice.com"
+
+    base_url = domain.rstrip("/")
+    auth = (api_key, "X")
+
+    priority_map = {"Low": 1, "Medium": 2, "High": 3, "Urgent": 4}
+    payload = {
+        "subject": subject,
+        "description": description,
+        "priority": priority_map.get(priority, 2),
+        "status": 2,  # Open
+    }
+    if requester_email:
+        payload["email"] = requester_email
+    else:
+        payload["email"] = cfg.get("default_requester_email", "netmon@localhost")
+
+    resp = req_lib.post(
+        "%s/api/v2/tickets" % base_url,
+        auth=auth,
+        json=payload,
+        headers={"Content-Type": "application/json"},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    return resp.json().get("ticket", {})
+
+
+def _connectwise_fetch_tickets(cfg):
+    """Fetch tickets from ConnectWise Manage REST API."""
+    if not req_lib:
+        raise RuntimeError("requests library required for helpdesk integration")
+
+    site_url = cfg.get("site_url", "").strip().rstrip("/")
+    company_id = cfg.get("company_id", "").strip()
+    public_key = cfg.get("public_key", "").strip()
+    private_key = cfg.get("private_key", "").strip()
+    client_id = cfg.get("client_id", "").strip()
+
+    if not all([site_url, company_id, public_key, private_key, client_id]):
+        raise ValueError(
+            "ConnectWise requires site_url, company_id, public_key, "
+            "private_key, and client_id"
+        )
+
+    # ConnectWise uses Basic auth: company_id+public_key:private_key
+    auth_token = base64.b64encode(
+        ("%s+%s:%s" % (company_id, public_key, private_key)).encode()
+    ).decode()
+
+    headers = {
+        "Authorization": "Basic %s" % auth_token,
+        "Content-Type": "application/json",
+        "clientId": client_id,
+    }
+
+    tickets = []
+    page = 1
+    page_size = 200
+    max_pages = 10
+
+    while page <= max_pages:
+        url = "%s/v4_6_release/apis/3.0/service/tickets" % site_url
+        params = {
+            "pageSize": page_size,
+            "page": page,
+            "orderBy": "id desc",
+        }
+        resp = req_lib.get(url, headers=headers, params=params, timeout=30)
+        if resp.status_code == 401:
+            raise ValueError("ConnectWise authentication failed -- check credentials")
+        resp.raise_for_status()
+
+        page_tickets = resp.json()
+        if not page_tickets:
+            break
+
+        for t in page_tickets:
+            priority_name = ""
+            if isinstance(t.get("priority"), dict):
+                priority_name = t["priority"].get("name", "")
+            status_name = ""
+            if isinstance(t.get("status"), dict):
+                status_name = t["status"].get("name", "")
+            assignee_name = ""
+            if isinstance(t.get("owner"), dict):
+                assignee_name = t["owner"].get("name", "")
+            requester_name = ""
+            if isinstance(t.get("contact"), dict):
+                requester_name = t["contact"].get("name", "")
+            company_name = ""
+            if isinstance(t.get("company"), dict):
+                company_name = t["company"].get("name", "")
+
+            tickets.append({
+                "remote_id": str(t.get("id", "")),
+                "provider": "connectwise",
+                "subject": t.get("summary", ""),
+                "description": (t.get("initialDescription") or "")[:2000],
+                "status": status_name,
+                "priority": priority_name,
+                "ticket_type": t.get("type", {}).get("name", "") if isinstance(t.get("type"), dict) else "",
+                "assignee": assignee_name,
+                "requester": requester_name or company_name,
+                "created_at": t.get("dateEntered", ""),
+                "updated_at": t.get("lastUpdated", ""),
+                "due_date": t.get("requiredDate", ""),
+                "url": "%s/v4_6_release/services/system_io/Service/fv_sr100_request.rails?service_recid=%s" % (
+                    site_url, t.get("id", "")),
+                "raw_json": json_mod.dumps(t, default=str),
+            })
+
+        if len(page_tickets) < page_size:
+            break
+        page += 1
+
+    return tickets
+
+
+def _connectwise_create_ticket(cfg, subject, description, priority="Medium",
+                                company_id_ref=None):
+    """Create a ticket in ConnectWise Manage."""
+    if not req_lib:
+        raise RuntimeError("requests library required")
+
+    site_url = cfg.get("site_url", "").strip().rstrip("/")
+    company_id = cfg.get("company_id", "").strip()
+    public_key = cfg.get("public_key", "").strip()
+    private_key = cfg.get("private_key", "").strip()
+    client_id = cfg.get("client_id", "").strip()
+
+    auth_token = base64.b64encode(
+        ("%s+%s:%s" % (company_id, public_key, private_key)).encode()
+    ).decode()
+
+    headers = {
+        "Authorization": "Basic %s" % auth_token,
+        "Content-Type": "application/json",
+        "clientId": client_id,
+    }
+
+    payload = {
+        "summary": subject,
+        "initialDescription": description,
+    }
+    if company_id_ref:
+        payload["company"] = {"id": company_id_ref}
+    default_board = cfg.get("default_board_id")
+    if default_board:
+        payload["board"] = {"id": int(default_board)}
+
+    resp = req_lib.post(
+        "%s/v4_6_release/apis/3.0/service/tickets" % site_url,
+        headers=headers,
+        json=payload,
+        timeout=30,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def sync_helpdesk_tickets(force=False):
+    """Sync tickets from the configured helpdesk provider into local DB."""
+    hd_cfg = _get_helpdesk_config()
+    provider = hd_cfg.get("provider", "").strip().lower()
+
+    if not provider:
+        return {"ok": False, "error": "No helpdesk provider configured"}
+
+    with _helpdesk_lock:
+        if _helpdesk_sync_state["running"] and not force:
+            return {"ok": False, "error": "Sync already in progress"}
+        _helpdesk_sync_state["running"] = True
+
+    try:
+        if provider == "freshservice":
+            fs_cfg = hd_cfg.get("freshservice", {})
+            tickets = _freshservice_fetch_tickets(fs_cfg)
+        elif provider == "connectwise":
+            cw_cfg = hd_cfg.get("connectwise", {})
+            tickets = _connectwise_fetch_tickets(cw_cfg)
+        else:
+            raise ValueError("Unknown helpdesk provider: %s" % provider)
+
+        # Upsert into local DB
+        now = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        conn = sqlite3.connect(str(DB_PATH))
+        c = conn.cursor()
+
+        for t in tickets:
+            c.execute(
+                "SELECT id FROM helpdesk_tickets WHERE provider=? AND remote_id=?",
+                (t["provider"], t["remote_id"]),
+            )
+            existing = c.fetchone()
+            if existing:
+                c.execute(
+                    """UPDATE helpdesk_tickets SET
+                        subject=?, description=?, status=?, priority=?,
+                        ticket_type=?, assignee=?, requester=?,
+                        created_at=?, updated_at=?, due_date=?,
+                        url=?, raw_json=?, synced_at=?
+                    WHERE provider=? AND remote_id=?""",
+                    (
+                        t["subject"], t["description"], t["status"], t["priority"],
+                        t["ticket_type"], t["assignee"], t["requester"],
+                        t["created_at"], t["updated_at"], t["due_date"],
+                        t["url"], t["raw_json"], now,
+                        t["provider"], t["remote_id"],
+                    ),
+                )
+            else:
+                c.execute(
+                    """INSERT INTO helpdesk_tickets
+                        (remote_id, provider, subject, description, status,
+                         priority, ticket_type, assignee, requester,
+                         created_at, updated_at, due_date, url, raw_json, synced_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        t["remote_id"], t["provider"], t["subject"],
+                        t["description"], t["status"], t["priority"],
+                        t["ticket_type"], t["assignee"], t["requester"],
+                        t["created_at"], t["updated_at"], t["due_date"],
+                        t["url"], t["raw_json"], now,
+                    ),
+                )
+
+        conn.commit()
+        conn.close()
+
+        with _helpdesk_lock:
+            _helpdesk_sync_state["running"] = False
+            _helpdesk_sync_state["last_sync"] = now
+            _helpdesk_sync_state["last_error"] = None
+            _helpdesk_sync_state["ticket_count"] = len(tickets)
+
+        log.info("Helpdesk sync complete: %d tickets from %s", len(tickets), provider)
+        return {"ok": True, "synced": len(tickets), "provider": provider}
+
+    except Exception as e:
+        log.error("Helpdesk sync failed: %s", e)
+        with _helpdesk_lock:
+            _helpdesk_sync_state["running"] = False
+            _helpdesk_sync_state["last_error"] = str(e)
+        return {"ok": False, "error": str(e)}
+
+
+def helpdesk_sync_loop():
+    """Background thread that periodically syncs helpdesk tickets."""
+    time.sleep(10)  # Initial delay
+    while True:
+        hd_cfg = _get_helpdesk_config()
+        provider = hd_cfg.get("provider", "").strip()
+        interval = int(hd_cfg.get("sync_interval_minutes", 5))
+        if interval < 1:
+            interval = 1
+
+        if provider:
+            sync_helpdesk_tickets()
+
+        time.sleep(interval * 60)
+
+
+def create_ticket_from_alert(result):
+    """Auto-create a helpdesk ticket from a monitoring alert result."""
+    hd_cfg = _get_helpdesk_config()
+    provider = hd_cfg.get("provider", "").strip().lower()
+    if not hd_cfg.get("auto_create_tickets", False) or not provider:
+        return None
+
+    subject = "[NetMon Alert] %s -- %s %s" % (
+        result.get("device_name", "Unknown"),
+        result.get("status", "CRITICAL"),
+        result.get("check_label", ""),
+    )
+    description = (
+        "MyClover.Tech.netmon auto-generated ticket\n\n"
+        "Device: %s\n"
+        "Host: %s\n"
+        "Check: %s (%s)\n"
+        "Status: %s\n"
+        "Message: %s\n"
+        "Response Time: %s\n"
+        "Timestamp: %s"
+    ) % (
+        result.get("device_name", ""),
+        result.get("host", ""),
+        result.get("check_label", ""),
+        result.get("check_type", ""),
+        result.get("status", ""),
+        result.get("message", ""),
+        ("%.1fms" % result["response_ms"]) if result.get("response_ms") is not None else "N/A",
+        result.get("timestamp", ""),
+    )
+    priority = "Urgent" if result.get("status") == "CRITICAL" else "High"
+
+    try:
+        if provider == "freshservice":
+            fs_cfg = hd_cfg.get("freshservice", {})
+            ticket = _freshservice_create_ticket(fs_cfg, subject, description, priority)
+            log.info("Auto-created Freshservice ticket #%s for %s",
+                     ticket.get("id", "?"), result.get("device_name", ""))
+            return ticket
+        elif provider == "connectwise":
+            cw_cfg = hd_cfg.get("connectwise", {})
+            ticket = _connectwise_create_ticket(cw_cfg, subject, description, priority)
+            log.info("Auto-created ConnectWise ticket #%s for %s",
+                     ticket.get("id", "?"), result.get("device_name", ""))
+            return ticket
+    except Exception as e:
+        log.error("Failed to auto-create helpdesk ticket: %s", e)
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -3374,6 +3824,287 @@ def create_app():
         conn.close()
         return jsonify({"status": "deleted", "scan_id": scan_id})
 
+    # --- Helpdesk Connector API (Pro+) ---
+
+    @app.route("/api/helpdesk/tickets", methods=["GET"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_tickets():
+        """List cached helpdesk tickets with optional filters."""
+        status_filter = request.args.get("status", "").strip()
+        priority_filter = request.args.get("priority", "").strip()
+        assignee_filter = request.args.get("assignee", "").strip()
+        search = request.args.get("search", "").strip()
+        device_filter = request.args.get("device", "").strip()
+        limit = min(int(request.args.get("limit", 500)), 2000)
+        offset = int(request.args.get("offset", 0))
+
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+
+        query = "SELECT * FROM helpdesk_tickets WHERE 1=1"
+        params = []
+
+        if status_filter:
+            query += " AND LOWER(status) = LOWER(?)"
+            params.append(status_filter)
+        if priority_filter:
+            query += " AND LOWER(priority) = LOWER(?)"
+            params.append(priority_filter)
+        if assignee_filter:
+            query += " AND LOWER(assignee) LIKE LOWER(?)"
+            params.append("%" + assignee_filter + "%")
+        if device_filter:
+            query += " AND LOWER(device_name) LIKE LOWER(?)"
+            params.append("%" + device_filter + "%")
+        if search:
+            query += " AND (LOWER(subject) LIKE LOWER(?) OR LOWER(description) LIKE LOWER(?) OR LOWER(requester) LIKE LOWER(?))"
+            params.extend(["%" + search + "%"] * 3)
+
+        # Count total
+        count_q = query.replace("SELECT *", "SELECT COUNT(*)", 1)
+        total = conn.execute(count_q, params).fetchone()[0]
+
+        query += " ORDER BY updated_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        rows = conn.execute(query, params).fetchall()
+        conn.close()
+
+        tickets = []
+        for r in rows:
+            d = dict(r)
+            d.pop("raw_json", None)  # Don't send raw JSON in list view
+            tickets.append(d)
+
+        return jsonify({"tickets": tickets, "total": total})
+
+    @app.route("/api/helpdesk/tickets/<int:ticket_id>", methods=["GET"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_ticket_detail(ticket_id):
+        """Get a single cached ticket with full details."""
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM helpdesk_tickets WHERE id=?", (ticket_id,)
+        ).fetchone()
+        conn.close()
+        if not row:
+            return jsonify({"error": "Ticket not found"}), 404
+        d = dict(row)
+        try:
+            d["raw_json"] = json_mod.loads(d.get("raw_json", "{}"))
+        except Exception:
+            d["raw_json"] = {}
+        return jsonify(d)
+
+    @app.route("/api/helpdesk/tickets/<int:ticket_id>/link", methods=["POST"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_link_device(ticket_id):
+        """Link a ticket to a monitored device."""
+        data = request.get_json(force=True)
+        device_name = data.get("device_name", "").strip()
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.execute(
+            "UPDATE helpdesk_tickets SET device_name=? WHERE id=?",
+            (device_name, ticket_id),
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({"ok": True})
+
+    @app.route("/api/helpdesk/sync", methods=["POST"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_sync():
+        """Force a helpdesk ticket sync."""
+        result = sync_helpdesk_tickets(force=True)
+        return jsonify(result)
+
+    @app.route("/api/helpdesk/status", methods=["GET"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_status():
+        """Get helpdesk connector status."""
+        with _helpdesk_lock:
+            state = dict(_helpdesk_sync_state)
+        hd_cfg = _get_helpdesk_config()
+        state["provider"] = hd_cfg.get("provider", "")
+        state["auto_create_tickets"] = hd_cfg.get("auto_create_tickets", False)
+        state["sync_interval_minutes"] = hd_cfg.get("sync_interval_minutes", 5)
+        return jsonify(state)
+
+    @app.route("/api/helpdesk/settings", methods=["GET"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_settings():
+        """Get helpdesk configuration (masks sensitive fields)."""
+        hd_cfg = _get_helpdesk_config()
+        result = {
+            "provider": hd_cfg.get("provider", ""),
+            "sync_interval_minutes": hd_cfg.get("sync_interval_minutes", 5),
+            "auto_create_tickets": hd_cfg.get("auto_create_tickets", False),
+            "freshservice": {
+                "domain": hd_cfg.get("freshservice", {}).get("domain", ""),
+                "api_key": "***" if hd_cfg.get("freshservice", {}).get("api_key") else "",
+                "default_requester_email": hd_cfg.get("freshservice", {}).get("default_requester_email", ""),
+            },
+            "connectwise": {
+                "site_url": hd_cfg.get("connectwise", {}).get("site_url", ""),
+                "company_id": hd_cfg.get("connectwise", {}).get("company_id", ""),
+                "public_key": "***" if hd_cfg.get("connectwise", {}).get("public_key") else "",
+                "private_key": "***" if hd_cfg.get("connectwise", {}).get("private_key") else "",
+                "client_id": hd_cfg.get("connectwise", {}).get("client_id", ""),
+                "default_board_id": hd_cfg.get("connectwise", {}).get("default_board_id", ""),
+            },
+        }
+        return jsonify(result)
+
+    @app.route("/api/helpdesk/settings", methods=["PUT"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_settings_update():
+        """Update helpdesk configuration."""
+        data = request.get_json(force=True)
+        with _config_lock:
+            cfg = _config
+            if "helpdesk" not in cfg:
+                cfg["helpdesk"] = {}
+            hd = cfg["helpdesk"]
+
+            if "provider" in data:
+                hd["provider"] = str(data["provider"]).strip().lower()
+            if "sync_interval_minutes" in data:
+                hd["sync_interval_minutes"] = max(1, int(data["sync_interval_minutes"]))
+            if "auto_create_tickets" in data:
+                hd["auto_create_tickets"] = bool(data["auto_create_tickets"])
+
+            # Freshservice settings
+            if "freshservice" in data:
+                if "freshservice" not in hd:
+                    hd["freshservice"] = {}
+                fs = data["freshservice"]
+                if "domain" in fs:
+                    hd["freshservice"]["domain"] = str(fs["domain"]).strip()
+                if "api_key" in fs and fs["api_key"] != "***":
+                    hd["freshservice"]["api_key"] = str(fs["api_key"]).strip()
+                if "default_requester_email" in fs:
+                    hd["freshservice"]["default_requester_email"] = str(
+                        fs["default_requester_email"]
+                    ).strip()
+
+            # ConnectWise settings
+            if "connectwise" in data:
+                if "connectwise" not in hd:
+                    hd["connectwise"] = {}
+                cw = data["connectwise"]
+                for field in ["site_url", "company_id", "client_id", "default_board_id"]:
+                    if field in cw:
+                        hd["connectwise"][field] = str(cw[field]).strip()
+                if "public_key" in cw and cw["public_key"] != "***":
+                    hd["connectwise"]["public_key"] = str(cw["public_key"]).strip()
+                if "private_key" in cw and cw["private_key"] != "***":
+                    hd["connectwise"]["private_key"] = str(cw["private_key"]).strip()
+
+            save_config(cfg)
+        return jsonify({"ok": True})
+
+    @app.route("/api/helpdesk/test", methods=["POST"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_test():
+        """Test helpdesk connection with current settings."""
+        hd_cfg = _get_helpdesk_config()
+        provider = hd_cfg.get("provider", "").strip().lower()
+        if not provider:
+            return jsonify({"ok": False, "error": "No provider configured"}), 400
+
+        try:
+            if provider == "freshservice":
+                fs_cfg = hd_cfg.get("freshservice", {})
+                tickets = _freshservice_fetch_tickets(fs_cfg)
+                return jsonify({
+                    "ok": True,
+                    "message": "Connected to Freshservice -- found %d tickets" % len(tickets),
+                    "ticket_count": len(tickets),
+                })
+            elif provider == "connectwise":
+                cw_cfg = hd_cfg.get("connectwise", {})
+                tickets = _connectwise_fetch_tickets(cw_cfg)
+                return jsonify({
+                    "ok": True,
+                    "message": "Connected to ConnectWise -- found %d tickets" % len(tickets),
+                    "ticket_count": len(tickets),
+                })
+            else:
+                return jsonify({"ok": False, "error": "Unknown provider: %s" % provider}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+
+    @app.route("/api/helpdesk/create-ticket", methods=["POST"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_create_ticket():
+        """Manually create a ticket in the helpdesk from the dashboard."""
+        data = request.get_json(force=True)
+        subject = data.get("subject", "").strip()
+        description = data.get("description", "").strip()
+        priority = data.get("priority", "Medium")
+
+        if not subject:
+            return jsonify({"ok": False, "error": "Subject is required"}), 400
+
+        hd_cfg = _get_helpdesk_config()
+        provider = hd_cfg.get("provider", "").strip().lower()
+        if not provider:
+            return jsonify({"ok": False, "error": "No helpdesk provider configured"}), 400
+
+        try:
+            if provider == "freshservice":
+                fs_cfg = hd_cfg.get("freshservice", {})
+                ticket = _freshservice_create_ticket(
+                    fs_cfg, subject, description, priority,
+                    data.get("requester_email", ""),
+                )
+                return jsonify({"ok": True, "ticket": ticket})
+            elif provider == "connectwise":
+                cw_cfg = hd_cfg.get("connectwise", {})
+                ticket = _connectwise_create_ticket(
+                    cw_cfg, subject, description, priority,
+                )
+                return jsonify({"ok": True, "ticket": ticket})
+            else:
+                return jsonify({"ok": False, "error": "Unknown provider"}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+
+    @app.route("/api/helpdesk/stats", methods=["GET"])
+    @require_tier(TIER_PRO)
+    def api_helpdesk_stats():
+        """Get ticket statistics for dashboard widgets."""
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        try:
+            total = conn.execute("SELECT COUNT(*) FROM helpdesk_tickets").fetchone()[0]
+            open_count = conn.execute(
+                "SELECT COUNT(*) FROM helpdesk_tickets WHERE LOWER(status) IN ('open','new','pending')"
+            ).fetchone()[0]
+            urgent_count = conn.execute(
+                "SELECT COUNT(*) FROM helpdesk_tickets WHERE LOWER(priority) IN ('urgent','critical','high') AND LOWER(status) IN ('open','new','pending')"
+            ).fetchone()[0]
+            by_status = conn.execute(
+                "SELECT status, COUNT(*) as cnt FROM helpdesk_tickets GROUP BY status ORDER BY cnt DESC"
+            ).fetchall()
+            by_priority = conn.execute(
+                "SELECT priority, COUNT(*) as cnt FROM helpdesk_tickets WHERE LOWER(status) IN ('open','new','pending') GROUP BY priority ORDER BY cnt DESC"
+            ).fetchall()
+            by_assignee = conn.execute(
+                "SELECT assignee, COUNT(*) as cnt FROM helpdesk_tickets WHERE LOWER(status) IN ('open','new','pending') AND assignee != '' GROUP BY assignee ORDER BY cnt DESC LIMIT 10"
+            ).fetchall()
+        finally:
+            conn.close()
+
+        return jsonify({
+            "total": total,
+            "open": open_count,
+            "urgent": urgent_count,
+            "by_status": [{"status": r["status"], "count": r["cnt"]} for r in by_status],
+            "by_priority": [{"priority": r["priority"], "count": r["cnt"]} for r in by_priority],
+            "by_assignee": [{"assignee": r["assignee"], "count": r["cnt"]} for r in by_assignee],
+        })
 
     return app
 
@@ -3399,6 +4130,15 @@ def main():
     mon = threading.Thread(target=monitoring_loop, daemon=True)
     mon.start()
     log.info("Monitoring thread started")
+
+    # Start helpdesk sync thread
+    hd_provider = cfg.get("helpdesk", {}).get("provider", "")
+    if hd_provider:
+        hd_thread = threading.Thread(target=helpdesk_sync_loop, daemon=True)
+        hd_thread.start()
+        log.info("Helpdesk sync thread started (provider: %s)", hd_provider)
+    else:
+        log.info("Helpdesk integration not configured -- skipping sync thread")
 
     if HAS_FLASK:
         dash_cfg = cfg.get("dashboard", {})
