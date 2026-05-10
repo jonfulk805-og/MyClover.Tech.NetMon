@@ -1,0 +1,411 @@
+# ============================================================
+# MyClover.Tech.netmon v5.7 - DEMO Configuration
+# ============================================================
+# This config is for the live demo at demo.myclover.tech
+# Auto-resets every 6 hours. Do not edit manually.
+# ============================================================
+
+# Enterprise demo license (all features unlocked)
+license_key: "ENT-DEMO2026-1E5178571A318BFD"
+
+# Demo user authentication
+users:
+  - username: demo
+    password: TryNetMon2026
+    role: admin
+
+# Disable outbound notifications (demo safety)
+webhooks: []
+
+# Helpdesk integration (disabled for demo - shows UI only)
+helpdesk:
+  provider: ""
+  sync_interval_minutes: 5
+  auto_create_tickets: false
+  freshservice:
+    domain: ""
+    api_key: ""
+    default_requester_email: ""
+  connectwise:
+    site_url: ""
+    company_id: ""
+    public_key: ""
+    private_key: ""
+    client_id: ""
+    default_board_id: ""
+
+check_interval_seconds: 30
+
+dashboard:
+  host: 0.0.0.0
+  port: 8080
+
+# SMTP disabled for demo
+smtp:
+  smtp_host: ""
+  smtp_port: 587
+  use_tls: true
+  username: ""
+  password: ""
+  from_addr: ""
+  recipients: []
+  cooldown_minutes: 15
+
+# Simulated demo network -- realistic MSP environment
+devices:
+  - name: "Edge Firewall"
+    host: "10.0.1.1"
+    group: "Network"
+    parent: ""
+    notes: "Fortinet FortiGate 60F - Primary perimeter firewall"
+    maintenance: false
+    links:
+      - url: "https://10.0.1.1"
+        label: "FortiGate Admin"
+    checks:
+      - type: ping
+        label: "ICMP"
+        warning_ms: 5
+        critical_ms: 25
+        timeout_ms: 3000
+        retries: 2
+
+  - name: "Core Switch"
+    host: "10.0.1.2"
+    group: "Network"
+    parent: "Edge Firewall"
+    notes: "Cisco Catalyst 9300 - 48 port PoE+"
+    maintenance: false
+    links: []
+    checks:
+      - type: ping
+        label: "ICMP"
+        warning_ms: 3
+        critical_ms: 15
+
+  - name: "Distribution Switch A"
+    host: "10.0.1.3"
+    group: "Network"
+    parent: "Core Switch"
+    notes: "Cisco 2960X - Floor 1"
+    maintenance: false
+    links: []
+    checks:
+      - type: ping
+        label: "ICMP"
+        warning_ms: 5
+        critical_ms: 20
+
+  - name: "Distribution Switch B"
+    host: "10.0.1.4"
+    group: "Network"
+    parent: "Core Switch"
+    notes: "Cisco 2960X - Floor 2"
+    maintenance: false
+    links: []
+    checks:
+      - type: ping
+        label: "ICMP"
+        warning_ms: 5
+        critical_ms: 20
+
+  - name: "Wireless Controller"
+    host: "10.0.1.10"
+    group: "Network"
+    parent: "Core Switch"
+    notes: "UniFi Dream Machine Pro"
+    maintenance: false
+    links:
+      - url: "https://10.0.1.10:8443"
+        label: "UniFi Console"
+    checks:
+      - type: ping
+        label: "ICMP"
+        warning_ms: 5
+        critical_ms: 30
+
+  - name: "Office AP-1"
+    host: "10.0.1.11"
+    group: "Wireless"
+    parent: "Wireless Controller"
+    notes: "UniFi U6-Pro - Lobby"
+    maintenance: false
+    links: []
+    checks:
+      - type: ping
+        label: "ICMP"
+        warning_ms: 10
+        critical_ms: 50
+
+  - name: "Office AP-2"
+    host: "10.0.1.12"
+    group: "Wireless"
+    parent: "Wireless Controller"
+    notes: "UniFi U6-Pro - Open Office"
+    maintenance: false
+    links: []
+    checks:
+      - type: ping
+        label: "ICMP"
+        warning_ms: 10
+        critical_ms: 50
+
+  - name: "Office AP-3"
+    host: "10.0.1.13"
+    group: "Wireless"
+    parent: "Wireless Controller"
+    notes: "UniFi U6-LR - Warehouse"
+    maintenance: false
+    links: []
+    checks:
+      - type: ping
+        label: "ICMP"
+        warning_ms: 15
+        critical_ms: 75
+
+  - name: "DC-01 (Domain Controller)"
+    host: "10.0.2.10"
+    group: "Servers"
+    parent: "Core Switch"
+    notes: "Windows Server 2022 - Primary AD DC, DNS, DHCP"
+    maintenance: false
+    links:
+      - url: "rdp://10.0.2.10"
+        label: "RDP"
+    checks:
+      - type: ping
+        label: "ICMP"
+        warning_ms: 5
+        critical_ms: 20
+      - type: port
+        label: "DNS"
+        port: 53
+      - type: port
+        label: "LDAP"
+        port: 389
+
+  - name: "DC-02 (Backup DC)"
+    host: "10.0.2.11"
+    group: "Servers"
+    parent: "Core Switch"
+    notes: "Windows Server 2022 - Secondary AD DC"
+    maintenance: false
+    links: []
+    checks:
+      - type: ping
+        label: "ICMP"
+        warning_ms: 5
+        critical_ms: 20
+      - type: port
+        label: "DNS"
+        port: 53
+      - type: port
+        label: "LDAP"
+        port: 389
+
+  - name: "File Server"
+    host: "10.0.2.20"
+    group: "Servers"
+    parent: "Core Switch"
+    notes: "Synology RS1221+ NAS - 48TB RAID6"
+    maintenance: false
+    links:
+      - url: "https://10.0.2.20:5001"
+        label: "DSM Admin"
+    checks:
+      - type: ping
+        label: "ICMP"
+      - type: port
+        label: "SMB"
+        port: 445
+
+  - name: "Web Server (IIS)"
+    host: "10.0.2.30"
+    group: "Servers"
+    parent: "Core Switch"
+    notes: "Windows Server 2022 - Internal web apps"
+    maintenance: false
+    links:
+      - url: "http://10.0.2.30"
+        label: "HTTP"
+      - url: "https://10.0.2.30"
+        label: "HTTPS"
+    checks:
+      - type: ping
+        label: "ICMP"
+      - type: http
+        label: "HTTP"
+        url: "http://10.0.2.30"
+        expected_code: 200
+        timeout_ms: 10000
+      - type: port
+        label: "HTTPS"
+        port: 443
+
+  - name: "SQL Server"
+    host: "10.0.2.40"
+    group: "Servers"
+    parent: "Core Switch"
+    notes: "SQL Server 2022 Standard - ERP database"
+    maintenance: false
+    links: []
+    checks:
+      - type: ping
+        label: "ICMP"
+      - type: port
+        label: "SQL"
+        port: 1433
+
+  - name: "Exchange Server"
+    host: "10.0.2.50"
+    group: "Servers"
+    parent: "Core Switch"
+    notes: "Exchange 2019 - On-prem mail"
+    maintenance: false
+    links:
+      - url: "https://10.0.2.50/owa"
+        label: "OWA"
+    checks:
+      - type: ping
+        label: "ICMP"
+      - type: port
+        label: "SMTP"
+        port: 25
+      - type: port
+        label: "HTTPS"
+        port: 443
+
+  - name: "Backup Server"
+    host: "10.0.2.60"
+    group: "Servers"
+    parent: "Core Switch"
+    notes: "Veeam B&R v12 - Windows Server 2022"
+    maintenance: false
+    links:
+      - url: "https://10.0.2.60:9443"
+        label: "Veeam Console"
+    checks:
+      - type: ping
+        label: "ICMP"
+
+  - name: "Hypervisor-01"
+    host: "10.0.2.70"
+    group: "Servers"
+    parent: "Core Switch"
+    notes: "Proxmox VE 8.x - 128GB RAM, Dual Xeon"
+    maintenance: false
+    links:
+      - url: "https://10.0.2.70:8006"
+        label: "Proxmox UI"
+    checks:
+      - type: ping
+        label: "ICMP"
+        warning_ms: 3
+        critical_ms: 15
+      - type: port
+        label: "Web UI"
+        port: 8006
+
+  - name: "Hypervisor-02"
+    host: "10.0.2.71"
+    group: "Servers"
+    parent: "Core Switch"
+    notes: "Proxmox VE 8.x - 128GB RAM, Dual Xeon"
+    maintenance: false
+    links:
+      - url: "https://10.0.2.71:8006"
+        label: "Proxmox UI"
+    checks:
+      - type: ping
+        label: "ICMP"
+        warning_ms: 3
+        critical_ms: 15
+      - type: port
+        label: "Web UI"
+        port: 8006
+
+  - name: "VPN Gateway"
+    host: "10.0.1.5"
+    group: "Network"
+    parent: "Edge Firewall"
+    notes: "WireGuard VPN - Remote access"
+    maintenance: false
+    links: []
+    checks:
+      - type: ping
+        label: "ICMP"
+      - type: port
+        label: "WireGuard"
+        port: 51820
+
+  - name: "IP Camera NVR"
+    host: "10.0.3.10"
+    group: "Security"
+    parent: "Distribution Switch B"
+    notes: "Hikvision NVR - 16 cameras"
+    maintenance: false
+    links:
+      - url: "http://10.0.3.10"
+        label: "NVR Web"
+    checks:
+      - type: ping
+        label: "ICMP"
+      - type: port
+        label: "RTSP"
+        port: 554
+
+  - name: "VoIP PBX"
+    host: "10.0.3.20"
+    group: "Infrastructure"
+    parent: "Core Switch"
+    notes: "3CX Phone System"
+    maintenance: false
+    links:
+      - url: "https://10.0.3.20:5001"
+        label: "3CX Admin"
+    checks:
+      - type: ping
+        label: "ICMP"
+      - type: port
+        label: "SIP"
+        port: 5060
+
+  - name: "Printer - Main Office"
+    host: "10.0.3.30"
+    group: "Peripherals"
+    parent: "Distribution Switch A"
+    notes: "HP LaserJet Enterprise M507"
+    maintenance: false
+    links:
+      - url: "http://10.0.3.30"
+        label: "Printer Web"
+    checks:
+      - type: ping
+        label: "ICMP"
+        warning_ms: 20
+        critical_ms: 100
+
+  - name: "Printer - Warehouse"
+    host: "10.0.3.31"
+    group: "Peripherals"
+    parent: "Distribution Switch B"
+    notes: "Zebra ZT411 Label Printer"
+    maintenance: true
+    links: []
+    checks:
+      - type: ping
+        label: "ICMP"
+
+  - name: "UPS - Server Room"
+    host: "10.0.3.40"
+    group: "Infrastructure"
+    parent: "Core Switch"
+    notes: "APC Smart-UPS 3000VA - SNMP enabled"
+    maintenance: false
+    links: []
+    checks:
+      - type: ping
+        label: "ICMP"
+      - type: port
+        label: "SNMP"
+        port: 161
