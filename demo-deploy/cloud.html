@@ -87,6 +87,18 @@
         .icon-orange{background:rgba(249,115,22,.12)}
         .icon-yellow{background:rgba(234,179,8,.12)}
 
+        /* Open Source grid */
+        .oss-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+        @media(max-width:900px){.oss-grid{grid-template-columns:repeat(2,1fr)}}
+        @media(max-width:560px){.oss-grid{grid-template-columns:1fr}}
+        .oss-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px 22px;transition:all .3s}
+        .oss-card:hover{border-color:var(--cyan);box-shadow:0 0 30px rgba(6,182,212,.06);transform:translateY(-3px)}
+        .oss-card .oss-icon{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;font-size:1.1rem;flex-shrink:0}
+        .oss-card .oss-info{display:flex;align-items:center;gap:10px;margin:10px 0 8px}
+        .oss-card h4{font-size:.95rem;font-weight:700}
+        .oss-tag{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--cyan);background:rgba(6,182,212,.1);padding:2px 8px;border-radius:4px}
+        .oss-card p{font-size:.8rem;color:var(--dim);line-height:1.6}
+
         /* Bundle card */
         .bundle-section{padding:80px 0}
         .bundle-card{background:linear-gradient(135deg,rgba(6,182,212,.08),rgba(168,85,247,.08));border:2px solid var(--cyan);border-radius:24px;padding:60px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;position:relative;overflow:hidden}
@@ -161,6 +173,7 @@
             <a href="hardware.html">Hardware</a>
             <a href="consulting.html">Consulting</a>
             <a href="#modules">Modules</a>
+            <a href="#open-source">Open Source</a>
             <a href="#security">Security</a>
             <a href="#faq">FAQ</a>
             <a href="#subscribe" class="nav-cta">Subscribe</a>
@@ -310,6 +323,138 @@
                     <li><span class="check">✓</span> Priority support via Slack</li>
                     <li><span class="check">✓</span> 99.9% uptime SLA</li>
                 </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Open Source Stack -->
+<section id="open-source">
+    <div class="container">
+        <div class="section-header center">
+            <div class="section-label">🔓 Built on Open Source</div>
+            <h2 class="section-title">Enterprise Tools. Zero Licensing. Your Control.</h2>
+            <p class="section-desc">Every MyClover.Tech module is powered by battle-tested open-source tools — self-hosted on our infrastructure, fully under operator control. No vendor lock-in, no per-seat fees.</p>
+        </div>
+        <div class="oss-grid">
+
+            <div class="oss-card">
+                <div class="oss-icon" style="background:rgba(6,182,212,.12)">🖥️</div>
+                <div class="oss-info">
+                    <h4>RustDesk</h4>
+                    <span class="oss-tag">Remote Access</span>
+                </div>
+                <p>Open-source remote desktop — self-hosted relay server. Works like AnyDesk/TeamViewer but you own everything. $0/seat vs $30-50/seat/yr.</p>
+            </div>
+
+            <div class="oss-card">
+                <div class="oss-icon" style="background:rgba(59,130,246,.12)">🌐</div>
+                <div class="oss-info">
+                    <h4>Apache Guacamole</h4>
+                    <span class="oss-tag">Browser Gateway</span>
+                </div>
+                <p>Clientless remote desktop gateway — RDP, VNC, SSH through a browser. Zero installs on client machines.</p>
+            </div>
+
+            <div class="oss-card">
+                <div class="oss-icon" style="background:rgba(239,68,68,.12)">📡</div>
+                <div class="oss-info">
+                    <h4>Zabbix</h4>
+                    <span class="oss-tag">Network Monitoring</span>
+                </div>
+                <p>Enterprise-grade network monitoring with device discovery, SNMP, alerting. Powers the NetMon backend engine.</p>
+            </div>
+
+            <div class="oss-card">
+                <div class="oss-icon" style="background:rgba(168,85,247,.12)">📋</div>
+                <div class="oss-info">
+                    <h4>Graylog</h4>
+                    <span class="oss-tag">Log Management</span>
+                </div>
+                <p>High-performance log aggregation and search. The engine behind SentryLog's AI-powered analysis.</p>
+            </div>
+
+            <div class="oss-card">
+                <div class="oss-icon" style="background:rgba(34,197,94,.12)">🛡️</div>
+                <div class="oss-info">
+                    <h4>Wazuh</h4>
+                    <span class="oss-tag">SIEM + IDS</span>
+                </div>
+                <p>Security information & event management, intrusion detection, and compliance monitoring. AI sentinel backbone.</p>
+            </div>
+
+            <div class="oss-card">
+                <div class="oss-icon" style="background:rgba(249,115,22,.12)">🔑</div>
+                <div class="oss-info">
+                    <h4>WireGuard</h4>
+                    <span class="oss-tag">VPN</span>
+                </div>
+                <p>Modern, fast VPN tunnels for zero-trust access. Encrypted connections between all nodes and clients.</p>
+            </div>
+
+            <div class="oss-card">
+                <div class="oss-icon" style="background:rgba(234,179,8,.12)">💾</div>
+                <div class="oss-info">
+                    <h4>Restic + MinIO</h4>
+                    <span class="oss-tag">Backup & Storage</span>
+                </div>
+                <p>Encrypted, deduplicated backups with S3-compatible object storage. The Citadel Backup engine.</p>
+            </div>
+
+            <div class="oss-card">
+                <div class="oss-icon" style="background:rgba(6,182,212,.12)">🎫</div>
+                <div class="oss-info">
+                    <h4>Zammad</h4>
+                    <span class="oss-tag">Helpdesk</span>
+                </div>
+                <p>Full-featured helpdesk & ticketing system. Email, chat, phone — all in one. Integrates with your AI agent.</p>
+            </div>
+
+            <div class="oss-card">
+                <div class="oss-icon" style="background:rgba(59,130,246,.12)">📦</div>
+                <div class="oss-info">
+                    <h4>Snipe-IT</h4>
+                    <span class="oss-tag">Asset Management</span>
+                </div>
+                <p>Track every device, license, and accessory. Full IT asset lifecycle management with audit trails.</p>
+            </div>
+
+            <div class="oss-card">
+                <div class="oss-icon" style="background:rgba(168,85,247,.12)">🐳</div>
+                <div class="oss-info">
+                    <h4>Portainer + Traefik</h4>
+                    <span class="oss-tag">Orchestration</span>
+                </div>
+                <p>Docker/K8s management with auto-SSL reverse proxy. The infrastructure layer that makes it all scale.</p>
+            </div>
+
+            <div class="oss-card">
+                <div class="oss-icon" style="background:rgba(34,197,94,.12)">🔀</div>
+                <div class="oss-info">
+                    <h4>Gitea</h4>
+                    <span class="oss-tag">Self-Hosted Git</span>
+                </div>
+                <p>Lightweight, self-hosted Git service. Private repos, CI/CD, and code review — no third-party dependency.</p>
+            </div>
+
+            <div class="oss-card">
+                <div class="oss-icon" style="background:rgba(239,68,68,.12)">🤖</div>
+                <div class="oss-info">
+                    <h4>Ollama + Open Models</h4>
+                    <span class="oss-tag">Private AI</span>
+                </div>
+                <p>Run LLMs locally on your infrastructure. Your AI agent, your data, your hardware. Nothing leaves the network.</p>
+            </div>
+
+        </div>
+
+        <div style="text-align:center;margin-top:48px">
+            <div style="display:inline-flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 28px">
+                <span style="font-size:1.4rem">💰</span>
+                <div style="text-align:left">
+                    <div style="font-weight:700;font-size:.95rem">$0 Per-Seat Licensing</div>
+                    <div style="font-size:.82rem;color:var(--dim)">MSPs: stop paying per-seat for AnyDesk, TeamViewer, Splunk. Self-hosted = unlimited seats, maximum margin.</div>
+                </div>
             </div>
         </div>
     </div>
