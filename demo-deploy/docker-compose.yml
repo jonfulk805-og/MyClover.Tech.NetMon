@@ -24,7 +24,7 @@ services:
       - DEMO_MODE=true
       - DEMO_DB_PATH=/app/netmon.db
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
-      - AI_MODEL=phi3.5:3.8b-mini-instruct-q4_K_M
+      - AI_MODEL=phi3.5
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/"]
       interval: 30s
