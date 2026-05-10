@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyClover.Tech Cloud — Agent-Based IT Suite</title>
+    <meta name="description" content="Cloud-powered IT suite with AI agents. NetMon, SentryLog, Citadel Backup, Private AI Agent, and Dev Environment. Subscribe to what you need, scale when you're ready.">
+    <link rel="icon" href="data:image/png;base64,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">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{
+            --bg:#0a0e17;--bg2:#111827;--card:#1a2235;--card-h:#1f2a40;
+            --border:#2a3550;--text:#f1f5f9;--dim:#94a3b8;--muted:#64748b;
+            --green:#22c55e;--green-d:#16a34a;--green-g:rgba(34,197,94,.15);
+            --yellow:#eab308;--red:#ef4444;--blue:#3b82f6;--purple:#a855f7;
+            --orange:#f97316;--cyan:#06b6d4;
+            --font:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+            --mono:'JetBrains Mono','Fira Code',monospace;
+        }
+        html{scroll-behavior:smooth;font-size:16px}
+        body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+        a{color:var(--green);text-decoration:none;transition:color .2s}a:hover{color:#4ade80}
+        .container{max-width:1200px;margin:0 auto;padding:0 24px}
+        .bg-grid{position:fixed;top:0;left:0;width:100%;height:100%;background-image:linear-gradient(rgba(34,197,94,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(34,197,94,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+        .bg-glow{position:fixed;top:-40%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(6,182,212,.06) 0%,transparent 70%);pointer-events:none;z-index:0}
+
+        /* Nav */
+        nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 0;background:rgba(10,14,23,.88);backdrop-filter:blur(16px);border-bottom:1px solid transparent;transition:border-color .3s}
+        nav.scrolled{border-bottom-color:var(--border)}
+        nav .container{display:flex;align-items:center;justify-content:space-between}
+        .nav-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.1rem;color:var(--text)}
+        .nav-logo .dot{color:var(--green)}
+        .nav-links{display:flex;gap:28px;align-items:center}
+        .nav-links a{color:var(--dim);font-size:.85rem;font-weight:500}
+        .nav-links a:hover{color:var(--text)}
+        .nav-cta{background:var(--cyan);color:#000!important;padding:7px 18px;border-radius:8px;font-weight:600;font-size:.82rem;transition:background .2s,transform .2s}
+        .nav-cta:hover{background:#22d3ee;transform:translateY(-1px)}
+
+        /* Sections */
+        section{position:relative;z-index:1;padding:100px 0}
+        .section-label{display:inline-flex;align-items:center;gap:8px;font-size:.78rem;font-weight:600;color:var(--cyan);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px}
+        .section-title{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;line-height:1.15;margin-bottom:16px;letter-spacing:-.02em}
+        .section-desc{font-size:1.05rem;color:var(--dim);max-width:600px;line-height:1.7}
+        .section-header{margin-bottom:60px}
+        .section-header.center{text-align:center}
+        .section-header.center .section-desc{margin:0 auto}
+
+        /* Hero */
+        .hero{position:relative;z-index:1;padding:150px 0 90px;text-align:center}
+        .hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:999px;padding:6px 16px 6px 10px;font-size:.78rem;color:var(--dim);margin-bottom:28px}
+        .hero-badge .pulse{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        .hero h1{font-size:clamp(2.4rem,5.5vw,4rem);font-weight:800;line-height:1.1;margin-bottom:20px;letter-spacing:-.03em}
+        .hero h1 .gradient{background:linear-gradient(135deg,var(--cyan),var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .hero p{font-size:1.15rem;color:var(--dim);max-width:660px;margin:0 auto 36px;line-height:1.7}
+        .hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+        .hero-stats{display:flex;justify-content:center;gap:48px;margin-top:60px;padding-top:40px;border-top:1px solid var(--border)}
+        .hero-stat{text-align:center}
+        .hero-stat .num{font-size:2rem;font-weight:800;color:var(--cyan)}
+        .hero-stat .label{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+
+        /* Buttons */
+        .btn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;border-radius:10px;font-weight:600;font-size:.95rem;transition:all .2s;cursor:pointer;border:none;font-family:var(--font);text-decoration:none!important}
+        .btn-primary{background:var(--cyan);color:#000;box-shadow:0 4px 24px rgba(6,182,212,.3)}
+        .btn-primary:hover{background:#22d3ee;color:#000;transform:translateY(-2px);box-shadow:0 8px 32px rgba(6,182,212,.4)}
+        .btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border)}
+        .btn-secondary:hover{background:var(--card-h);border-color:var(--muted);transform:translateY(-2px)}
+
+        /* Feature grid */
+        .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+        @media(max-width:900px){.features-grid{grid-template-columns:1fr}}
+        .feature-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;transition:all .3s;position:relative;overflow:hidden}
+        .feature-card:hover{border-color:var(--cyan);transform:translateY(-4px);box-shadow:0 0 40px rgba(6,182,212,.08)}
+        .feature-card .icon{width:52px;height:52px;display:flex;align-items:center;justify-content:center;border-radius:14px;font-size:1.5rem;margin-bottom:18px}
+        .feature-card h3{font-size:1.15rem;font-weight:700;margin-bottom:8px}
+        .feature-card p{font-size:.88rem;color:var(--dim);line-height:1.7}
+        .feature-card .price-tag{display:inline-flex;align-items:baseline;gap:4px;margin-top:14px;padding:6px 14px;background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.2);border-radius:8px}
+        .feature-card .price-tag .amount{font-size:1.2rem;font-weight:800;color:var(--cyan)}
+        .feature-card .price-tag .period{font-size:.75rem;color:var(--dim)}
+        .icon-cyan{background:rgba(6,182,212,.12)}
+        .icon-blue{background:rgba(59,130,246,.12)}
+        .icon-purple{background:rgba(168,85,247,.12)}
+        .icon-green{background:rgba(34,197,94,.12)}
+        .icon-orange{background:rgba(249,115,22,.12)}
+        .icon-yellow{background:rgba(234,179,8,.12)}
+
+        /* Bundle card */
+        .bundle-section{padding:80px 0}
+        .bundle-card{background:linear-gradient(135deg,rgba(6,182,212,.08),rgba(168,85,247,.08));border:2px solid var(--cyan);border-radius:24px;padding:60px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;position:relative;overflow:hidden}
+        @media(max-width:768px){.bundle-card{grid-template-columns:1fr;padding:36px 24px}}
+        .bundle-card::before{content:'';position:absolute;top:-100px;right:-100px;width:300px;height:300px;background:radial-gradient(circle,rgba(6,182,212,.15),transparent 70%);pointer-events:none}
+        .bundle-badge{display:inline-flex;align-items:center;gap:6px;background:var(--cyan);color:#000;font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:999px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px}
+        .bundle-card h2{font-size:2.4rem;font-weight:800;line-height:1.1;margin-bottom:12px;letter-spacing:-.02em}
+        .bundle-card .desc{font-size:1.05rem;color:var(--dim);line-height:1.7;margin-bottom:24px}
+        .bundle-price{display:flex;align-items:baseline;gap:8px;margin-bottom:24px}
+        .bundle-price .amount{font-size:3.2rem;font-weight:800;color:var(--cyan)}
+        .bundle-price .period{font-size:1rem;color:var(--dim)}
+        .bundle-price .save{background:rgba(34,197,94,.15);color:var(--green);font-size:.78rem;font-weight:600;padding:4px 10px;border-radius:6px;margin-left:8px}
+        .bundle-features{list-style:none;display:grid;gap:12px}
+        .bundle-features li{display:flex;align-items:center;gap:10px;font-size:.92rem;color:var(--dim)}
+        .bundle-features .check{color:var(--cyan);font-size:1rem}
+        .msp-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.3);color:var(--purple);font-size:.78rem;font-weight:600;padding:6px 14px;border-radius:8px;margin-top:16px}
+
+        /* Security section */
+        .security-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+        @media(max-width:768px){.security-grid{grid-template-columns:1fr}}
+        .sec-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px 28px;display:flex;gap:16px;align-items:flex-start;transition:all .3s}
+        .sec-card:hover{border-color:var(--green);box-shadow:0 0 30px rgba(34,197,94,.06)}
+        .sec-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:rgba(34,197,94,.1);font-size:1.1rem;flex-shrink:0}
+        .sec-card h4{font-size:.95rem;font-weight:700;margin-bottom:4px}
+        .sec-card p{font-size:.82rem;color:var(--dim);line-height:1.6}
+
+        /* How it works */
+        .steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+        @media(max-width:768px){.steps-grid{grid-template-columns:repeat(2,1fr)}}
+        @media(max-width:480px){.steps-grid{grid-template-columns:1fr}}
+        .step-card{text-align:center;padding:32px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;transition:all .3s;position:relative}
+        .step-card:hover{border-color:var(--cyan);transform:translateY(-4px);box-shadow:0 0 40px rgba(6,182,212,.08)}
+        .step-num{width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.1);border:2px solid var(--cyan);display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:var(--cyan);margin:0 auto 16px}
+        .step-card h4{font-size:1rem;font-weight:700;margin-bottom:6px}
+        .step-card p{font-size:.85rem;color:var(--dim);line-height:1.6}
+        .step-arrow{position:absolute;right:-18px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:1.2rem;z-index:2}
+        @media(max-width:768px){.step-arrow{display:none}}
+
+        /* FAQ */
+        .faq-list{max-width:800px;margin:0 auto;display:grid;gap:12px}
+        .faq-item{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .3s}
+        .faq-item:hover{border-color:var(--muted)}
+        .faq-q{padding:20px 24px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:.95rem}
+        .faq-q .arrow{color:var(--dim);transition:transform .3s;font-size:.85rem}
+        .faq-item.open .faq-q .arrow{transform:rotate(180deg)}
+        .faq-a{padding:0 24px 20px;font-size:.88rem;color:var(--dim);line-height:1.7;display:none}
+        .faq-item.open .faq-a{display:block}
+
+        /* CTA */
+        .cta-section{text-align:center;padding:80px 0 120px}
+        .cta-box{background:linear-gradient(135deg,rgba(6,182,212,.1),rgba(59,130,246,.1));border:1px solid rgba(6,182,212,.3);border-radius:24px;padding:60px 40px;max-width:700px;margin:0 auto}
+        .cta-box h2{font-size:2rem;font-weight:800;margin-bottom:12px;letter-spacing:-.02em}
+        .cta-box p{font-size:1rem;color:var(--dim);margin-bottom:28px;line-height:1.7}
+
+        /* Footer */
+        footer{border-top:1px solid var(--border);padding:40px 0;text-align:center;color:var(--muted);font-size:.8rem;position:relative;z-index:1}
+        footer a{color:var(--dim)}footer a:hover{color:var(--text)}
+    </style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+
+<!-- Nav -->
+<nav>
+    <div class="container">
+        <a href="https://myclover.tech" class="nav-logo">
+            ☘️ MyClover<span class="dot">.Tech</span> <span style="color:var(--cyan);font-size:.75rem;font-weight:500;opacity:.7">Cloud</span>
+        </a>
+        <div class="nav-links">
+            <a href="https://myclover.tech">Home</a>
+            <a href="hardware.html">Hardware</a>
+            <a href="consulting.html">Consulting</a>
+            <a href="#modules">Modules</a>
+            <a href="#security">Security</a>
+            <a href="#faq">FAQ</a>
+            <a href="#subscribe" class="nav-cta">Subscribe</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+    <div class="container">
+        <div class="hero-badge">
+            <span class="pulse"></span>
+            Agent-Powered Cloud Platform
+        </div>
+        <h1>Your IT Suite.<br><span class="gradient">Cloud-Powered. AI-Driven.</span></h1>
+        <p>Subscribe to the modules you need. Each client gets a dedicated, isolated cloud instance with AI agents handling the heavy lifting. No hardware required — just an internet connection and a plan.</p>
+        <div class="hero-actions">
+            <a href="#subscribe" class="btn btn-primary">Get Started →</a>
+            <a href="#modules" class="btn btn-secondary">Explore Modules</a>
+        </div>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="num">5</div>
+                <div class="label">Modules</div>
+            </div>
+            <div class="hero-stat">
+                <div class="num">24/7</div>
+                <div class="label">AI Monitoring</div>
+            </div>
+            <div class="hero-stat">
+                <div class="num">100%</div>
+                <div class="label">Tenant Isolation</div>
+            </div>
+            <div class="hero-stat">
+                <div class="num">0</div>
+                <div class="label">Hardware Needed</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modules -->
+<section id="modules">
+    <div class="container">
+        <div class="section-header center">
+            <div class="section-label">☁️ Cloud Modules</div>
+            <h2 class="section-title">Subscribe to What You Need</h2>
+            <p class="section-desc">Each module runs in its own isolated cloud instance. Mix and match, upgrade anytime. Every subscription includes AI-powered automation and a dedicated agent.</p>
+        </div>
+        <div class="features-grid">
+
+            <div class="feature-card">
+                <div class="icon icon-cyan">📡</div>
+                <h3>NetMon</h3>
+                <p>Real-time network monitoring with device discovery, uptime tracking, performance metrics, and AI-powered anomaly detection. Alerts via email, Slack, or SMS.</p>
+                <div class="price-tag">
+                    <span class="amount">$29</span>
+                    <span class="period">/month</span>
+                </div>
+                <a href="https://buy.stripe.com/8x214n9Gn2lh96wfuvfrW0r" class="btn btn-primary" style="margin-top:16px;padding:10px 20px;font-size:.85rem;width:100%;justify-content:center" target="_blank">Subscribe →</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon icon-blue">📋</div>
+                <h3>SentryLog</h3>
+                <p>Centralized log aggregation with AI analysis, pattern detection, security alerting, and compliance reporting. Ingest logs from any source — servers, apps, firewalls.</p>
+                <div class="price-tag">
+                    <span class="amount">$29</span>
+                    <span class="period">/month</span>
+                </div>
+                <a href="https://buy.stripe.com/aFa7sL7yff83eqQ3LNfrW0u" class="btn btn-primary" style="margin-top:16px;padding:10px 20px;font-size:.85rem;width:100%;justify-content:center" target="_blank">Subscribe →</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon icon-green">🔒</div>
+                <h3>Citadel Backup</h3>
+                <p>Automated cloud backup with NAS sync, versioning, AES-256 encryption at rest, and one-click disaster recovery. Includes 1TB storage with expansion options.</p>
+                <div class="price-tag">
+                    <span class="amount">$19</span>
+                    <span class="period">/month</span>
+                </div>
+                <a href="https://buy.stripe.com/9B6cN5dWDe3ZeqQ1DFfrW0p" class="btn btn-primary" style="margin-top:16px;padding:10px 20px;font-size:.85rem;width:100%;justify-content:center" target="_blank">Subscribe →</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon icon-purple">🤖</div>
+                <h3>AI Agent</h3>
+                <p>Your own private AI assistant running on MyClover.Tech infrastructure. Handles IT tasks, documentation, troubleshooting, and automation. Fully sandboxed — your data stays yours.</p>
+                <div class="price-tag">
+                    <span class="amount">$49</span>
+                    <span class="period">/month</span>
+                </div>
+                <a href="https://buy.stripe.com/dRm14n2dV0d92I8fuvfrW0s" class="btn btn-primary" style="margin-top:16px;padding:10px 20px;font-size:.85rem;width:100%;justify-content:center" target="_blank">Subscribe →</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon icon-orange">⚡</div>
+                <h3>Dev Environment</h3>
+                <p>Full development stack: private GitHub repo, managed VPS, CI/CD pipeline, and deployment automation. Build, test, and ship apps on secure infrastructure.</p>
+                <div class="price-tag">
+                    <span class="amount">$39</span>
+                    <span class="period">/month</span>
+                </div>
+                <a href="https://buy.stripe.com/4gM9ATbOvf83ciI5TVfrW0t" class="btn btn-primary" style="margin-top:16px;padding:10px 20px;font-size:.85rem;width:100%;justify-content:center" target="_blank">Subscribe →</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon icon-yellow">🛡️</div>
+                <h3>Security First</h3>
+                <p>Every module includes: tenant isolation, encrypted data at rest + in transit, VPN-only admin access, AI sentinel monitoring, and automated intrusion detection.</p>
+                <div class="price-tag" style="background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.2)">
+                    <span class="amount" style="color:var(--green)">Included</span>
+                    <span class="period">with every plan</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Bundle -->
+<section id="subscribe" class="bundle-section">
+    <div class="container">
+        <div class="bundle-card">
+            <div>
+                <div class="bundle-badge">🍀 Best Value</div>
+                <h2>Full Suite Bundle</h2>
+                <div class="desc">Everything in the MyClover.Tech Cloud suite — NetMon, SentryLog, Citadel Backup, AI Agent, and Dev Environment. One subscription, one dashboard, complete coverage.</div>
+                <div class="bundle-price">
+                    <span class="amount">$129</span>
+                    <span class="period">/month</span>
+                    <span class="save">Save 20%</span>
+                </div>
+                <a href="https://buy.stripe.com/4gM28rcSz4tp2I8823frW0q" class="btn btn-primary" id="bundle-btn">Subscribe to Full Suite →</a>
+                <div class="msp-badge">🎨 MSP White-Label Branding Included</div>
+            </div>
+            <div>
+                <ul class="bundle-features">
+                    <li><span class="check">✓</span> NetMon — Network Monitoring + AI Alerts</li>
+                    <li><span class="check">✓</span> SentryLog — Log Aggregation + Analysis</li>
+                    <li><span class="check">✓</span> Citadel Backup — Encrypted Cloud Backup + DR</li>
+                    <li><span class="check">✓</span> AI Agent — Private AI Assistant</li>
+                    <li><span class="check">✓</span> Dev Environment — GitHub + VPS + CI/CD</li>
+                    <li><span class="check">✓</span> Dedicated isolated cloud instance</li>
+                    <li><span class="check">✓</span> 24/7 AI sentinel security monitoring</li>
+                    <li><span class="check">✓</span> MSP custom logo & co-branding</li>
+                    <li><span class="check">✓</span> Priority support via Slack</li>
+                    <li><span class="check">✓</span> 99.9% uptime SLA</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Security -->
+<section id="security">
+    <div class="container">
+        <div class="section-header center">
+            <div class="section-label">🔐 Security-First Architecture</div>
+            <h2 class="section-title">Your Data. Your Rules. Our Fortress.</h2>
+            <p class="section-desc">Security isn't a feature — it's the foundation. Every layer of the platform is built with zero-trust principles and military-grade encryption.</p>
+        </div>
+        <div class="security-grid">
+            <div class="sec-card">
+                <div class="sec-icon">🏰</div>
+                <div>
+                    <h4>Complete Tenant Isolation</h4>
+                    <p>Each client runs in a dedicated container with isolated networking, storage, and compute. No shared resources, no cross-tenant data paths.</p>
+                </div>
+            </div>
+            <div class="sec-card">
+                <div class="sec-icon">🔐</div>
+                <div>
+                    <h4>Encryption Everywhere</h4>
+                    <p>AES-256 encryption at rest. TLS 1.3 in transit. Full-disk LUKS encryption on all servers. Your data is unreadable without your keys.</p>
+                </div>
+            </div>
+            <div class="sec-card">
+                <div class="sec-icon">🤖</div>
+                <div>
+                    <h4>AI Sentinel Agents</h4>
+                    <p>Autonomous security agents monitor traffic 24/7, detect anomalies, flag intrusion attempts, and trigger automated incident response.</p>
+                </div>
+            </div>
+            <div class="sec-card">
+                <div class="sec-icon">🔑</div>
+                <div>
+                    <h4>Zero-Trust Networking</h4>
+                    <p>VPN-only admin access via WireGuard. No public-facing management interfaces. All client services behind WAF with DDoS protection.</p>
+                </div>
+            </div>
+            <div class="sec-card">
+                <div class="sec-icon">💾</div>
+                <div>
+                    <h4>Triple-Redundant Backups</h4>
+                    <p>Local primary + local mirror + encrypted offsite cloud backup. Automated recovery testing. RPO under 15 minutes, RTO under 1 hour.</p>
+                </div>
+            </div>
+            <div class="sec-card">
+                <div class="sec-icon">📜</div>
+                <div>
+                    <h4>Audit Trail</h4>
+                    <p>Every access, change, and event logged with immutable audit trails. Compliance-ready reporting for SOC 2, HIPAA, and GDPR frameworks.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works -->
+<section id="how-it-works">
+    <div class="container">
+        <div class="section-header center">
+            <div class="section-label">⚡ Getting Started</div>
+            <h2 class="section-title">Live in Minutes, Not Months</h2>
+            <p class="section-desc">From sign-up to a fully operational cloud instance — all automated, all instant.</p>
+        </div>
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-num">1</div>
+                <h4>Choose Your Modules</h4>
+                <p>Pick individual modules or grab the Full Suite Bundle at 20% off.</p>
+                <span class="step-arrow">→</span>
+            </div>
+            <div class="step-card">
+                <div class="step-num">2</div>
+                <h4>Subscribe</h4>
+                <p>Secure checkout via Stripe. Cancel or change modules anytime.</p>
+                <span class="step-arrow">→</span>
+            </div>
+            <div class="step-card">
+                <div class="step-num">3</div>
+                <h4>Auto-Provisioned</h4>
+                <p>Your isolated cloud instance, AI agent, and dashboards spin up automatically.</p>
+                <span class="step-arrow">→</span>
+            </div>
+            <div class="step-card">
+                <div class="step-num">4</div>
+                <h4>You're Live</h4>
+                <p>Log in, connect your infrastructure, and let the AI agents go to work.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- MSP Section -->
+<section id="msp" style="padding:60px 0 80px">
+    <div class="container">
+        <div class="section-header center">
+            <div class="section-label">🏢 For MSPs & IT Providers</div>
+            <h2 class="section-title">White-Label. Your Brand. Our Engine.</h2>
+            <p class="section-desc">Resell the entire MyClover.Tech Cloud suite under your own brand. Custom logo on every dashboard, report, and client-facing surface.</p>
+        </div>
+        <div class="security-grid">
+            <div class="sec-card">
+                <div class="sec-icon">🎨</div>
+                <div>
+                    <h4>Custom Branding</h4>
+                    <p>Your logo on dashboards, alerts, reports, and client portals. MyClover.Tech badge alongside your brand for trust.</p>
+                </div>
+            </div>
+            <div class="sec-card">
+                <div class="sec-icon">👥</div>
+                <div>
+                    <h4>Multi-Tenant Management</h4>
+                    <p>Manage all your client instances from one MSP dashboard. Per-client billing, usage tracking, and provisioning.</p>
+                </div>
+            </div>
+            <div class="sec-card">
+                <div class="sec-icon">💰</div>
+                <div>
+                    <h4>Margin Control</h4>
+                    <p>Set your own pricing for clients. Full margin on every subscription. Volume discounts available for 10+ seats.</p>
+                </div>
+            </div>
+            <div class="sec-card">
+                <div class="sec-icon">🚀</div>
+                <div>
+                    <h4>Instant Client Onboarding</h4>
+                    <p>Add a new client → their environment auto-provisions in under 5 minutes. No manual setup, no tickets.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" style="padding:60px 0 40px">
+    <div class="container">
+        <div class="section-header center">
+            <div class="section-label">❓ FAQ</div>
+            <h2 class="section-title">Common Questions</h2>
+        </div>
+        <div class="faq-list">
+            <div class="faq-item">
+                <div class="faq-q">Can I subscribe to individual modules or only the bundle? <span class="arrow">▼</span></div>
+                <div class="faq-a">Both. Subscribe to any individual module (NetMon, SentryLog, Citadel Backup, AI Agent, Dev Environment) separately, or get the Full Suite Bundle at a 20% discount. Mix and match anytime.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">How is my data kept separate from other clients? <span class="arrow">▼</span></div>
+                <div class="faq-a">Each client gets a fully isolated container with dedicated compute, storage, and networking. There are zero shared data paths between tenants. Your data is encrypted at rest with keys only you control.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">Do I need any hardware? <span class="arrow">▼</span></div>
+                <div class="faq-a">No. Everything runs on MyClover.Tech cloud infrastructure. All you need is an internet connection and a modern browser. For hybrid setups, we also offer the Citadel NAS appliance for on-premises nodes.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">What does the AI Agent actually do? <span class="arrow">▼</span></div>
+                <div class="faq-a">Your private AI agent can monitor your infrastructure, analyze logs, generate reports, troubleshoot issues, automate routine IT tasks, create documentation, and respond to alerts — all without human intervention. It runs 24/7 on our infrastructure.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">Can I cancel or change my subscription? <span class="arrow">▼</span></div>
+                <div class="faq-a">Yes. Subscriptions are month-to-month. Add or remove modules anytime. Changes take effect on your next billing cycle. No long-term contracts, no cancellation fees.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">Is this suitable for MSPs managing multiple clients? <span class="arrow">▼</span></div>
+                <div class="faq-a">Absolutely. The Full Suite Bundle includes MSP white-label branding. You get a multi-tenant management dashboard, per-client billing, and the ability to set your own margins. Volume discounts available for 10+ seats.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">Where is the data stored? <span class="arrow">▼</span></div>
+                <div class="faq-a">All data is stored on MyClover.Tech-managed infrastructure with triple-redundant backups: local primary, local mirror, and encrypted offsite cloud. We never store data on third-party consumer cloud services.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">What's the uptime guarantee? <span class="arrow">▼</span></div>
+                <div class="faq-a">We provide a 99.9% uptime SLA for all cloud modules. Our triple-redundant infrastructure ensures that even if a node fails, your services continue uninterrupted.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-box">
+            <h2>Ready to Go Cloud?</h2>
+            <p>Start with one module or go all-in with the Full Suite. Your isolated, AI-powered cloud environment spins up in minutes.</p>
+            <a href="#subscribe" class="btn btn-primary">Subscribe Now →</a>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <p>© 2026 MyClover.Tech — All rights reserved. <a href="https://myclover.tech">Home</a> · <a href="hardware.html">Hardware</a> · <a href="consulting.html">Consulting & Dev</a> · <a href="cloud.html">Cloud</a></p>
+    </div>
+</footer>
+
+<script>
+// Nav scroll effect
+window.addEventListener('scroll',()=>{document.querySelector('nav').classList.toggle('scrolled',window.scrollY>20)});
+// FAQ toggle
+document.querySelectorAll('.faq-q').forEach(q=>{q.addEventListener('click',()=>{q.parentElement.classList.toggle('open')})});
+</script>
+</body>
+</html>
