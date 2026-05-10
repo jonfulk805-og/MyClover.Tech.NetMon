@@ -98,6 +98,12 @@
         .oss-card h4{font-size:.95rem;font-weight:700}
         .oss-tag{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--cyan);background:rgba(6,182,212,.1);padding:2px 8px;border-radius:4px}
         .oss-card p{font-size:.8rem;color:var(--dim);line-height:1.6}
+        .oss-credit{margin-top:10px;font-size:.7rem;color:var(--muted);line-height:1.5}
+        .oss-credit a{color:var(--dim);text-decoration:underline;text-decoration-color:rgba(148,163,184,.3);text-underline-offset:2px}
+        .oss-credit a:hover{color:var(--cyan)}
+        .oss-attribution{margin-top:36px;text-align:center;padding:24px 32px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;max-width:800px;margin-left:auto;margin-right:auto}
+        .oss-attribution p{font-size:.85rem;color:var(--dim);line-height:1.7}
+        .oss-attribution a{text-decoration:underline;text-underline-offset:2px}
 
         /* Bundle card */
         .bundle-section{padding:80px 0}
@@ -332,9 +338,9 @@
 <section id="open-source">
     <div class="container">
         <div class="section-header center">
-            <div class="section-label">🔓 Built on Open Source</div>
-            <h2 class="section-title">Enterprise Tools. Zero Licensing. Your Control.</h2>
-            <p class="section-desc">Every MyClover.Tech module is powered by battle-tested open-source tools — self-hosted on our infrastructure, fully under operator control. No vendor lock-in, no per-seat fees.</p>
+            <div class="section-label">🔓 Powered by Open Source</div>
+            <h2 class="section-title">We Stand on the Shoulders of Giants</h2>
+            <p class="section-desc">The best ideas in IT didn't come from boardrooms — they came from brilliant developers who shared their work with the world. We're proud to build on their legacy and pass the savings to you.</p>
         </div>
         <div class="oss-grid">
 
@@ -344,7 +350,8 @@
                     <h4>RustDesk</h4>
                     <span class="oss-tag">Remote Access</span>
                 </div>
-                <p>Open-source remote desktop — self-hosted relay server. Works like AnyDesk/TeamViewer but you own everything. $0/seat vs $30-50/seat/yr.</p>
+                <p>Remote into any machine, anywhere — without paying per-seat fees to the big guys. Self-hosted means your connections never touch someone else's cloud.</p>
+                <div class="oss-credit">Created by the <a href="https://github.com/rustdesk/rustdesk" target="_blank">RustDesk Team</a> · AGPL-3.0</div>
             </div>
 
             <div class="oss-card">
@@ -353,7 +360,8 @@
                     <h4>Apache Guacamole</h4>
                     <span class="oss-tag">Browser Gateway</span>
                 </div>
-                <p>Clientless remote desktop gateway — RDP, VNC, SSH through a browser. Zero installs on client machines.</p>
+                <p>Open a browser, connect to anything — RDP, VNC, SSH. No client installs, no plugins. Just type a URL and you're in. Backed by the legendary Apache Foundation.</p>
+                <div class="oss-credit">Created by the <a href="https://guacamole.apache.org" target="_blank">Apache Software Foundation</a> · Apache-2.0</div>
             </div>
 
             <div class="oss-card">
@@ -362,7 +370,8 @@
                     <h4>Zabbix</h4>
                     <span class="oss-tag">Network Monitoring</span>
                 </div>
-                <p>Enterprise-grade network monitoring with device discovery, SNMP, alerting. Powers the NetMon backend engine.</p>
+                <p>The monitoring engine trusted by banks, hospitals, and governments worldwide. It sees every device, catches every anomaly — and it powers our NetMon layer.</p>
+                <div class="oss-credit">Created by <a href="https://www.zabbix.com" target="_blank">Zabbix LLC</a> · AGPL-3.0</div>
             </div>
 
             <div class="oss-card">
@@ -371,7 +380,8 @@
                     <h4>Graylog</h4>
                     <span class="oss-tag">Log Management</span>
                 </div>
-                <p>High-performance log aggregation and search. The engine behind SentryLog's AI-powered analysis.</p>
+                <p>Billions of log lines? No sweat. Graylog chews through data that would crash a spreadsheet — and it's the powerhouse behind our SentryLog AI analysis.</p>
+                <div class="oss-credit">Created by <a href="https://graylog.org" target="_blank">Graylog, Inc.</a> · SSPL</div>
             </div>
 
             <div class="oss-card">
@@ -380,7 +390,8 @@
                     <h4>Wazuh</h4>
                     <span class="oss-tag">SIEM + IDS</span>
                 </div>
-                <p>Security information & event management, intrusion detection, and compliance monitoring. AI sentinel backbone.</p>
+                <p>Your digital guard dog that never sleeps. Detects intrusions, flags threats, and keeps you audit-ready — the backbone of our AI sentinel security layer.</p>
+                <div class="oss-credit">Created by <a href="https://wazuh.com" target="_blank">Wazuh, Inc.</a> · GPL-2.0</div>
             </div>
 
             <div class="oss-card">
@@ -389,7 +400,8 @@
                     <h4>WireGuard</h4>
                     <span class="oss-tag">VPN</span>
                 </div>
-                <p>Modern, fast VPN tunnels for zero-trust access. Encrypted connections between all nodes and clients.</p>
+                <p>Built by one brilliant cryptographer. Faster than IPSec, simpler than OpenVPN, and small enough to audit the entire codebase over coffee. That's how we do zero-trust.</p>
+                <div class="oss-credit">Created by <a href="https://www.wireguard.com" target="_blank">Jason A. Donenfeld</a> · GPL-2.0</div>
             </div>
 
             <div class="oss-card">
@@ -398,7 +410,8 @@
                     <h4>Restic + MinIO</h4>
                     <span class="oss-tag">Backup & Storage</span>
                 </div>
-                <p>Encrypted, deduplicated backups with S3-compatible object storage. The Citadel Backup engine.</p>
+                <p>Your data, encrypted and deduplicated before it ever leaves the machine. Paired with MinIO's blazing-fast object storage — it's the engine that makes Citadel Backup bulletproof.</p>
+                <div class="oss-credit">Created by <a href="https://restic.net" target="_blank">Alexander Neumann</a> · BSD-2 &nbsp;|&nbsp; <a href="https://min.io" target="_blank">MinIO, Inc.</a> · AGPL-3.0</div>
             </div>
 
             <div class="oss-card">
@@ -407,7 +420,8 @@
                     <h4>Zammad</h4>
                     <span class="oss-tag">Helpdesk</span>
                 </div>
-                <p>Full-featured helpdesk & ticketing system. Email, chat, phone — all in one. Integrates with your AI agent.</p>
+                <p>Beautiful, modern helpdesk that your team will actually enjoy using. Email, chat, phone — all unified. Plug in your AI agent and watch tickets resolve themselves.</p>
+                <div class="oss-credit">Created by the <a href="https://zammad.org" target="_blank">Zammad Foundation</a> · AGPL-3.0</div>
             </div>
 
             <div class="oss-card">
@@ -416,7 +430,8 @@
                     <h4>Snipe-IT</h4>
                     <span class="oss-tag">Asset Management</span>
                 </div>
-                <p>Track every device, license, and accessory. Full IT asset lifecycle management with audit trails.</p>
+                <p>Know where every laptop, switch, and license lives — who has it, when it expires, and what it's worth. Finally, an asset tracker that doesn't require a PhD to use.</p>
+                <div class="oss-credit">Created by <a href="https://snipeitapp.com" target="_blank">Grokability, Inc.</a> · AGPL-3.0</div>
             </div>
 
             <div class="oss-card">
@@ -425,7 +440,8 @@
                     <h4>Portainer + Traefik</h4>
                     <span class="oss-tag">Orchestration</span>
                 </div>
-                <p>Docker/K8s management with auto-SSL reverse proxy. The infrastructure layer that makes it all scale.</p>
+                <p>The invisible plumbing that makes everything just work. Spin up containers, auto-generate SSL certs, route traffic — all from a clean UI. The ops team that never calls in sick.</p>
+                <div class="oss-credit">Created by <a href="https://www.portainer.io" target="_blank">Portainer.io</a> · Zlib &nbsp;|&nbsp; <a href="https://traefik.io" target="_blank">Traefik Labs</a> · MIT</div>
             </div>
 
             <div class="oss-card">
@@ -434,7 +450,8 @@
                     <h4>Gitea</h4>
                     <span class="oss-tag">Self-Hosted Git</span>
                 </div>
-                <p>Lightweight, self-hosted Git service. Private repos, CI/CD, and code review — no third-party dependency.</p>
+                <p>All the Git power you love, hosted on your own metal. Private repos, pull requests, CI/CD — without handing your source code to someone else's servers.</p>
+                <div class="oss-credit">Created by the <a href="https://about.gitea.com" target="_blank">Gitea Community</a> · MIT</div>
             </div>
 
             <div class="oss-card">
@@ -443,7 +460,8 @@
                     <h4>Ollama + Open Models</h4>
                     <span class="oss-tag">Private AI</span>
                 </div>
-                <p>Run LLMs locally on your infrastructure. Your AI agent, your data, your hardware. Nothing leaves the network.</p>
+                <p>Run powerful AI models right on your own hardware. Ask questions, analyze data, automate tasks — and not a single byte of your data ever leaves your network. That's real privacy.</p>
+                <div class="oss-credit">Created by <a href="https://ollama.com" target="_blank">Ollama, Inc.</a> · MIT</div>
             </div>
 
         </div>
@@ -452,10 +470,14 @@
             <div style="display:inline-flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 28px">
                 <span style="font-size:1.4rem">💰</span>
                 <div style="text-align:left">
-                    <div style="font-weight:700;font-size:.95rem">$0 Per-Seat Licensing</div>
-                    <div style="font-size:.82rem;color:var(--dim)">MSPs: stop paying per-seat for AnyDesk, TeamViewer, Splunk. Self-hosted = unlimited seats, maximum margin.</div>
+                    <div style="font-weight:700;font-size:.95rem">$0 Per-Seat Licensing — Keep More of What You Earn</div>
+                    <div style="font-size:.82rem;color:var(--dim)">MSPs: why hand your hard-earned revenue to AnyDesk, TeamViewer, or Splunk? Self-hosted means unlimited seats, zero surprise invoices, and margins you can actually live on.</div>
                 </div>
             </div>
+        </div>
+
+        <div class="oss-attribution">
+            <p>🙏 <strong>We don't build in a vacuum — we build on the brilliance of these open-source creators and their communities.</strong> Every project listed here represents years of passion, late nights, and a belief that great software should be accessible to everyone. All trademarks, project names, and logos belong to their respective creators. We're honored to stand alongside them and carry their work forward.</p>
         </div>
     </div>
 </section>
