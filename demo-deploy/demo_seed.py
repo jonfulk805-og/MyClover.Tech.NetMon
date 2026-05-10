@@ -276,7 +276,7 @@ def seed_inventory(conn):
                 "os_info,location,serial_number,purchase_date,notes,open_ports,"
                 "first_seen,last_seen,last_scan_id,monitored_device,status) "
                 "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (*a, first_seen, now, "demo-seed", a[12] if len(a) > 12 else "", "active"))
+                (*a[:12], first_seen, now, "demo-seed", a[12] if len(a) > 12 else "", "active"))
         except sqlite3.IntegrityError:
             pass
     conn.commit()
