@@ -18,9 +18,13 @@ services:
       - "traefik.http.routers.netmon-demo.entrypoints=websecure"
       - "traefik.http.routers.netmon-demo.tls.certresolver=letsencrypt"
       - "traefik.http.services.netmon-demo.loadbalancer.server.port=8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - DEMO_MODE=true
       - DEMO_DB_PATH=/app/netmon.db
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - AI_MODEL=phi3.5:3.8b-mini-instruct-q4_K_M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/"]
       interval: 30s
