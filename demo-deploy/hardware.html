@@ -180,6 +180,49 @@
         .footer-links{display:flex;gap:20px}
         .footer-links a{color:var(--muted);font-size:.82rem}.footer-links a:hover{color:var(--text)}
         @media(max-width:640px){.footer-content{flex-direction:column;gap:14px;text-align:center}}
+
+        /* Citadel — premium NAS tier */
+        .citadel-section{margin-top:80px;padding-top:60px;border-top:1px solid var(--border)}
+        .product-card.citadel::before{background:linear-gradient(90deg,var(--orange),#f59e0b,var(--red))}
+        .product-card.citadel .product-icon{background:rgba(249,115,22,.12)}
+        .card-tier.citadel{color:var(--orange)}
+        .citadel-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;max-width:1000px;margin:0 auto}
+        .citadel-features{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .citadel-features li{font-size:.82rem}
+        @media(max-width:800px){.citadel-grid{grid-template-columns:1fr;max-width:480px}}
+
+        /* Storage add-on configurator */
+        .storage-section{margin-top:48px;padding-top:48px;border-top:1px solid rgba(249,115,22,.2)}
+        .storage-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:32px}
+        @media(max-width:900px){.storage-grid{grid-template-columns:1fr;max-width:480px;margin:0 auto}}
+        .storage-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;transition:all .3s;position:relative}
+        .storage-card:hover{border-color:var(--orange);box-shadow:0 0 40px rgba(249,115,22,.1);transform:translateY(-3px)}
+        .storage-badge{display:inline-block;font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:12px}
+        .storage-badge.hdd{background:rgba(59,130,246,.15);color:var(--blue)}
+        .storage-badge.ssd{background:rgba(34,197,94,.15);color:var(--green)}
+        .storage-badge.nvme{background:rgba(168,85,247,.15);color:var(--purple)}
+        .storage-card h4{font-size:1rem;font-weight:700;margin-bottom:4px}
+        .storage-card .storage-detail{font-size:.82rem;color:var(--dim);margin-bottom:12px;line-height:1.5}
+        .storage-card .storage-price{font-size:1.6rem;font-weight:800;color:var(--orange);margin-bottom:4px}
+        .storage-card .storage-per{font-size:.75rem;color:var(--muted);margin-bottom:16px}
+        .storage-card .storage-specs{list-style:none;margin-bottom:16px;display:flex;flex-direction:column;gap:4px}
+        .storage-card .storage-specs li{font-size:.78rem;color:var(--dim);display:flex;align-items:center;gap:6px}
+        .storage-card .storage-specs li .dot{width:4px;height:4px;border-radius:50%;background:var(--muted);flex-shrink:0}
+        .storage-card .btn-storage{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:10px;font-weight:600;font-size:.82rem;width:100%;justify-content:center;transition:all .2s;text-decoration:none!important;cursor:pointer;border:none;font-family:var(--font)}
+        .btn-storage.hdd{background:rgba(59,130,246,.12);color:var(--blue);border:1px solid rgba(59,130,246,.3)}
+        .btn-storage.hdd:hover{background:rgba(59,130,246,.2);border-color:var(--blue);transform:translateY(-1px)}
+        .btn-storage.ssd{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+        .btn-storage.ssd:hover{background:rgba(34,197,94,.2);border-color:var(--green);transform:translateY(-1px)}
+        .btn-storage.nvme{background:rgba(168,85,247,.12);color:var(--purple);border:1px solid rgba(168,85,247,.3)}
+        .btn-storage.nvme:hover{background:rgba(168,85,247,.2);border-color:var(--purple);transform:translateY(-1px)}
+        .storage-note{text-align:center;margin-top:24px;font-size:.82rem;color:var(--muted);line-height:1.6}
+
+        /* Partnership callout */
+        .partnership-card{margin-top:48px;background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(59,130,246,.08));border:1px solid rgba(168,85,247,.3);border-radius:20px;padding:32px 40px;text-align:center}
+        .partnership-card h4{font-size:1.2rem;font-weight:700;margin-bottom:8px}
+        .partnership-card p{font-size:.9rem;color:var(--dim);max-width:600px;margin:0 auto 20px}
+        .partnership-logos{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+        .partnership-logos span{font-size:.82rem;font-weight:600;color:var(--muted);background:var(--card);border:1px solid var(--border);padding:6px 14px;border-radius:8px}
     </style>
 </head>
 <body>
@@ -427,6 +470,191 @@
             </div>
             <a href="mailto:sales@myclover.tech?subject=MSP%20Volume%20Pricing" class="btn btn-secondary" style="white-space:nowrap">Contact Sales →</a>
         </div>
+
+        <!-- Citadel — AI NAS -->
+        <div class="citadel-section">
+            <div class="section-header center">
+                <div class="section-label" style="color:var(--orange)">🏰 Flagship</div>
+                <div class="section-title">Citadel — AI NAS Appliance</div>
+                <div class="section-desc">The ultimate MSP-in-a-box. Pre-branded, pre-configured, pre-loaded, and drop-shipped directly to your site — zero IT visit required.</div>
+            </div>
+            <div class="citadel-grid">
+                <div class="product-card citadel" style="padding-top:52px">
+                    <div class="pricing-badge" style="background:linear-gradient(90deg,var(--orange),#f59e0b);white-space:nowrap">New — Flagship Tier</div>
+                    <div class="product-icon" style="font-size:2rem">🏰</div>
+                    <div class="card-tier citadel">Citadel</div>
+                    <div class="card-name">AI NAS — MSP-in-a-Box</div>
+                    <div class="card-desc">Pre-configured &amp; pre-branded with MyClover.Tech. Ships ready to plug in — monitoring, AI, NAS storage, and backup target. Drop-shipped with 3-year warranty. Handles 1,000+ devices.</div>
+                    <div class="card-price"><span class="currency">$</span>5,499</div>
+                    <div class="card-price-note">One-time · NetMon + SentryLog Enterprise Suite included for 3 years</div>
+                    <div class="card-divider"></div>
+                    <ul class="card-specs">
+                        <li><span class="pf-i" style="color:var(--orange)">✓</span><span><strong>MINISFORUM AI NAS N5 Pro-P370</strong></span></li>
+                        <li><span class="pf-i" style="color:var(--orange)">✓</span><span>AMD Ryzen AI 9 HX Pro 370 — <strong>12C/24T, 5.1GHz</strong></span></li>
+                        <li><span class="pf-i" style="color:var(--orange)">✓</span><span><strong>50 TOPS NPU</strong> — AI accelerator for Chappie Pro</span></li>
+                        <li><span class="pf-i" style="color:var(--orange)">✓</span><span><strong>64 GB DDR5 RAM</strong> / 1 TB NVMe (OS)</span></li>
+                        <li><span class="pf-i" style="color:var(--orange)">✓</span><span><strong>5-Bay NAS</strong> — up to 100TB+ raw (RAID configurable)</span></li>
+                        <li><span class="pf-i" style="color:var(--orange)">✓</span><span><strong>10GbE + 5GbE</strong> dual NIC</span></li>
+                        <li><span class="pf-i" style="color:var(--orange)">✓</span><span>PCIe x16, 2× USB4, OCuLink, HDMI</span></li>
+                        <li><span class="pf-i" style="color:var(--orange)">✓</span><span><strong>3 years</strong> NetMon + SentryLog Enterprise included</span></li>
+                        <li><span class="pf-i" style="color:var(--orange)">✓</span><span><strong>MSP co-branding</strong> — your logo + MyClover.Tech badge</span></li>
+                        <li><span class="pf-i" style="color:var(--orange)">✓</span><span>After Year 3: <strong>$59/mo</strong> or $590/yr to renew</span></li>
+                    </ul>
+                    <div class="card-cta">
+                        <a href="https://buy.stripe.com/6oU14n05Ne3Z4Qg5TVfrW0h" class="btn" style="width:100%;justify-content:center;background:linear-gradient(90deg,var(--orange),#f59e0b);color:#000">Order Citadel →</a>
+                    </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
+                    <div class="feature-card" style="border-color:rgba(249,115,22,.2)">
+                        <div class="feature-icon" style="background:rgba(249,115,22,.12)">🤖</div>
+                        <h3>Chappie AI Pro</h3>
+                        <p>50 TOPS NPU + 12 cores runs <strong>Llama 3.1 70B+</strong>. Ask Chappie to diagnose network issues, explain configs, generate ACLs — way beyond the 8B model on Fortress.</p>
+                    </div>
+                    <div class="feature-card" style="border-color:rgba(249,115,22,.2)">
+                        <div class="feature-icon" style="background:rgba(249,115,22,.12)">💾</div>
+                        <h3>iSCSI Target & Backup Hub</h3>
+                        <p>Present LUNs to <strong>Veeam, Hyper-V, VMware</strong> over 10GbE. SMB/NFS shares for config archives. <strong>Cloud offload</strong> to AWS S3, Azure, Backblaze, Wasabi.</p>
+                    </div>
+                    <div class="feature-card" style="border-color:rgba(249,115,22,.2)">
+                        <div class="feature-icon" style="background:rgba(249,115,22,.12)">📊</div>
+                        <h3>Storage Dashboard & RAID</h3>
+                        <p>RAID management, S.M.A.R.T. disk health, capacity alerts, SentryLog long-term archival. Months of log data instead of days.</p>
+                    </div>
+                    <div class="feature-card" style="border-color:rgba(249,115,22,.2)">
+                        <div class="feature-icon" style="background:rgba(249,115,22,.12)">📦</div>
+                        <h3>White-Glove Drop-Ship</h3>
+                        <p><strong>Co-branded</strong> with your MSP logo alongside the MyClover.Tech badge on boot screen &amp; dashboard. <strong>Pre-configured</strong> with your storage, RAID, and licenses. <strong>Drop-shipped</strong> directly to any site — no IT visit required. 3-year hardware warranty included.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Storage Add-Ons -->
+        <div class="storage-section" id="citadel-storage">
+            <div class="section-header center">
+                <div class="section-label" style="color:var(--orange)">💾 Configure Your Storage</div>
+                <div class="section-title">Citadel Storage Add-Ons</div>
+                <div class="section-desc">Choose your drives — we pre-install, test, and configure RAID before drop-shipping. All drives include manufacturer warranty.</div>
+            </div>
+
+            <!-- HDD Row -->
+            <div style="margin-bottom:12px"><span class="storage-badge hdd">HDD</span> <span style="font-size:.85rem;color:var(--dim)">5× SATA Bays — Seagate IronWolf Pro (5-Year Warranty)</span></div>
+            <div class="storage-grid">
+                <div class="storage-card">
+                    <h4>5 × 8TB HDD</h4>
+                    <div class="storage-detail">Seagate IronWolf Pro · 7200RPM · 256MB Cache</div>
+                    <div class="storage-price">$1,469</div>
+                    <div class="storage-per">$294/drive · 40TB raw</div>
+                    <ul class="storage-specs">
+                        <li><span class="dot"></span>Ideal for: General NAS, SMB file shares</li>
+                        <li><span class="dot"></span>RAID 5 usable: ~32TB</li>
+                        <li><span class="dot"></span>5-year limited warranty</li>
+                    </ul>
+                    <a href="https://buy.stripe.com/28E7sL9Gne3Z5Uk1DFfrW0c" class="btn-storage hdd">Add to Citadel →</a>
+                </div>
+                <div class="storage-card">
+                    <h4>5 × 16TB HDD</h4>
+                    <div class="storage-detail">Seagate IronWolf Pro · 7200RPM · 256MB Cache</div>
+                    <div class="storage-price">$1,875</div>
+                    <div class="storage-per">$375/drive · 80TB raw</div>
+                    <ul class="storage-specs">
+                        <li><span class="dot"></span>Ideal for: Backup target, Veeam repos</li>
+                        <li><span class="dot"></span>RAID 5 usable: ~64TB</li>
+                        <li><span class="dot"></span>5-year limited warranty</li>
+                    </ul>
+                    <a href="https://buy.stripe.com/7sY7sLg4L9NJ5Uk2HJfrW0d" class="btn-storage hdd">Add to Citadel →</a>
+                </div>
+                <div class="storage-card">
+                    <h4>5 × 20TB HDD</h4>
+                    <div class="storage-detail">Seagate IronWolf Pro · 7200RPM · 256MB Cache</div>
+                    <div class="storage-price">$2,599</div>
+                    <div class="storage-per">$519/drive · 100TB raw</div>
+                    <ul class="storage-specs">
+                        <li><span class="dot"></span>Ideal for: Max capacity, long-term archival</li>
+                        <li><span class="dot"></span>RAID 5 usable: ~80TB</li>
+                        <li><span class="dot"></span>5-year limited warranty</li>
+                    </ul>
+                    <a href="https://buy.stripe.com/7sY8wPf0Hf83dmMfuvfrW0e" class="btn-storage hdd">Add to Citadel →</a>
+                </div>
+            </div>
+
+            <!-- SSD Row -->
+            <div style="margin-top:32px;margin-bottom:12px"><span class="storage-badge ssd">SSD</span> <span style="font-size:.85rem;color:var(--dim)">5× SATA Bays — WD Red SA500 NAS (5-Year Warranty)</span></div>
+            <div class="storage-grid" style="grid-template-columns:repeat(2,1fr);max-width:660px;margin:0 auto">
+                <div class="storage-card">
+                    <h4>5 × 2TB SSD</h4>
+                    <div class="storage-detail">WD Red SA500 · 560MB/s Read · NAS Optimized</div>
+                    <div class="storage-price">$1,099</div>
+                    <div class="storage-per">$219/drive · 10TB raw</div>
+                    <ul class="storage-specs">
+                        <li><span class="dot"></span>Ideal for: All-flash NAS, iSCSI LUNs</li>
+                        <li><span class="dot"></span>RAID 5 usable: ~8TB</li>
+                        <li><span class="dot"></span>Zero noise, low power</li>
+                    </ul>
+                    <a href="https://buy.stripe.com/dRm5kD6ub7FB82s6XZfrW0f" class="btn-storage ssd">Add to Citadel →</a>
+                </div>
+                <div class="storage-card">
+                    <h4>5 × 4TB SSD</h4>
+                    <div class="storage-detail">WD Red SA500 · 560MB/s Read · NAS Optimized</div>
+                    <div class="storage-price">$1,699</div>
+                    <div class="storage-per">$340/drive · 20TB raw</div>
+                    <ul class="storage-specs">
+                        <li><span class="dot"></span>Ideal for: High-performance NAS, VMs</li>
+                        <li><span class="dot"></span>RAID 5 usable: ~16TB</li>
+                        <li><span class="dot"></span>Zero noise, low power</li>
+                    </ul>
+                    <a href="https://buy.stripe.com/bJebJ105N4tp6YoaabfrW0g" class="btn-storage ssd">Add to Citadel →</a>
+                </div>
+            </div>
+
+            <!-- NVMe Row -->
+            <div style="margin-top:32px;margin-bottom:12px"><span class="storage-badge nvme">NVMe</span> <span style="font-size:.85rem;color:var(--dim)">2× M.2 Slots — Samsung 990 EVO Plus (PCIe Gen4)</span></div>
+            <div class="storage-grid" style="grid-template-columns:repeat(2,1fr);max-width:660px;margin:0 auto">
+                <div class="storage-card">
+                    <h4>2 × 2TB NVMe</h4>
+                    <div class="storage-detail">Samsung 990 EVO Plus · 7,250MB/s Read</div>
+                    <div class="storage-price">$439</div>
+                    <div class="storage-per">$220/drive · 4TB total</div>
+                    <ul class="storage-specs">
+                        <li><span class="dot"></span>Ideal for: SentryLog cache, hot storage</li>
+                        <li><span class="dot"></span>10× faster than SATA SSD</li>
+                        <li><span class="dot"></span>Samsung 5-year warranty</li>
+                    </ul>
+                    <a href="https://buy.stripe.com/9B69AT3hZ6Bx1E4fuvfrW0i" class="btn-storage nvme">Add to Citadel →</a>
+                </div>
+                <div class="storage-card">
+                    <h4>2 × 4TB NVMe</h4>
+                    <div class="storage-detail">Samsung 990 EVO Plus · 7,250MB/s Read</div>
+                    <div class="storage-price">$649</div>
+                    <div class="storage-per">$325/drive · 8TB total</div>
+                    <ul class="storage-specs">
+                        <li><span class="dot"></span>Ideal for: Max NVMe capacity, VM storage</li>
+                        <li><span class="dot"></span>10× faster than SATA SSD</li>
+                        <li><span class="dot"></span>Samsung 5-year warranty</li>
+                    </ul>
+                    <a href="https://buy.stripe.com/cNicN58Cj6BxeqQcijfrW0j" class="btn-storage nvme">Add to Citadel →</a>
+                </div>
+            </div>
+
+            <div class="storage-note">
+                💡 <strong>Mix &amp; match:</strong> NAS bays (HDD or SSD) and M.2 slots (NVMe) are independent — add both for tiered storage.<br>
+                All drives are pre-installed, RAID-configured, and stress-tested before shipping. <a href="mailto:sales@myclover.tech?subject=Custom%20Citadel%20Storage">Contact sales</a> for custom configurations.
+            </div>
+        </div>
+
+        <!-- OEM / Partnership Callout -->
+        <div class="partnership-card">
+            <h4>🤝 OEM & Channel Partnerships</h4>
+            <p>Interested in custom-branded MyClover.Tech appliances on your hardware? We're building partnerships with leading server and mini PC manufacturers.</p>
+            <div class="partnership-logos">
+                <span>Dell</span>
+                <span>HP Enterprise</span>
+                <span>Lenovo</span>
+                <span>Supermicro</span>
+                <span>MinisForum</span>
+            </div>
+            <a href="mailto:partnerships@myclover.tech?subject=OEM%20Partnership%20Inquiry" class="btn btn-secondary" style="white-space:nowrap">Become a Partner →</a>
+        </div>
     </div>
 </section>
 
@@ -517,20 +745,23 @@
         <div style="overflow-x:auto">
             <table class="comparison-table">
                 <thead>
-                    <tr><th>Feature</th><th>Self-Hosted (Free)</th><th>MyClover Appliance</th></tr>
+                    <tr><th>Feature</th><th>Self-Hosted (Free)</th><th>MyClover Appliance</th><th style="color:var(--orange)">Citadel NAS</th></tr>
                 </thead>
                 <tbody>
-                    <tr><td>NetMon + SentryLog</td><td><span class="check">✓</span> Community tier</td><td><span class="check">✓</span> Pro or Enterprise</td></tr>
-                    <tr><td>Hardware included</td><td><span class="cross">—</span> BYO server</td><td><span class="check">✓</span> Pre-built mini PC</td></tr>
-                    <tr><td>OS installation</td><td><span class="cross">—</span> Manual Ubuntu install</td><td><span class="check">✓</span> Pre-installed &amp; hardened</td></tr>
-                    <tr><td>Setup time</td><td>1–4 hours</td><td><strong style="color:var(--green)">Under 5 minutes</strong></td></tr>
-                    <tr><td>Auto-updates</td><td><span class="cross">—</span> Manual git pull</td><td><span class="check">✓</span> Automatic</td></tr>
-                    <tr><td>Automatic backups</td><td><span class="cross">—</span> Configure yourself</td><td><span class="check">✓</span> Daily, built-in</td></tr>
-                    <tr><td>First-boot wizard</td><td><span class="cross">—</span></td><td><span class="check">✓</span></td></tr>
-                    <tr><td>Security hardening</td><td><span class="cross">—</span> DIY</td><td><span class="check">✓</span> Pre-configured</td></tr>
-                    <tr><td>Setup support</td><td>Community forums</td><td><span class="check">✓</span> Free 30-day support</td></tr>
-                    <tr><td>Helpdesk integration</td><td><span class="cross">—</span> Enterprise only</td><td><span class="check">✓</span> Sentinel &amp; Fortress</td></tr>
-                    <tr><td>10 GbE SFP+ networking</td><td><span class="cross">—</span></td><td><span class="check">✓</span> Fortress tier</td></tr>
+                    <tr><td>NetMon + SentryLog</td><td><span class="check">✓</span> Community tier</td><td><span class="check">✓</span> Pro or Enterprise</td><td><span class="check">✓</span> Enterprise Suite</td></tr>
+                    <tr><td>Hardware included</td><td><span class="cross">—</span> BYO server</td><td><span class="check">✓</span> Pre-built mini PC</td><td><span class="check">✓</span> NAS + 10GbE</td></tr>
+                    <tr><td>OS installation</td><td><span class="cross">—</span> Manual Ubuntu install</td><td><span class="check">✓</span> Pre-installed &amp; hardened</td><td><span class="check">✓</span> Pre-installed &amp; hardened</td></tr>
+                    <tr><td>Setup time</td><td>1–4 hours</td><td><strong style="color:var(--green)">Under 5 minutes</strong></td><td><strong style="color:var(--orange)">Under 5 minutes</strong></td></tr>
+                    <tr><td>Auto-updates</td><td><span class="cross">—</span> Manual git pull</td><td><span class="check">✓</span> Automatic</td><td><span class="check">✓</span> Automatic</td></tr>
+                    <tr><td>Automatic backups</td><td><span class="cross">—</span> Configure yourself</td><td><span class="check">✓</span> Daily, built-in</td><td><span class="check">✓</span> NAS + cloud offload</td></tr>
+                    <tr><td>First-boot wizard</td><td><span class="cross">—</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+                    <tr><td>Security hardening</td><td><span class="cross">—</span> DIY</td><td><span class="check">✓</span> Pre-configured</td><td><span class="check">✓</span> Pre-configured</td></tr>
+                    <tr><td>Setup support</td><td>Community forums</td><td><span class="check">✓</span> Free 30-day support</td><td><span class="check">✓</span> Priority 30-day</td></tr>
+                    <tr><td>Helpdesk integration</td><td><span class="cross">—</span> Enterprise only</td><td><span class="check">✓</span> Sentinel &amp; Fortress</td><td><span class="check">✓</span> Full Enterprise</td></tr>
+                    <tr><td>10 GbE SFP+ networking</td><td><span class="cross">—</span></td><td><span class="check">✓</span> Fortress tier</td><td><span class="check">✓</span> 10GbE + 5GbE</td></tr>
+                    <tr><td>Chappie AI Assistant</td><td><span class="cross">—</span></td><td><span class="check">✓</span> Fortress only (8B)</td><td><span class="check" style="color:var(--orange)">✓</span> <strong>Pro (70B+)</strong></td></tr>
+                    <tr><td>iSCSI / Backup target</td><td><span class="cross">—</span></td><td><span class="cross">—</span></td><td><span class="check" style="color:var(--orange)">✓</span> <strong>Built-in</strong></td></tr>
+                    <tr><td>NAS storage (5-bay)</td><td><span class="cross">—</span></td><td><span class="cross">—</span></td><td><span class="check" style="color:var(--orange)">✓</span> <strong>100TB+</strong></td></tr>
                 </tbody>
             </table>
         </div>
@@ -554,6 +785,9 @@
             <div class="faq-item"><button class="faq-q">What's the warranty? <span class="arrow">▾</span></button><div class="faq-a">The hardware comes with the manufacturer's standard warranty (typically 1–2 years). We also guarantee the software will be supported for the duration of your active subscription.</div></div>
                         <div class="faq-item"><button class="faq-q">What VM formats are included? <span class="arrow">▾</span></button><div class="faq-a">Every VM Image purchase includes OVA (VMware/VirtualBox), QCOW2 (Proxmox/KVM), and VHD/VHDX (Hyper-V) formats. Download all three — deploy on whichever hypervisor you prefer.</div></div>
             <div class="faq-item"><button class="faq-q">How does the BootStick work? <span class="arrow">▾</span></button><div class="faq-a">Plug the BootStick USB drive into any x86 PC or server, set the BIOS to boot from USB, and power on. It boots directly into a fully configured monitoring appliance. You can also install permanently to the internal disk from the boot menu.</div></div>
+            <div class="faq-item"><button class="faq-q">What makes the Citadel different from the Fortress? <span class="arrow">▾</span></button><div class="faq-a">The Citadel is a full NAS appliance — 5 hot-swap drive bays for massive storage, 10GbE + 5GbE networking, and a 50 TOPS AI accelerator for running Chappie with much larger (70B+) AI models. It also adds iSCSI target capability, SMB/NFS file shares, cloud backup offload, and a storage management dashboard. Think of it as Fortress + Synology + AI supercharged.</div></div>
+            <div class="faq-item"><button class="faq-q">Can the Citadel be a Veeam backup target? <span class="arrow">▾</span></button><div class="faq-a">Yes! The Citadel can present iSCSI LUNs or SMB repositories over 10GbE — it slots right into existing Veeam infrastructure. You can also configure automatic offload to cloud storage (AWS S3, Azure Blob, Backblaze B2, Wasabi) for 3-2-1 backup compliance.</div></div>
+            <div class="faq-item"><button class="faq-q">Are the NAS drives included? <span class="arrow">▾</span></button><div class="faq-a">The base Citadel includes the 1TB NVMe boot drive, but NAS storage is sold separately so you can choose the right capacity. We offer <a href="#citadel-storage" style="color:var(--orange)">pre-configured storage add-ons</a> — HDD (8–20TB IronWolf Pro), SSD (2–4TB WD Red SA500), and NVMe (2–4TB Samsung 990 EVO Plus). All drives are pre-installed, RAID-configured, and stress-tested before drop-shipping.</div></div>
             <div class="faq-item"><button class="faq-q">Can MSPs order in bulk? <span class="arrow">▾</span></button><div class="faq-a">Yes! We offer 15% off hardware for orders of 10+ units, with custom MSP licensing starting at $5/customer/month. Contact sales@myclover.tech for volume pricing.</div></div>
         </div>
     </div>
