@@ -115,7 +115,7 @@ TIER_FEATURES = {
         "max_sensors": 0,
         "tabs": ["status", "alerts", "history", "devices", "settings",
                  "inventory", "map", "discovery", "downtime", "helpdesk",
-                 "noc", "security", "reports"],
+                 "noc", "security", "reports", "ai_assistant"],
         "api_write": True,
         "multi_recipient": True,
         "noc_mode": True,
@@ -4105,6 +4105,79 @@ def create_app():
             "by_priority": [{"priority": r["priority"], "count": r["cnt"]} for r in by_priority],
             "by_assignee": [{"assignee": r["assignee"], "count": r["cnt"]} for r in by_assignee],
         })
+
+    # ------------------------------------------------------------------
+    # AI Assistant (Enterprise only)
+    # ------------------------------------------------------------------
+
+    @app.route("/api/ai/status")
+    def api_ai_status():
+        """Return AI assistant availability."""
+        try:
+            import ai_assistant
+            status = ai_assistant.get_status()
+            status["tier_ok"] = get_tier() == TIER_ENT
+            return jsonify(status)
+        except ImportError:
+            return jsonify({"available": False, "error": "ai_assistant module not found"})
+
+    @app.route("/api/ai/chat", methods=["POST"])
+    @require_tier(TIER_ENT)
+    def api_ai_chat():
+        """Send a message to the AI assistant."""
+        import ai_assistant
+        data = request.get_json(force=True, silent=True) or {}
+        user_msg = str(data.get("message", "")).strip()
+        session_id = str(data.get("session_id", "default"))
+        if not user_msg:
+            return jsonify({"error": "No message provided"}), 400
+
+        # Build context from current state
+        with _config_lock:
+            cfg = dict(_config)
+        config_context = {
+            "tier": get_tier(),
+            "device_count": len(cfg.get("devices", [])),
+            "alerts_configured": "email" if cfg.get("alerts", {}).get("email", {}).get("enabled") else "none",
+            "helpdesk_provider": cfg.get("helpdesk", {}).get("provider", ""),
+        }
+
+        result = ai_assistant.chat(session_id, user_msg, config_context=config_context)
+        return jsonify(result)
+
+    @app.route("/api/ai/stream", methods=["POST"])
+    @require_tier(TIER_ENT)
+    def api_ai_stream():
+        """Stream a response from the AI assistant."""
+        import ai_assistant
+        data = request.get_json(force=True, silent=True) or {}
+        user_msg = str(data.get("message", "")).strip()
+        session_id = str(data.get("session_id", "default"))
+        if not user_msg:
+            return jsonify({"error": "No message provided"}), 400
+
+        with _config_lock:
+            cfg = dict(_config)
+        config_context = {
+            "tier": get_tier(),
+            "device_count": len(cfg.get("devices", [])),
+        }
+
+        def generate():
+            for chunk in ai_assistant.chat_stream(session_id, user_msg,
+                                                  config_context=config_context):
+                yield "data: " + json_mod.dumps(chunk) + "\n\n"
+
+        return app.response_class(generate(), mimetype="text/event-stream")
+
+    @app.route("/api/ai/clear", methods=["POST"])
+    @require_tier(TIER_ENT)
+    def api_ai_clear():
+        """Clear AI conversation history."""
+        import ai_assistant
+        data = request.get_json(force=True, silent=True) or {}
+        session_id = str(data.get("session_id", "default"))
+        return jsonify(ai_assistant.clear_conversation(session_id))
 
     return app
 
