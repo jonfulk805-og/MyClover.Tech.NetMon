@@ -1,5 +1,5 @@
 """
-MyClover.Tech AI Assistant — Offline LLM-powered configuration helper.
+Chappie — MyClover.Tech Offline AI Assistant.
 
 Runs locally via Ollama. Enterprise tier only.
 Provides natural-language help for NetMon & SentryLog configuration,
@@ -27,7 +27,7 @@ MAX_HISTORY = 20  # max conversation turns to keep
 # System prompt — comprehensive product knowledge
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT = """You are **Clover**, the MyClover.Tech AI Assistant. You run entirely offline on this appliance — no data ever leaves this device.
+SYSTEM_PROMPT = """You are **Chappie**, the MyClover.Tech AI Assistant. You run entirely offline on this appliance — no data ever leaves this device.
 
 You are an expert on **MyClover.Tech NetMon** (network monitoring) and **MyClover.Tech SentryLog** (log aggregation & security alerts). You help IT professionals and MSPs configure, troubleshoot, and optimize their monitoring setup.
 

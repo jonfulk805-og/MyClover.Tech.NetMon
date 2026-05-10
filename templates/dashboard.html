@@ -788,7 +788,7 @@ a.port-link:hover {
     <div class="tab" data-tab="helpdesk" draggable="true"><span class="tab-grip">&#9776;</span>Helpdesk</div>
     <div class="tab" data-tab="security" draggable="true"><span class="tab-grip">&#9776;</span>Security</div>
     <div class="tab" data-tab="settings" draggable="true"><span class="tab-grip">&#9776;</span>Settings</div>
-    <div class="tab" data-tab="ai_assistant" draggable="true"><span class="tab-grip">&#9776;</span>&#129302; AI Assistant</div>
+    <div class="tab" data-tab="ai_assistant" draggable="true"><span class="tab-grip">&#9776;</span>&#129302; Chappie</div>
     <div class="tab" data-tab="help" draggable="true"><span class="tab-grip">&#9776;</span>Help</div>
     <div class="tab-hidden-indicator" id="hidden-tabs-indicator" onclick="showHiddenTabsMenu(this)" title="Show hidden tabs"></div>
 </div>
@@ -1661,7 +1661,7 @@ a.port-link:hover {
             <div style="display:flex;align-items:center;gap:10px;">
                 <span style="font-size:20px;">&#129302;</span>
                 <div>
-                    <h3>Clover AI Assistant</h3>
+                    <h3>Chappie AI Assistant</h3>
                     <div style="font-size:11px;color:var(--text-dim);margin-top:1px;">Offline &bull; Your data never leaves this appliance</div>
                 </div>
             </div>
@@ -1675,8 +1675,8 @@ a.port-link:hover {
         </div>
         <div class="ai-chat-messages" id="ai-messages">
             <div class="ai-msg system">
-                &#128274; Enterprise Feature &mdash; Powered by Llama 3.1 running locally via Ollama.<br>
-                Ask me anything about configuring NetMon, SentryLog, alerts, integrations, or troubleshooting.
+                &#128274; Enterprise Feature &mdash; Meet *Chappie*, your offline AI assistant. Powered by Llama 3.1 via Ollama.<br>
+                Ask me anything about configuring NetMon, SentryLog, network equipment, alerts, or troubleshooting.
             </div>
         </div>
         <div class="ai-suggestions" id="ai-suggestions">
@@ -1687,7 +1687,7 @@ a.port-link:hover {
             <button onclick="aiAsk(this.textContent)">Troubleshoot device showing as DOWN</button>
         </div>
         <div class="ai-chat-input">
-            <textarea id="ai-input" placeholder="Ask Clover anything..." rows="1"
+            <textarea id="ai-input" placeholder="Ask Chappie anything..." rows="1"
                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiSend()}"
                 oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
             <button class="ai-send-btn" id="ai-send-btn" onclick="aiSend()">Send</button>
@@ -5287,7 +5287,7 @@ function aiAsk(text) {
 function aiClearChat() {
     var container = document.getElementById('ai-messages');
     if (!container) return;
-    container.innerHTML = '<div class="ai-msg system">&#128274; Enterprise Feature &mdash; Powered by Llama 3.1 running locally via Ollama.<br>Ask me anything about configuring NetMon, SentryLog, alerts, integrations, or troubleshooting.</div>';
+    container.innerHTML = '<div class="ai-msg system">&#128274; Enterprise Feature &mdash; Meet *Chappie*, your offline AI assistant. Powered by Llama 3.1 via Ollama.<br>Ask me anything about configuring NetMon, SentryLog, network equipment, alerts, or troubleshooting.</div>';
     var sugg = document.getElementById('ai-suggestions');
     if (sugg) sugg.style.display = 'flex';
     _aiSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
