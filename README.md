@@ -8,6 +8,22 @@ MyClover.Tech.NetMon is a Python-based network monitoring system with a skinnabl
 
 ---
 
+## Pricing
+
+| | Community (Free) | Pro | Enterprise |
+|---|---|---|---|
+| **Monthly** | $0 | **$15/mo** | **$39/mo** |
+| **Annual** | $0 | **$150/yr** (save 17%) | **$390/yr** (save 17%) |
+| **Devices** | 10 devices / 100 sensors | Unlimited | Unlimited |
+
+> 💡 **Save more with bundles!** Get NetMon + [SentryLog](https://github.com/jonfulk805-og/myclover.tech.sentrylog) together:
+> - **Suite Pro Bundle:** $25/mo or $250/yr
+> - **Suite Enterprise Bundle:** $59/mo or $590/yr
+>
+> **MSP / Managed Service Provider pricing** also available — per-customer rates for IT service providers. [Contact us](mailto:inforequest@myclover.tech) for details.
+
+---
+
 ## Features
 
 ### Community Edition (Free — up to 10 devices / 100 sensors)
@@ -24,7 +40,7 @@ MyClover.Tech.NetMon is a Python-based network monitoring system with a skinnabl
 - **REST API** — 40+ endpoints for full programmatic control
 - **YAML configuration** — Human-readable config file
 
-### Pro Edition ($29/mo) — Unlimited devices & sensors
+### Pro Edition ($15/mo) — Unlimited devices & sensors
 
 Everything in Community, plus:
 
@@ -41,7 +57,7 @@ Everything in Community, plus:
 - **Per-card layout options** — Grid or list view per section
 - **Custom dashboard widgets** — 4 quick-stats panels (uptime, response, device count, alerts)
 
-### Enterprise Edition ($99/mo)
+### Enterprise Edition ($39/mo)
 
 Everything in Pro, plus:
 
@@ -138,11 +154,10 @@ See `plugins/check_disk_space.py` for a working example.
 
 ## Stripe Payment Integration
 
-For automated license key sales, `stripe_handler.py` provides:
+`stripe_handler.py` provides automated license key fulfillment:
 
 - Stripe Checkout sessions for Pro and Enterprise tiers
-- Webhook fulfillment with automatic HMAC license key generation
-- Email delivery of license keys to customers
+- Webhook fulfillment with automatic license key generation and email delivery
 - Customer self-service portal
 - Admin endpoints for order management
 
@@ -150,19 +165,9 @@ See `stripe_config.yaml` for configuration.
 
 ---
 
-## License Key Management
+## License Activation
 
-Generate license keys for customers:
-
-```bash
-# Generate a single Pro key
-python generate_key.py --tier pro
-
-# Generate 5 Enterprise keys
-python generate_key.py --tier ent --batch 5
-```
-
-Customers paste the key in **Settings > License > Activate** in the dashboard.
+After purchase, you'll receive a license key by email. Paste it into **Settings > License > Activate** in the dashboard to unlock your tier.
 
 ---
 
@@ -208,7 +213,7 @@ See [FEATURES.md](FEATURES.md) for the complete endpoint reference.
 
 ```ini
 [Unit]
-Description=Clover.tech.netmon
+Description=MyClover.Tech.netmon
 After=network.target
 
 [Service]
@@ -233,7 +238,6 @@ Run directly or set up as a Windows Service using [NSSM](https://nssm.cc/).
 myclover.tech.netmon/
 ├── netmon.py              # Main application (3,400+ lines)
 ├── stripe_handler.py      # Stripe payment integration
-├── generate_key.py        # License key generator
 ├── config.yaml            # Monitoring configuration
 ├── stripe_config.yaml     # Stripe/payment configuration
 ├── requirements.txt       # Python dependencies
@@ -244,6 +248,15 @@ myclover.tech.netmon/
     ├── dashboard.html     # Main web dashboard
     └── noc.html           # NOC/TV display mode
 ```
+
+---
+
+## Part of the MyClover.Tech Suite
+
+| Product | Description |
+|---------|-------------|
+| **[NetMon](https://github.com/jonfulk805-og/MyClover.Tech.NetMon)** | Network monitoring, alerting & security scanning |
+| **[SentryLog](https://github.com/jonfulk805-og/myclover.tech.sentrylog)** | Log aggregation & security alert platform |
 
 ---
 
