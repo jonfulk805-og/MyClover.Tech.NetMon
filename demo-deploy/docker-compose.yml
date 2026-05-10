@@ -1,0 +1,30 @@
+# MyClover.Tech.NetMon - Live Demo Stack (Traefik Edition)
+# Usage: docker compose up -d
+# Demo URL: https://demo.myclover.tech
+# Credentials: demo / TryNetMon2026
+#
+# Traefik (already running on VPS) handles SSL + routing automatically.
+
+services:
+  netmon-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: netmon-demo
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      # HTTPS route
+      - "traefik.http.routers.netmon-demo.rule=Host(`demo.myclover.tech`)"
+      - "traefik.http.routers.netmon-demo.entrypoints=websecure"
+      - "traefik.http.routers.netmon-demo.tls.certresolver=letsencrypt"
+      # Tell Traefik which port the app listens on
+      - "traefik.http.services.netmon-demo.loadbalancer.server.port=8080"
+    environment:
+      - DEMO_MODE=true
+      - DEMO_DB_PATH=/app/netmon.db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
