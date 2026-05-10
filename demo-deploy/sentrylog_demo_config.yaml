@@ -1,0 +1,26 @@
+# SentryLog Demo Configuration - Enterprise Tier
+license_key: "ENT-DEMO2026-3249EEA13849B3B6"
+
+syslog:
+  udp_enabled: true
+  udp_port: 1514
+  tcp_enabled: true
+  tcp_port: 1514
+  buffer_size: 8192
+
+storage:
+  retention_days: 7
+  cleanup_interval_hours: 6
+  max_db_size_mb: 200
+
+dashboard:
+  host: 0.0.0.0
+  port: 8514
+
+alerting:
+  email:
+    enabled: false
+
+netmon_integration:
+  enabled: true
+  netmon_url: "http://netmon-demo:8080"

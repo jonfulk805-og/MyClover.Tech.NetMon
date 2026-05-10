@@ -1,0 +1,27 @@
+FROM python:3.13-slim
+
+LABEL maintainer="MyClover.Tech"
+LABEL description="MyClover.Tech.SentryLog Demo Instance"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app-sentrylog
+
+COPY sentrylog-app/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt requests
+
+COPY sentrylog-app/ .
+COPY sentrylog_demo_config.yaml ./sentrylog_config.yaml
+COPY sentrylog_seed.py .
+COPY sentrylog_entrypoint.sh .
+RUN chmod +x sentrylog_entrypoint.sh
+
+RUN mkdir -p /app-sentrylog/data
+
+ENV SENTRYLOG_DB_PATH=/app-sentrylog/sentrylog.db
+
+EXPOSE 8514
+
+ENTRYPOINT ["./sentrylog_entrypoint.sh"]

@@ -51,9 +51,10 @@ smtp:
   recipients: []
   cooldown_minutes: 15
 
-# Simulated demo network -- realistic MSP environment
+# Simulated demo network -- fun character-themed server names!
 devices:
-  - name: "Edge Firewall"
+  # ── Network ─────────────────────────────────────────────
+  - name: "Optimus (Edge Firewall)"
     host: "10.0.1.1"
     group: "Network"
     parent: ""
@@ -70,10 +71,10 @@ devices:
         timeout_ms: 3000
         retries: 2
 
-  - name: "Core Switch"
+  - name: "Megatron (Core Switch)"
     host: "10.0.1.2"
     group: "Network"
-    parent: "Edge Firewall"
+    parent: "Optimus (Edge Firewall)"
     notes: "Cisco Catalyst 9300 - 48 port PoE+"
     maintenance: false
     links: []
@@ -83,11 +84,11 @@ devices:
         warning_ms: 3
         critical_ms: 15
 
-  - name: "Distribution Switch A"
+  - name: "Bender (Switch Floor 1)"
     host: "10.0.1.3"
     group: "Network"
-    parent: "Core Switch"
-    notes: "Cisco 2960X - Floor 1"
+    parent: "Megatron (Core Switch)"
+    notes: "Cisco 2960X - Floor 1 distribution"
     maintenance: false
     links: []
     checks:
@@ -96,11 +97,11 @@ devices:
         warning_ms: 5
         critical_ms: 20
 
-  - name: "Distribution Switch B"
+  - name: "Fry (Switch Floor 2)"
     host: "10.0.1.4"
     group: "Network"
-    parent: "Core Switch"
-    notes: "Cisco 2960X - Floor 2"
+    parent: "Megatron (Core Switch)"
+    notes: "Cisco 2960X - Floor 2 distribution"
     maintenance: false
     links: []
     checks:
@@ -109,10 +110,10 @@ devices:
         warning_ms: 5
         critical_ms: 20
 
-  - name: "Wireless Controller"
+  - name: "Jarvis (Wireless Controller)"
     host: "10.0.1.10"
     group: "Network"
-    parent: "Core Switch"
+    parent: "Megatron (Core Switch)"
     notes: "UniFi Dream Machine Pro"
     maintenance: false
     links:
@@ -124,10 +125,25 @@ devices:
         warning_ms: 5
         critical_ms: 30
 
-  - name: "Office AP-1"
+  - name: "Neo (VPN Gateway)"
+    host: "10.0.1.5"
+    group: "Network"
+    parent: "Optimus (Edge Firewall)"
+    notes: "WireGuard VPN - Remote access"
+    maintenance: false
+    links: []
+    checks:
+      - type: ping
+        label: "ICMP"
+      - type: port
+        label: "WireGuard"
+        port: 51820
+
+  # ── Wireless ────────────────────────────────────────────
+  - name: "Groot (AP Lobby)"
     host: "10.0.1.11"
     group: "Wireless"
-    parent: "Wireless Controller"
+    parent: "Jarvis (Wireless Controller)"
     notes: "UniFi U6-Pro - Lobby"
     maintenance: false
     links: []
@@ -137,10 +153,10 @@ devices:
         warning_ms: 10
         critical_ms: 50
 
-  - name: "Office AP-2"
+  - name: "Rocket (AP Office)"
     host: "10.0.1.12"
     group: "Wireless"
-    parent: "Wireless Controller"
+    parent: "Jarvis (Wireless Controller)"
     notes: "UniFi U6-Pro - Open Office"
     maintenance: false
     links: []
@@ -150,10 +166,10 @@ devices:
         warning_ms: 10
         critical_ms: 50
 
-  - name: "Office AP-3"
+  - name: "Chewy (AP Warehouse)"
     host: "10.0.1.13"
     group: "Wireless"
-    parent: "Wireless Controller"
+    parent: "Jarvis (Wireless Controller)"
     notes: "UniFi U6-LR - Warehouse"
     maintenance: false
     links: []
@@ -163,10 +179,11 @@ devices:
         warning_ms: 15
         critical_ms: 75
 
-  - name: "DC-01 (Domain Controller)"
+  # ── Servers ─────────────────────────────────────────────
+  - name: "Picard (Primary DC)"
     host: "10.0.2.10"
     group: "Servers"
-    parent: "Core Switch"
+    parent: "Megatron (Core Switch)"
     notes: "Windows Server 2022 - Primary AD DC, DNS, DHCP"
     maintenance: false
     links:
@@ -184,10 +201,10 @@ devices:
         label: "LDAP"
         port: 389
 
-  - name: "DC-02 (Backup DC)"
+  - name: "Data (Backup DC)"
     host: "10.0.2.11"
     group: "Servers"
-    parent: "Core Switch"
+    parent: "Megatron (Core Switch)"
     notes: "Windows Server 2022 - Secondary AD DC"
     maintenance: false
     links: []
@@ -203,10 +220,10 @@ devices:
         label: "LDAP"
         port: 389
 
-  - name: "File Server"
+  - name: "Yoda (File Server)"
     host: "10.0.2.20"
     group: "Servers"
-    parent: "Core Switch"
+    parent: "Megatron (Core Switch)"
     notes: "Synology RS1221+ NAS - 48TB RAID6"
     maintenance: false
     links:
@@ -219,11 +236,11 @@ devices:
         label: "SMB"
         port: 445
 
-  - name: "Web Server (IIS)"
+  - name: "Wolverine (Web Server)"
     host: "10.0.2.30"
     group: "Servers"
-    parent: "Core Switch"
-    notes: "Windows Server 2022 - Internal web apps"
+    parent: "Megatron (Core Switch)"
+    notes: "Windows Server 2022 - Internal web apps (IIS)"
     maintenance: false
     links:
       - url: "http://10.0.2.30"
@@ -242,10 +259,10 @@ devices:
         label: "HTTPS"
         port: 443
 
-  - name: "SQL Server"
+  - name: "Spock (SQL Server)"
     host: "10.0.2.40"
     group: "Servers"
-    parent: "Core Switch"
+    parent: "Megatron (Core Switch)"
     notes: "SQL Server 2022 Standard - ERP database"
     maintenance: false
     links: []
@@ -256,10 +273,10 @@ devices:
         label: "SQL"
         port: 1433
 
-  - name: "Exchange Server"
+  - name: "C3PO (Exchange Server)"
     host: "10.0.2.50"
     group: "Servers"
-    parent: "Core Switch"
+    parent: "Megatron (Core Switch)"
     notes: "Exchange 2019 - On-prem mail"
     maintenance: false
     links:
@@ -275,10 +292,10 @@ devices:
         label: "HTTPS"
         port: 443
 
-  - name: "Backup Server"
+  - name: "R2D2 (Backup Server)"
     host: "10.0.2.60"
     group: "Servers"
-    parent: "Core Switch"
+    parent: "Megatron (Core Switch)"
     notes: "Veeam B&R v12 - Windows Server 2022"
     maintenance: false
     links:
@@ -288,10 +305,10 @@ devices:
       - type: ping
         label: "ICMP"
 
-  - name: "Hypervisor-01"
+  - name: "Thanos (Hypervisor-01)"
     host: "10.0.2.70"
     group: "Servers"
-    parent: "Core Switch"
+    parent: "Megatron (Core Switch)"
     notes: "Proxmox VE 8.x - 128GB RAM, Dual Xeon"
     maintenance: false
     links:
@@ -306,10 +323,10 @@ devices:
         label: "Web UI"
         port: 8006
 
-  - name: "Hypervisor-02"
+  - name: "Galactus (Hypervisor-02)"
     host: "10.0.2.71"
     group: "Servers"
-    parent: "Core Switch"
+    parent: "Megatron (Core Switch)"
     notes: "Proxmox VE 8.x - 128GB RAM, Dual Xeon"
     maintenance: false
     links:
@@ -324,24 +341,11 @@ devices:
         label: "Web UI"
         port: 8006
 
-  - name: "VPN Gateway"
-    host: "10.0.1.5"
-    group: "Network"
-    parent: "Edge Firewall"
-    notes: "WireGuard VPN - Remote access"
-    maintenance: false
-    links: []
-    checks:
-      - type: ping
-        label: "ICMP"
-      - type: port
-        label: "WireGuard"
-        port: 51820
-
-  - name: "IP Camera NVR"
+  # ── Security ────────────────────────────────────────────
+  - name: "Batman (NVR)"
     host: "10.0.3.10"
     group: "Security"
-    parent: "Distribution Switch B"
+    parent: "Fry (Switch Floor 2)"
     notes: "Hikvision NVR - 16 cameras"
     maintenance: false
     links:
@@ -354,10 +358,11 @@ devices:
         label: "RTSP"
         port: 554
 
-  - name: "VoIP PBX"
+  # ── Infrastructure ──────────────────────────────────────
+  - name: "Scotty (VoIP PBX)"
     host: "10.0.3.20"
     group: "Infrastructure"
-    parent: "Core Switch"
+    parent: "Megatron (Core Switch)"
     notes: "3CX Phone System"
     maintenance: false
     links:
@@ -370,10 +375,25 @@ devices:
         label: "SIP"
         port: 5060
 
-  - name: "Printer - Main Office"
+  - name: "Thor (UPS Server Room)"
+    host: "10.0.3.40"
+    group: "Infrastructure"
+    parent: "Megatron (Core Switch)"
+    notes: "APC Smart-UPS 3000VA - SNMP enabled"
+    maintenance: false
+    links: []
+    checks:
+      - type: ping
+        label: "ICMP"
+      - type: port
+        label: "SNMP"
+        port: 161
+
+  # ── Peripherals ─────────────────────────────────────────
+  - name: "Scooby (Printer Office)"
     host: "10.0.3.30"
     group: "Peripherals"
-    parent: "Distribution Switch A"
+    parent: "Bender (Switch Floor 1)"
     notes: "HP LaserJet Enterprise M507"
     maintenance: false
     links:
@@ -385,27 +405,13 @@ devices:
         warning_ms: 20
         critical_ms: 100
 
-  - name: "Printer - Warehouse"
+  - name: "Shaggy (Printer Warehouse)"
     host: "10.0.3.31"
     group: "Peripherals"
-    parent: "Distribution Switch B"
+    parent: "Fry (Switch Floor 2)"
     notes: "Zebra ZT411 Label Printer"
     maintenance: true
     links: []
     checks:
       - type: ping
         label: "ICMP"
-
-  - name: "UPS - Server Room"
-    host: "10.0.3.40"
-    group: "Infrastructure"
-    parent: "Core Switch"
-    notes: "APC Smart-UPS 3000VA - SNMP enabled"
-    maintenance: false
-    links: []
-    checks:
-      - type: ping
-        label: "ICMP"
-      - type: port
-        label: "SNMP"
-        port: 161
