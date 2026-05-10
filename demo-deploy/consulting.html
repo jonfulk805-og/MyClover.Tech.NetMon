@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyClover.Tech Consulting &amp; Dev — AI-Powered App Development</title>
+    <meta name="description" content="Custom app development powered by AI. Talk directly to our AI engineer in Slack — from concept to deployed app in days, not months. Full-stack web apps, private AI integration, and hardware consulting.">
+    <link rel="icon" href="data:image/png;base64,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">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{
+            --bg:#0a0e17;--bg2:#111827;--card:#1a2235;--card-h:#1f2a40;
+            --border:#2a3550;--text:#f1f5f9;--dim:#94a3b8;--muted:#64748b;
+            --green:#22c55e;--green-d:#16a34a;--green-g:rgba(34,197,94,.15);
+            --yellow:#eab308;--red:#ef4444;--blue:#3b82f6;--purple:#a855f7;
+            --orange:#f97316;--cyan:#06b6d4;
+            --font:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+            --mono:'JetBrains Mono','Fira Code',monospace;
+        }
+        html{scroll-behavior:smooth;font-size:16px}
+        body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+        a{color:var(--green);text-decoration:none;transition:color .2s}a:hover{color:#4ade80}
+        .container{max-width:1200px;margin:0 auto;padding:0 24px}
+        .bg-grid{position:fixed;top:0;left:0;width:100%;height:100%;background-image:linear-gradient(rgba(34,197,94,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(34,197,94,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+        .bg-glow{position:fixed;top:-40%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(34,197,94,.06) 0%,transparent 70%);pointer-events:none;z-index:0}
+
+        /* Nav */
+        nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 0;background:rgba(10,14,23,.88);backdrop-filter:blur(16px);border-bottom:1px solid transparent;transition:border-color .3s}
+        nav.scrolled{border-bottom-color:var(--border)}
+        nav .container{display:flex;align-items:center;justify-content:space-between}
+        .nav-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.1rem;color:var(--text)}
+        .nav-logo img{width:36px;height:36px;border-radius:4px}
+        .nav-logo .dot{color:var(--green)}
+        .nav-links{display:flex;gap:28px;align-items:center}
+        .nav-links a{color:var(--dim);font-size:.85rem;font-weight:500}
+        .nav-links a:hover{color:var(--text)}
+        .nav-cta{background:var(--green);color:#000!important;padding:7px 18px;border-radius:8px;font-weight:600;font-size:.82rem;transition:background .2s,transform .2s}
+        .nav-cta:hover{background:#4ade80;transform:translateY(-1px)}
+
+        /* Sections */
+        section{position:relative;z-index:1;padding:100px 0}
+        .section-label{display:inline-flex;align-items:center;gap:8px;font-size:.78rem;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px}
+        .section-title{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;line-height:1.15;margin-bottom:16px;letter-spacing:-.02em}
+        .section-desc{font-size:1.05rem;color:var(--dim);max-width:600px;line-height:1.7}
+        .section-header{margin-bottom:60px}
+        .section-header.center{text-align:center}
+        .section-header.center .section-desc{margin:0 auto}
+
+        /* Hero */
+        .hero{position:relative;z-index:1;padding:150px 0 90px;text-align:center}
+        .hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:999px;padding:6px 16px 6px 10px;font-size:.78rem;color:var(--dim);margin-bottom:28px}
+        .hero-badge .pulse{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        .hero h1{font-size:clamp(2.4rem,5.5vw,4rem);font-weight:800;line-height:1.1;margin-bottom:20px;letter-spacing:-.03em}
+        .hero h1 .gradient{background:linear-gradient(135deg,var(--cyan),var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .hero p{font-size:1.15rem;color:var(--dim);max-width:660px;margin:0 auto 36px;line-height:1.7}
+        .hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+
+        /* Buttons */
+        .btn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;border-radius:10px;font-weight:600;font-size:.95rem;transition:all .2s;cursor:pointer;border:none;font-family:var(--font);text-decoration:none!important}
+        .btn-primary{background:var(--cyan);color:#000;box-shadow:0 4px 24px rgba(6,182,212,.3)}
+        .btn-primary:hover{background:#22d3ee;color:#000;transform:translateY(-2px);box-shadow:0 8px 32px rgba(6,182,212,.4)}
+        .btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border)}
+        .btn-secondary:hover{background:var(--card-h);border-color:var(--muted);transform:translateY(-2px)}
+
+        /* How it works */
+        .process-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+        @media(max-width:768px){.process-grid{grid-template-columns:repeat(2,1fr)}}
+        @media(max-width:480px){.process-grid{grid-template-columns:1fr}}
+        .process-step{text-align:center;padding:32px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;transition:all .3s;position:relative}
+        .process-step:hover{border-color:var(--cyan);box-shadow:0 0 40px rgba(6,182,212,.1);transform:translateY(-4px)}
+        .process-num{width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.1);border:2px solid var(--cyan);display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:var(--cyan);margin:0 auto 16px}
+        .process-step h4{font-size:1rem;font-weight:700;margin-bottom:6px}
+        .process-step p{font-size:.85rem;color:var(--dim);line-height:1.6}
+        .process-arrow{position:absolute;right:-18px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:1.2rem;z-index:2}
+        @media(max-width:768px){.process-arrow{display:none}}
+
+        /* Pricing cards */
+        .pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+        @media(max-width:900px){.pricing-grid{grid-template-columns:1fr;max-width:480px;margin:0 auto}}
+        .pricing-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:40px 32px;display:flex;flex-direction:column;transition:all .3s;position:relative;overflow:visible}
+        .pricing-card:hover{border-color:var(--cyan);box-shadow:0 0 60px rgba(6,182,212,.1);transform:translateY(-4px)}
+        .pricing-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:20px 20px 0 0}
+        .pricing-card.starter::before{background:linear-gradient(90deg,var(--green),var(--cyan))}
+        .pricing-card.standard::before{background:linear-gradient(90deg,var(--cyan),var(--blue))}
+        .pricing-card.enterprise::before{background:linear-gradient(90deg,var(--blue),var(--purple))}
+        .pricing-card.featured{border-color:var(--cyan);box-shadow:0 0 60px rgba(6,182,212,.1),0 24px 60px rgba(0,0,0,.3)}
+        .popular-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--cyan);color:#000;font-size:.68rem;font-weight:700;padding:4px 14px;border-radius:999px;text-transform:uppercase;letter-spacing:.05em}
+        .pricing-icon{width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:14px;font-size:1.6rem;margin-bottom:20px}
+        .pricing-card.starter .pricing-icon{background:rgba(34,197,94,.12)}
+        .pricing-card.standard .pricing-icon{background:rgba(6,182,212,.12)}
+        .pricing-card.enterprise .pricing-icon{background:rgba(168,85,247,.12)}
+        .pricing-tier{font-size:.82rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+        .pricing-card.starter .pricing-tier{color:var(--green)}
+        .pricing-card.standard .pricing-tier{color:var(--cyan)}
+        .pricing-card.enterprise .pricing-tier{color:var(--purple)}
+        .pricing-name{font-size:1.4rem;font-weight:800;margin-bottom:8px}
+        .pricing-desc{font-size:.92rem;color:var(--dim);margin-bottom:20px;line-height:1.7}
+        .pricing-amount{font-size:2.8rem;font-weight:800;line-height:1;margin-bottom:4px}
+        .pricing-amount .currency{font-size:1.3rem;vertical-align:top;margin-right:2px}
+        .pricing-note{font-size:.78rem;color:var(--muted);margin-bottom:20px;min-height:18px}
+        .pricing-divider{height:1px;background:var(--border);margin-bottom:20px}
+        .pricing-features{list-style:none;margin-bottom:28px;flex:1;display:flex;flex-direction:column;gap:8px}
+        .pricing-features li{font-size:.85rem;color:var(--dim);display:flex;align-items:flex-start;gap:8px;line-height:1.4}
+        .pricing-features li .pf-i{flex-shrink:0;font-weight:700}
+        .pricing-features li strong{color:var(--text);font-weight:600}
+        .pricing-cta{margin-top:auto}
+        .pricing-cta .btn{width:100%;justify-content:center}
+        .btn-starter{background:var(--card);color:var(--text);border:1px solid var(--border)}
+        .btn-starter:hover{background:var(--card-h);border-color:var(--green);transform:translateY(-2px)}
+        .btn-enterprise{background:var(--card);color:var(--text);border:1px solid rgba(168,85,247,.4)}
+        .btn-enterprise:hover{background:var(--card-h);border-color:var(--purple);transform:translateY(-2px)}
+
+        /* Tech stack */
+        .stack-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+        @media(max-width:900px){.stack-grid{grid-template-columns:repeat(2,1fr)}}
+        @media(max-width:640px){.stack-grid{grid-template-columns:1fr}}
+        .stack-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;transition:all .3s}
+        .stack-card:hover{border-color:var(--cyan);box-shadow:0 0 40px rgba(6,182,212,.08);transform:translateY(-4px)}
+        .stack-icon{width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(6,182,212,.1);border-radius:12px;font-size:1.3rem;margin-bottom:16px}
+        .stack-card h3{font-size:1rem;font-weight:700;margin-bottom:8px}
+        .stack-card p{font-size:.85rem;color:var(--dim);line-height:1.6}
+
+        /* Add-ons */
+        .addons-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;max-width:800px;margin:0 auto}
+        @media(max-width:640px){.addons-grid{grid-template-columns:1fr}}
+        .addon-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;transition:all .3s;display:flex;gap:20px;align-items:flex-start}
+        .addon-card:hover{border-color:var(--cyan);box-shadow:0 0 40px rgba(6,182,212,.08);transform:translateY(-3px)}
+        .addon-icon{width:56px;height:56px;display:flex;align-items:center;justify-content:center;background:rgba(6,182,212,.1);border-radius:14px;font-size:1.6rem;flex-shrink:0}
+        .addon-info h4{font-size:1.1rem;font-weight:700;margin-bottom:4px}
+        .addon-info .addon-price{font-size:1.3rem;font-weight:800;color:var(--cyan);margin-bottom:6px}
+        .addon-info p{font-size:.85rem;color:var(--dim);line-height:1.6}
+        .addon-info .addon-btn{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:8px 18px;border-radius:8px;font-weight:600;font-size:.82rem;background:rgba(6,182,212,.1);color:var(--cyan);border:1px solid rgba(6,182,212,.3);transition:all .2s;text-decoration:none!important}
+        .addon-info .addon-btn:hover{background:rgba(6,182,212,.2);border-color:var(--cyan);transform:translateY(-1px)}
+
+        /* Differentiator */
+        .diff-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+        @media(max-width:768px){.diff-grid{grid-template-columns:1fr;gap:32px}}
+        .diff-visual{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:40px;font-family:var(--mono);font-size:.82rem;line-height:1.8}
+        .diff-visual .prompt{color:var(--cyan)}
+        .diff-visual .response{color:var(--green)}
+        .diff-visual .dim{color:var(--muted)}
+        .diff-content h3{font-size:1.8rem;font-weight:800;margin-bottom:16px}
+        .diff-content p{font-size:1rem;color:var(--dim);line-height:1.7;margin-bottom:16px}
+        .diff-list{list-style:none;display:flex;flex-direction:column;gap:10px}
+        .diff-list li{font-size:.9rem;color:var(--dim);display:flex;align-items:center;gap:10px}
+        .diff-list li .check{color:var(--cyan);font-weight:700;font-size:1.1rem}
+
+        /* FAQ */
+        .faq-list{max-width:720px;margin:0 auto}
+        .faq-item{border-bottom:1px solid var(--border)}
+        .faq-q{width:100%;display:flex;justify-content:space-between;align-items:center;padding:20px 0;font-size:1rem;font-weight:600;background:none;border:none;color:var(--text);cursor:pointer;text-align:left;font-family:var(--font)}
+        .faq-q:hover{color:var(--cyan)}
+        .faq-q .arrow{transition:transform .3s;font-size:1.1rem;color:var(--muted)}
+        .faq-item.open .arrow{transform:rotate(180deg)}
+        .faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;font-size:.88rem;color:var(--dim);line-height:1.7}
+        .faq-item.open .faq-a{max-height:300px;padding-bottom:20px}
+
+        /* CTA */
+        .cta-section{text-align:center;padding:100px 0}
+        .cta-section h2{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;margin-bottom:14px;letter-spacing:-.02em}
+        .cta-section p{font-size:1.05rem;color:var(--dim);max-width:500px;margin:0 auto 36px}
+
+        /* Footer */
+        footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:32px 0}
+        .footer-content{display:flex;justify-content:space-between;align-items:center}
+        .footer-copy{font-size:.82rem;color:var(--muted)}
+        .footer-links{display:flex;gap:20px}
+        .footer-links a{color:var(--muted);font-size:.82rem}.footer-links a:hover{color:var(--text)}
+        @media(max-width:640px){.footer-content{flex-direction:column;gap:14px;text-align:center}}
+    </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+
+<!-- Nav -->
+<nav id="mainNav">
+    <div class="container">
+        <a href="https://myclover.tech" class="nav-logo">
+            <img src="data:image/png;base64,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" alt="MyClover.Tech">
+            MyClover<span class="dot">.</span>Tech
+        </a>
+        <div class="nav-links">
+            <a href="https://myclover.tech">Home</a>
+            <a href="hardware.html">Hardware</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#how-it-works">Process</a>
+            <a href="#faq">FAQ</a>
+            <a href="https://demo.myclover.tech" target="_blank" class="nav-cta">Live Demo</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+    <div class="container">
+        <div class="hero-badge">
+            <span class="pulse"></span>
+            AI-Powered Development
+        </div>
+        <h1>Your Idea. <span class="gradient">Built &amp; Deployed</span><br>In Days, Not Months.</h1>
+        <p>Talk directly to our AI engineer in Slack — describe what you need, and we'll build it. Custom apps, dashboards, private AI integrations, and hardware consulting. From concept to production, fast.</p>
+        <div class="hero-actions">
+            <a href="#pricing" class="btn btn-primary">View Pricing</a>
+            <a href="mailto:dev@myclover.tech?subject=Consulting%20%26%20Dev%20Inquiry" class="btn btn-secondary">Contact Us →</a>
+        </div>
+    </div>
+</section>
+
+<!-- Differentiator -->
+<section style="padding-top:0">
+    <div class="container">
+        <div class="diff-grid">
+            <div class="diff-visual">
+                <div class="dim">// Your dedicated Slack channel</div>
+                <br>
+                <div class="prompt">You:</div>
+                <div style="color:var(--text)">I need a dashboard that pulls data from our CRM and shows real-time sales metrics. It should have auth so only managers can see it.</div>
+                <br>
+                <div class="response">Viktor (AI Engineer):</div>
+                <div style="color:var(--text)">On it. I'll build a React dashboard with Stripe + HubSpot API integration, role-based auth, and deploy it to your VPS. First version in ~4 hours. I'll share a preview link when it's ready.</div>
+                <br>
+                <div class="dim">// 4 hours later...</div>
+                <br>
+                <div class="response">Viktor:</div>
+                <div style="color:var(--text)">✅ Dashboard deployed at dashboard.yourcompany.com — take a look and let me know what to adjust.</div>
+            </div>
+            <div class="diff-content">
+                <h3>Not a Chatbot.<br>An <span style="color:var(--cyan)">Engineer</span>.</h3>
+                <p>Most dev shops take weeks for a discovery call. We skip the overhead. You describe what you need in plain English, and Viktor — our AI engineer — builds it in real-time. Same-day turnaround on most projects.</p>
+                <ul class="diff-list">
+                    <li><span class="check">✓</span> <strong>24/7 availability</strong> — no timezone constraints</li>
+                    <li><span class="check">✓</span> <strong>Same-day delivery</strong> — most projects deployed within hours</li>
+                    <li><span class="check">✓</span> <strong>Slack-first</strong> — no emails, no meetings, no waiting</li>
+                    <li><span class="check">✓</span> <strong>Full code ownership</strong> — your GitHub repo, your code</li>
+                    <li><span class="check">✓</span> <strong>Production-ready</strong> — deployed, monitored, backed up</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works -->
+<section id="how-it-works" style="background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+    <div class="container">
+        <div class="section-header center">
+            <div class="section-label" style="color:var(--cyan)">⬡ Process</div>
+            <div class="section-title">From Idea to Deployed App</div>
+            <div class="section-desc">Four simple steps. No proposals, no scope creep, no waiting.</div>
+        </div>
+        <div class="process-grid">
+            <div class="process-step">
+                <div class="process-num">1</div>
+                <h4>Sign Up</h4>
+                <p>Pick a tier and checkout. We create your dedicated Slack channel and GitHub repo within minutes.</p>
+                <span class="process-arrow">→</span>
+            </div>
+            <div class="process-step">
+                <div class="process-num">2</div>
+                <h4>Describe</h4>
+                <p>Tell Viktor what you need — in plain English. Share mockups, screenshots, or just describe the idea. No formal specs required.</p>
+                <span class="process-arrow">→</span>
+            </div>
+            <div class="process-step">
+                <div class="process-num">3</div>
+                <h4>Build</h4>
+                <p>Viktor builds your app in real-time. Watch progress in Slack, give feedback, request changes — all in the same conversation.</p>
+                <span class="process-arrow">→</span>
+            </div>
+            <div class="process-step">
+                <div class="process-num">4</div>
+                <h4>Deploy</h4>
+                <p>App goes live on your managed VPS with monitoring, backups, and SSL. Code pushed to your GitHub repo. Done.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Tech Stack -->
+<section id="stack">
+    <div class="container">
+        <div class="section-header center">
+            <div class="section-label" style="color:var(--cyan)">⬡ Capabilities</div>
+            <div class="section-title">What We Build</div>
+            <div class="section-desc">Full-stack development, private AI, and infrastructure consulting — all from one conversation.</div>
+        </div>
+        <div class="stack-grid">
+            <div class="stack-card">
+                <div class="stack-icon">🌐</div>
+                <h3>Full-Stack Web Apps</h3>
+                <p>React, Next.js, Python, Node.js — modern frontends with robust backends. Dashboards, portals, internal tools, customer-facing apps.</p>
+            </div>
+            <div class="stack-card">
+                <div class="stack-icon">🤖</div>
+                <h3>Private AI Integration</h3>
+                <p>On-premises LLMs, RAG pipelines, AI-powered search, document processing, and intelligent automation — running on your hardware, your data stays private.</p>
+            </div>
+            <div class="stack-card">
+                <div class="stack-icon">🔗</div>
+                <h3>API Integrations</h3>
+                <p>Stripe, CRMs, ERPs, helpdesks, cloud storage — we connect your app to the tools you already use. Custom webhooks and data pipelines included.</p>
+            </div>
+            <div class="stack-card">
+                <div class="stack-icon">🖥️</div>
+                <h3>Hardware Consulting</h3>
+                <p>Spec and source servers, NAS appliances, networking gear, and AI accelerators. We'll recommend, configure, and ship the right hardware for your workload.</p>
+            </div>
+            <div class="stack-card">
+                <div class="stack-icon">📊</div>
+                <h3>Dashboards &amp; Analytics</h3>
+                <p>Real-time dashboards, reporting tools, data visualization. Connect multiple data sources into a single pane of glass with role-based access.</p>
+            </div>
+            <div class="stack-card">
+                <div class="stack-icon">⚡</div>
+                <h3>Automation &amp; Workflows</h3>
+                <p>Data pipelines, scheduled tasks, alert systems, and process automation. Eliminate manual work with intelligent, event-driven workflows.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Pricing -->
+<section id="pricing" style="background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+    <div class="container">
+        <div class="section-header center">
+            <div class="section-label" style="color:var(--cyan)">⬡ Pricing</div>
+            <div class="section-title">Simple, Transparent Pricing</div>
+            <div class="section-desc">Pick the tier that fits your project. No hidden fees, no surprises. Every engagement includes a dedicated Slack channel and GitHub repo.</div>
+        </div>
+        <div class="pricing-grid">
+            <!-- Starter -->
+            <div class="pricing-card starter">
+                <div class="pricing-icon">🚀</div>
+                <div class="pricing-tier">Starter</div>
+                <div class="pricing-name">Quick Build</div>
+                <div class="pricing-desc">Perfect for single-page tools, simple dashboards, or landing pages.</div>
+                <div class="pricing-amount"><span class="currency">$</span>500</div>
+                <div class="pricing-note">One-time project fee</div>
+                <div class="pricing-divider"></div>
+                <ul class="pricing-features">
+                    <li><span class="pf-i" style="color:var(--green)">✓</span> <strong>Single-page app or tool</strong></li>
+                    <li><span class="pf-i" style="color:var(--green)">✓</span> 1 revision round</li>
+                    <li><span class="pf-i" style="color:var(--green)">✓</span> Dedicated Slack channel</li>
+                    <li><span class="pf-i" style="color:var(--green)">✓</span> GitHub repo with full source</li>
+                    <li><span class="pf-i" style="color:var(--green)">✓</span> VPS deployment included</li>
+                    <li><span class="pf-i" style="color:var(--green)">✓</span> SSL &amp; domain setup</li>
+                    <li><span class="pf-i" style="color:var(--green)">✓</span> 7-day post-launch support</li>
+                </ul>
+                <div class="pricing-cta">
+                    <a href="https://buy.stripe.com/bJe00jaKraRNgyYcijfrW0k" class="btn btn-starter">Get Started →</a>
+                </div>
+            </div>
+            <!-- Standard -->
+            <div class="pricing-card standard featured">
+                <div class="popular-badge">Most Popular</div>
+                <div class="pricing-icon">⚡</div>
+                <div class="pricing-tier">Standard</div>
+                <div class="pricing-name">Full App</div>
+                <div class="pricing-desc">Full-stack application with database, authentication, and API integrations.</div>
+                <div class="pricing-amount"><span class="currency">$</span>2,000</div>
+                <div class="pricing-note">One-time project fee</div>
+                <div class="pricing-divider"></div>
+                <ul class="pricing-features">
+                    <li><span class="pf-i" style="color:var(--cyan)">✓</span> <strong>Multi-page full-stack app</strong></li>
+                    <li><span class="pf-i" style="color:var(--cyan)">✓</span> Database &amp; authentication</li>
+                    <li><span class="pf-i" style="color:var(--cyan)">✓</span> API integrations (Stripe, CRM, etc.)</li>
+                    <li><span class="pf-i" style="color:var(--cyan)">✓</span> 3 revision rounds</li>
+                    <li><span class="pf-i" style="color:var(--cyan)">✓</span> Dedicated Slack channel</li>
+                    <li><span class="pf-i" style="color:var(--cyan)">✓</span> GitHub repo with full source</li>
+                    <li><span class="pf-i" style="color:var(--cyan)">✓</span> Managed VPS deployment</li>
+                    <li><span class="pf-i" style="color:var(--cyan)">✓</span> 30-day post-launch support</li>
+                </ul>
+                <div class="pricing-cta">
+                    <a href="https://buy.stripe.com/bJe28r8Cjgc7eqQdmnfrW0l" class="btn btn-primary">Get Started →</a>
+                </div>
+            </div>
+            <!-- Enterprise -->
+            <div class="pricing-card enterprise">
+                <div class="pricing-icon">🏗️</div>
+                <div class="pricing-tier">Enterprise</div>
+                <div class="pricing-name">Complex Build</div>
+                <div class="pricing-desc">Multi-page apps with private AI, hardware consulting, and custom integrations.</div>
+                <div class="pricing-amount"><span class="currency">$</span>5,000</div>
+                <div class="pricing-note">Starting price — scoped per project</div>
+                <div class="pricing-divider"></div>
+                <ul class="pricing-features">
+                    <li><span class="pf-i" style="color:var(--purple)">✓</span> <strong>Complex multi-page application</strong></li>
+                    <li><span class="pf-i" style="color:var(--purple)">✓</span> Private AI / LLM integration</li>
+                    <li><span class="pf-i" style="color:var(--purple)">✓</span> Hardware consulting &amp; sourcing</li>
+                    <li><span class="pf-i" style="color:var(--purple)">✓</span> Custom API &amp; data pipelines</li>
+                    <li><span class="pf-i" style="color:var(--purple)">✓</span> Unlimited revisions during engagement</li>
+                    <li><span class="pf-i" style="color:var(--purple)">✓</span> Dedicated Slack channel</li>
+                    <li><span class="pf-i" style="color:var(--purple)">✓</span> GitHub repo with full source</li>
+                    <li><span class="pf-i" style="color:var(--purple)">✓</span> Managed VPS + monitoring</li>
+                    <li><span class="pf-i" style="color:var(--purple)">✓</span> 90-day post-launch support</li>
+                </ul>
+                <div class="pricing-cta">
+                    <a href="https://buy.stripe.com/eVqeVd05N8JFeqQ1DFfrW0o" class="btn btn-enterprise">Get Started →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add-ons -->
+        <div style="margin-top:80px;padding-top:60px;border-top:1px solid var(--border)">
+            <div class="section-header center">
+                <div class="section-label" style="color:var(--cyan)">⬡ Add-Ons</div>
+                <div class="section-title">Ongoing Services</div>
+                <div class="section-desc">Keep your app maintained, updated, and hosted — so you can focus on your business.</div>
+            </div>
+            <div class="addons-grid">
+                <div class="addon-card">
+                    <div class="addon-icon">🔄</div>
+                    <div class="addon-info">
+                        <h4>Monthly Dev Retainer</h4>
+                        <div class="addon-price">$1,000/mo</div>
+                        <p>Ongoing development, feature updates, bug fixes, and priority support. Your dedicated AI engineer on-call via Slack. Additional tiers available ($500 &amp; $2,000/mo).</p>
+                        <a href="https://buy.stripe.com/3cIfZh3hZaRN5UkaabfrW0m" class="addon-btn">Subscribe →</a>
+                    </div>
+                </div>
+                <div class="addon-card">
+                    <div class="addon-icon">☁️</div>
+                    <div class="addon-info">
+                        <h4>Managed VPS Hosting</h4>
+                        <div class="addon-price">$50/mo</div>
+                        <p>Hostinger VPS fully managed by us. Deployment, monitoring, backups, security patches, SSL, and 24/7 uptime monitoring. Additional tiers available ($25 &amp; $100/mo).</p>
+                        <a href="https://buy.stripe.com/4gMaEX2dV8JFgyYbeffrW0n" class="addon-btn">Subscribe →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom / Contact -->
+        <div style="margin-top:48px;background:linear-gradient(135deg,rgba(6,182,212,.08),rgba(59,130,246,.08));border:1px solid rgba(6,182,212,.3);border-radius:20px;padding:32px 40px;text-align:center">
+            <h4 style="font-size:1.2rem;font-weight:700;margin-bottom:8px">Need Something Custom?</h4>
+            <p style="font-size:.9rem;color:var(--dim);max-width:600px;margin:0 auto 20px">Large-scale projects, multi-team deployments, custom retainer agreements, or hardware procurement at scale — we'll build a package that fits.</p>
+            <a href="mailto:dev@myclover.tech?subject=Custom%20Consulting%20%26%20Dev%20Inquiry" class="btn btn-secondary">Contact Sales →</a>
+        </div>
+    </div>
+</section>
+
+<!-- Every Project Includes -->
+<section>
+    <div class="container">
+        <div class="section-header center">
+            <div class="section-label" style="color:var(--cyan)">⬡ Included</div>
+            <div class="section-title">Every Project Includes</div>
+            <div class="section-desc">No matter the tier, you get the full white-glove treatment.</div>
+        </div>
+        <div class="stack-grid">
+            <div class="stack-card">
+                <div class="stack-icon">💬</div>
+                <h3>Dedicated Slack Channel</h3>
+                <p>Your own private channel where you talk directly to Viktor. Real-time updates, instant feedback, no emails or ticketing systems.</p>
+            </div>
+            <div class="stack-card">
+                <div class="stack-icon">📦</div>
+                <h3>GitHub Repository</h3>
+                <p>All source code lives in a dedicated repo under the MyClover org. You get full access — fork it, clone it, it's yours.</p>
+            </div>
+            <div class="stack-card">
+                <div class="stack-icon">🚀</div>
+                <h3>VPS Deployment</h3>
+                <p>App deployed to a Hostinger VPS with SSL, custom domain, and production configuration. Ready for users on day one.</p>
+            </div>
+            <div class="stack-card">
+                <div class="stack-icon">🔒</div>
+                <h3>Security &amp; Backups</h3>
+                <p>Automated daily backups, firewall configuration, OS patches, and security hardening. Your data is safe.</p>
+            </div>
+            <div class="stack-card">
+                <div class="stack-icon">📈</div>
+                <h3>Monitoring &amp; Uptime</h3>
+                <p>24/7 uptime monitoring via MyClover.Tech NetMon. Get alerted before your users notice. We eat our own dog food.</p>
+            </div>
+            <div class="stack-card">
+                <div class="stack-icon">📄</div>
+                <h3>Documentation</h3>
+                <p>Clear README, API docs, and deployment instructions in your GitHub repo. Everything you need to understand and maintain your app.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" style="background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+    <div class="container">
+        <div class="section-header center">
+            <div class="section-label" style="color:var(--cyan)">⬡ FAQ</div>
+            <div class="section-title">Frequently Asked Questions</div>
+        </div>
+        <div class="faq-list">
+            <div class="faq-item"><button class="faq-q">How does the Slack channel work? <span class="arrow">▾</span></button><div class="faq-a">After checkout, we create a private Slack channel in the MyClover.Tech workspace and invite you. You'll talk directly to Viktor — our AI engineer — who scopes, builds, and deploys your project. It's like having a senior developer on call 24/7, but faster.</div></div>
+            <div class="faq-item"><button class="faq-q">What kind of apps can you build? <span class="arrow">▾</span></button><div class="faq-a">Virtually anything web-based: dashboards, internal tools, customer portals, SaaS products, data pipelines, API integrations, private AI chatbots, document processing tools, and more. If it runs on a server, we can build it. We also consult on hardware — servers, NAS, networking, and AI accelerators.</div></div>
+            <div class="faq-item"><button class="faq-q">How fast is delivery? <span class="arrow">▾</span></button><div class="faq-a">Most Starter projects are deployed within 24 hours. Standard projects typically take 2–5 days. Enterprise projects are scoped individually, but we move fast — expect first working versions within a week. You'll see progress in real-time in your Slack channel.</div></div>
+            <div class="faq-item"><button class="faq-q">Do I own the code? <span class="arrow">▾</span></button><div class="faq-a">Yes, 100%. All source code is pushed to a GitHub repo that you have full access to. You can fork it, modify it, or move it to your own hosting at any time. No lock-in.</div></div>
+            <div class="faq-item"><button class="faq-q">What's "Private AI Integration"? <span class="arrow">▾</span></button><div class="faq-a">We build AI-powered features that run on your own hardware — not in the cloud. This includes on-premises LLMs, RAG (Retrieval-Augmented Generation) pipelines for searching your documents, AI chatbots trained on your data, and intelligent automation. Your data never leaves your network. Pairs perfectly with our Citadel NAS hardware.</div></div>
+            <div class="faq-item"><button class="faq-q">What does "Hardware Consulting" include? <span class="arrow">▾</span></button><div class="faq-a">We'll recommend, spec, source, and configure the right hardware for your workload. Servers, NAS appliances, networking gear, AI accelerators — we handle procurement through our partnerships and can pre-configure and drop-ship to your site. Check our <a href="hardware.html" style="color:var(--cyan)">Hardware page</a> for our appliance lineup.</div></div>
+            <div class="faq-item"><button class="faq-q">What if I need ongoing changes after the project? <span class="arrow">▾</span></button><div class="faq-a">That's what the Monthly Dev Retainer is for. Subscribe and keep your Slack channel active with priority access to Viktor for ongoing feature development, bug fixes, and updates. Or purchase another project tier for a new phase of work.</div></div>
+            <div class="faq-item"><button class="faq-q">Can I use my own hosting instead of your VPS? <span class="arrow">▾</span></button><div class="faq-a">Absolutely. We'll deploy to any VPS, cloud provider (AWS, GCP, Azure, DigitalOcean), or on-premises server you provide. The managed VPS add-on is just the easiest option — we handle everything so you don't have to.</div></div>
+            <div class="faq-item"><button class="faq-q">Is there a money-back guarantee? <span class="arrow">▾</span></button><div class="faq-a">Yes. If you're not satisfied with the initial delivery and we can't resolve it within the included revision rounds, we'll refund your project fee in full. We're confident in what we build.</div></div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" style="position:relative;z-index:1;border-top:1px solid var(--border)">
+    <div class="container">
+        <h2>Ready to Build <span style="color:var(--cyan)">Something Great</span>?</h2>
+        <p>Pick a tier, describe your idea, and watch it come to life. No meetings, no proposals — just results.</p>
+        <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+            <a href="#pricing" class="btn btn-primary">View Pricing</a>
+            <a href="mailto:dev@myclover.tech?subject=Consulting%20%26%20Dev%20Inquiry" class="btn btn-secondary">Talk to Sales →</a>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-copy">© 2025 MyClover Technologies. All rights reserved.</div>
+            <div class="footer-links">
+                <a href="https://myclover.tech">Home</a>
+                <a href="hardware.html">Hardware</a>
+                <a href="https://demo.myclover.tech" target="_blank">Demo</a>
+                <a href="https://github.com/MyClover-Tech" target="_blank">GitHub</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script>
+// Nav scroll effect
+const nav=document.getElementById('mainNav');
+window.addEventListener('scroll',()=>{nav.classList.toggle('scrolled',window.scrollY>40)});
+
+// FAQ toggle
+document.querySelectorAll('.faq-q').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        const item=btn.parentElement;
+        document.querySelectorAll('.faq-item').forEach(i=>{if(i!==item)i.classList.remove('open')});
+        item.classList.toggle('open');
+    });
+});
+</script>
+</body>
+</html>
