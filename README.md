@@ -209,21 +209,50 @@ See [FEATURES.md](FEATURES.md) for the complete endpoint reference.
 
 ## Deployment
 
-### Linux systemd Service
+### Ubuntu LTS Server (Full Guide)
 
-```ini
+See **[SETUP_UBUNTU.md](SETUP_UBUNTU.md)** for the complete step-by-step guide covering:
+
+- Base server setup from scratch
+- Python virtual environment & dependencies
+- systemd service (auto-start on boot)
+- Firewall configuration
+- Nginx reverse proxy with free SSL
+- Stripe payment handler
+- SNMP deep polling setup
+- Automated backups
+- **Combined NetMon + SentryLog deployment** on one server
+
+### Linux Quick Start (systemd)
+
+```bash
+# Clone and install
+sudo mkdir -p /opt/myclover/netmon && cd /opt/myclover/netmon
+git clone https://github.com/jonfulk805-og/MyClover.Tech.NetMon.git .
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+
+# Create service
+sudo tee /etc/systemd/system/netmon.service << 'EOF'
 [Unit]
-Description=MyClover.Tech.netmon
+Description=MyClover.Tech.NetMon
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 /opt/netmon/netmon.py
-WorkingDirectory=/opt/netmon
+Type=simple
+User=root
+WorkingDirectory=/opt/myclover/netmon
+ExecStart=/opt/myclover/netmon/venv/bin/python netmon.py
 Restart=always
-User=netmon
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now netmon
 ```
 
 ### Windows
