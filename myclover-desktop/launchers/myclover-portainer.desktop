@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Portainer Containers
+GenericName=Container Management
+Comment=MyClover.Tech Docker Container Management
+Exec=xdg-open https://localhost:9443
+Icon=myclover-portainer
+Terminal=false
+Categories=MyCloverTech;Network;System;Development;
+Keywords=docker;containers;portainer;myclover;
+StartupNotify=true

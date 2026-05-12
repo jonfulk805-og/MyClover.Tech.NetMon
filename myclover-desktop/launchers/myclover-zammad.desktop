@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Zammad Helpdesk
+GenericName=Helpdesk & Ticketing
+Comment=MyClover.Tech Customer Support Ticketing
+Exec=xdg-open http://localhost:8082
+Icon=myclover-zammad
+Terminal=false
+Categories=MyCloverTech;Network;Office;
+Keywords=tickets;helpdesk;support;zammad;myclover;
+StartupNotify=true

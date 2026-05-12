@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=WireGuard VPN
+GenericName=VPN Manager
+Comment=MyClover.Tech WireGuard VPN Management
+Exec=xdg-open http://localhost:51821
+Icon=myclover-wireguard
+Terminal=false
+Categories=MyCloverTech;Network;Security;
+Keywords=vpn;wireguard;tunnel;myclover;
+StartupNotify=true

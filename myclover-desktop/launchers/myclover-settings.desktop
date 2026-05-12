@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=MyClover.Tech Settings
+GenericName=System Configuration
+Comment=MyClover.Tech Appliance Configuration Wizard
+Exec=x-terminal-emulator -e "sudo myclover-desktop status"
+Icon=myclover-settings
+Terminal=false
+Categories=MyCloverTech;Settings;System;
+Keywords=settings;config;myclover;appliance;
+StartupNotify=true

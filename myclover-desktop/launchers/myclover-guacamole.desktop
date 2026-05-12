@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Guacamole Remote Access
+GenericName=Remote Desktop Gateway
+Comment=MyClover.Tech Clientless Remote Desktop
+Exec=xdg-open http://localhost:8080/guacamole
+Icon=myclover-guacamole
+Terminal=false
+Categories=MyCloverTech;Network;RemoteAccess;System;
+Keywords=remote;rdp;vnc;ssh;guacamole;myclover;
+StartupNotify=true

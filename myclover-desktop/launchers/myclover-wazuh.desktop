@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Wazuh Security
+GenericName=SIEM Dashboard
+Comment=MyClover.Tech Security Information & Event Management
+Exec=xdg-open https://localhost:443
+Icon=myclover-wazuh
+Terminal=false
+Categories=MyCloverTech;Network;Security;System;
+Keywords=security;siem;wazuh;ids;myclover;
+StartupNotify=true

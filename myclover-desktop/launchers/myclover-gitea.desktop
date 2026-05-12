@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Gitea Code Server
+GenericName=Git Repository
+Comment=MyClover.Tech Self-Hosted Git Service
+Exec=xdg-open http://localhost:3000
+Icon=myclover-gitea
+Terminal=false
+Categories=MyCloverTech;Development;RevisionControl;
+Keywords=git;code;repository;gitea;myclover;
+StartupNotify=true

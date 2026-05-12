@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=SentryLog (Graylog)
+GenericName=Log Management
+Comment=MyClover.Tech Centralized Log Management
+Exec=xdg-open http://localhost:9000
+Icon=myclover-sentrylog
+Terminal=false
+Categories=MyCloverTech;Network;Monitor;System;
+Keywords=logs;syslog;graylog;sentrylog;myclover;
+StartupNotify=true

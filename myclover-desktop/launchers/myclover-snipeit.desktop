@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Snipe-IT Assets
+GenericName=Asset Management
+Comment=MyClover.Tech IT Asset Management
+Exec=xdg-open http://localhost:8081
+Icon=myclover-snipeit
+Terminal=false
+Categories=MyCloverTech;Network;System;Office;
+Keywords=assets;inventory;snipeit;hardware;myclover;
+StartupNotify=true

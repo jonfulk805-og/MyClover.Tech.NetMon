@@ -1,0 +1,39 @@
+// MyClover.Tech Plymouth Boot Splash Script
+// Displays the MyClover.Tech logo with a progress spinner
+
+// Load logo image (place myclover-logo.png in this directory)
+logo_image = Image("myclover-logo.png");
+logo_sprite = Sprite(logo_image);
+
+// Center the logo
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+logo_width = logo_image.GetWidth();
+logo_height = logo_image.GetHeight();
+
+logo_sprite.SetX(screen_width / 2 - logo_width / 2);
+logo_sprite.SetY(screen_height / 2 - logo_height / 2 - 40);
+
+// Progress bar
+bar_width = 300;
+bar_height = 8;
+bar_x = screen_width / 2 - bar_width / 2;
+bar_y = screen_height / 2 + logo_height / 2;
+
+// Draw progress
+fun refresh_callback() {
+    // Background color: dark charcoal (#1a1a2e)
+    Window.SetBackgroundTopColor(0.10, 0.10, 0.18);
+    Window.SetBackgroundBottomColor(0.05, 0.05, 0.10);
+}
+
+fun boot_progress_callback(duration, progress) {
+    // Green progress bar matching MyClover.Tech brand (#4ade80)
+    bar = Image(bar_width * progress, bar_height);
+    bar_sprite = Sprite(bar);
+    bar_sprite.SetX(bar_x);
+    bar_sprite.SetY(bar_y);
+}
+
+Plymouth.SetRefreshFunction(refresh_callback);
+Plymouth.SetBootProgressFunction(boot_progress_callback);

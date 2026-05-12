@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Ollama AI
+GenericName=AI Assistant
+Comment=MyClover.Tech Local AI Models
+Exec=xdg-open http://localhost:11434
+Icon=myclover-ollama
+Terminal=false
+Categories=MyCloverTech;Development;Science;
+Keywords=ai;llm;ollama;models;myclover;
+StartupNotify=true

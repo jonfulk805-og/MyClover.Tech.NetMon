@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=NetMon Dashboard
+GenericName=Network Monitor
+Comment=MyClover.Tech Network Monitoring Dashboard
+Exec=xdg-open http://localhost:5000
+Icon=myclover-netmon
+Terminal=false
+Categories=MyCloverTech;Network;Monitor;System;
+Keywords=network;monitor;dashboard;netmon;myclover;
+StartupNotify=true

@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=MyClover.Tech
+Description=MyClover.Tech branded boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/myclover
+ScriptFile=/usr/share/plymouth/themes/myclover/myclover.script

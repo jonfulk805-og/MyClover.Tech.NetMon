@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=RustDesk Remote
+GenericName=Remote Desktop
+Comment=MyClover.Tech Self-Hosted Remote Desktop
+Exec=rustdesk
+Icon=myclover-rustdesk
+Terminal=false
+Categories=MyCloverTech;Network;RemoteAccess;
+Keywords=remote;desktop;rustdesk;myclover;
+StartupNotify=true
