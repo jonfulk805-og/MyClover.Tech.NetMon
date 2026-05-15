@@ -1,0 +1,34 @@
+# ============================================================
+# MyClover.Tech NetMon — Standalone Docker Compose
+# ============================================================
+# Usage:
+#   docker compose up -d          # start
+#   docker compose logs -f        # tail logs
+#   docker compose down            # stop
+#
+# Data persists in the 'netmon-data' volume (DB + config).
+# To use your own config: mount it at /app/data/config.yaml
+# ============================================================
+
+services:
+  netmon:
+    build: .
+    image: myclover/netmon:latest
+    container_name: myclover-netmon
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - netmon-data:/app/data
+    environment:
+      - TZ=America/Los_Angeles
+    networks:
+      - myclover
+
+volumes:
+  netmon-data:
+    driver: local
+
+networks:
+  myclover:
+    driver: bridge
