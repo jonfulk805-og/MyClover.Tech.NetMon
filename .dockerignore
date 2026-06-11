@@ -1,0 +1,17 @@
+.git
+.gitignore
+*.md
+LICENSE
+demo-deploy/
+generate_key.py
+*.db
+*.sqlite
+*.log
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.DS_Store
+.vscode/
+.idea/
