@@ -275,6 +275,14 @@ def _reload_config():
     global _config
     with _config_lock:
         _config = load_config()
+        # Load AI assistant config if present
+        try:
+            import ai_assistant as _ai_mod
+            ai_cfg = _config.get("ai_assistant", {})
+            if ai_cfg:
+                _ai_mod.update_config(ai_cfg)
+        except ImportError:
+            pass
     _load_license()
 
 
@@ -4121,7 +4129,64 @@ def create_app():
         except ImportError:
             return jsonify({"available": False, "error": "ai_assistant module not found"})
 
-    @app.route("/api/ai/chat", methods=["POST"])
+    @app.route("/api/ai/settings", methods=["GET"])
+    @require_tier(TIER_ENT)
+    def api_ai_settings_get():
+        """Return current AI provider settings (keys masked)."""
+        import ai_assistant
+        cfg = ai_assistant.get_config()
+        for prov in ["openai", "anthropic"]:
+            if prov in cfg and cfg[prov].get("api_key"):
+                key = cfg[prov]["api_key"]
+                if len(key) > 8:
+                    cfg[prov]["api_key"] = key[:4] + "..." + key[-4:]
+                else:
+                    cfg[prov]["api_key"] = "****"
+        return jsonify(cfg)
+
+    @app.route("/api/ai/settings", methods=["PUT"])
+    @require_tier(TIER_ENT)
+    def api_ai_settings_update():
+        """Update AI provider settings."""
+        import ai_assistant
+        data = request.get_json(force=True, silent=True) or {}
+        update = {}
+        if "provider" in data:
+            prov = str(data["provider"]).strip().lower()
+            if prov in ai_assistant.SUPPORTED_PROVIDERS:
+                update["provider"] = prov
+        for pname in ["ollama", "openai", "anthropic"]:
+            if pname in data and isinstance(data[pname], dict):
+                oc = {}
+                for fld in ["base_url", "model"]:
+                    if fld in data[pname]:
+                        oc[fld] = str(data[pname][fld]).strip()
+                if "api_key" in data[pname]:
+                    key = str(data[pname]["api_key"]).strip()
+                    if key and "..." not in key and key != "****":
+                        oc["api_key"] = key
+                if oc:
+                    update[pname] = oc
+        if update:
+            ai_assistant.update_config(update)
+            with _config_lock:
+                cfg = _config
+                cfg["ai_assistant"] = ai_assistant.get_config()
+                save_config(cfg)
+        return jsonify({"ok": True})
+
+    @app.route("/api/ai/test", methods=["POST"])
+    @require_tier(TIER_ENT)
+    def api_ai_test():
+        """Test connection to an AI provider."""
+        import ai_assistant
+        data = request.get_json(force=True, silent=True) or {}
+        provider = data.get("provider")
+        config = data.get("config", {})
+        result = ai_assistant.test_connection(provider=provider, config=config or None)
+        return jsonify(result)
+
+    @app.route("/api/ai/chat",, methods=["POST"])
     @require_tier(TIER_ENT)
     def api_ai_chat():
         """Send a message to the AI assistant."""
