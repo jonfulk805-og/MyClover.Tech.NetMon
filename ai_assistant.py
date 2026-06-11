@@ -25,6 +25,15 @@ PROVIDER_ANTHROPIC = "anthropic"
 
 SUPPORTED_PROVIDERS = [PROVIDER_OLLAMA, PROVIDER_OPENAI, PROVIDER_ANTHROPIC]
 
+
+def _normalize_url(url, default_scheme="http"):
+    """Ensure URL has a scheme (http/https). Auto-prepends if missing."""
+    url = url.strip().rstrip("/")
+    if url and not url.startswith(("http://", "https://")):
+        url = f"{default_scheme}://{url}"
+    return url
+
+
 # ---------------------------------------------------------------------------
 # Default configuration (overridden by config.yaml at runtime)
 # ---------------------------------------------------------------------------
@@ -295,7 +304,7 @@ def _ollama_available(cfg=None):
     """Check if Ollama is running."""
     if cfg is None:
         _, cfg = _get_provider_config(PROVIDER_OLLAMA)
-    base = cfg.get("base_url", "http://127.0.0.1:11434")
+    base = _normalize_url(cfg.get("base_url", "http://127.0.0.1:11434"))
     try:
         import urllib.request
         req = urllib.request.Request(f"{base}/api/tags", method="GET")
@@ -311,7 +320,7 @@ def _ollama_chat(messages, cfg=None, stream=False):
 
     if cfg is None:
         _, cfg = _get_provider_config(PROVIDER_OLLAMA)
-    base = cfg.get("base_url", "http://127.0.0.1:11434")
+    base = _normalize_url(cfg.get("base_url", "http://127.0.0.1:11434"))
     model = cfg.get("model", "llama3.1:8b-instruct-q4_K_M")
 
     payload = json.dumps({
@@ -757,11 +766,11 @@ def get_status():
     }
 
     if provider == PROVIDER_OLLAMA:
-        status["ollama_url"] = cfg.get("base_url", "http://127.0.0.1:11434")
+        status["ollama_url"] = _normalize_url(cfg.get("base_url", "http://127.0.0.1:11434"))
         if available:
             try:
                 import urllib.request
-                base = cfg.get("base_url", "http://127.0.0.1:11434")
+                base = _normalize_url(cfg.get("base_url", "http://127.0.0.1:11434"))
                 req = urllib.request.Request(f"{base}/api/tags", method="GET")
                 with urllib.request.urlopen(req, timeout=3) as resp:
                     data = json.loads(resp.read().decode())
