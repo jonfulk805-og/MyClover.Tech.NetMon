@@ -1,7 +1,8 @@
 """
 Chappie — MyClover.Tech Offline AI Assistant.
 
-Runs locally via Ollama. Enterprise tier only.
+Multi-provider support: Ollama (local), OpenAI-compatible APIs,
+and Anthropic Claude. Enterprise tier only.
 Provides natural-language help for NetMon & SentryLog configuration,
 troubleshooting, and best practices.
 """
@@ -15,21 +16,83 @@ import os
 log = logging.getLogger("netmon.ai")
 
 # ---------------------------------------------------------------------------
-# Configuration
+# Provider constants
 # ---------------------------------------------------------------------------
 
-OLLAMA_BASE = os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
-DEFAULT_MODEL = os.environ.get("AI_MODEL", "llama3.1:8b-instruct-q4_K_M")
+PROVIDER_OLLAMA = "ollama"
+PROVIDER_OPENAI = "openai"
+PROVIDER_ANTHROPIC = "anthropic"
+
+SUPPORTED_PROVIDERS = [PROVIDER_OLLAMA, PROVIDER_OPENAI, PROVIDER_ANTHROPIC]
+
+# ---------------------------------------------------------------------------
+# Default configuration (overridden by config.yaml at runtime)
+# ---------------------------------------------------------------------------
+
+_ai_config = {
+    "provider": os.environ.get("AI_PROVIDER", PROVIDER_OLLAMA),
+    "ollama": {
+        "base_url": os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
+        "model": os.environ.get("AI_MODEL", "llama3.1:8b-instruct-q4_K_M"),
+    },
+    "openai": {
+        "base_url": os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+        "api_key": os.environ.get("OPENAI_API_KEY", ""),
+        "model": os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+    },
+    "anthropic": {
+        "base_url": os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
+        "api_key": os.environ.get("ANTHROPIC_API_KEY", ""),
+        "model": os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
+    },
+}
+_ai_config_lock = threading.Lock()
+
 MAX_CONTEXT_TOKENS = 8192
 MAX_HISTORY = 20  # max conversation turns to keep
+
+# ---------------------------------------------------------------------------
+# Configuration management
+# ---------------------------------------------------------------------------
+
+def get_config():
+    """Return a copy of the current AI config."""
+    with _ai_config_lock:
+        return json.loads(json.dumps(_ai_config))
+
+
+def update_config(new_cfg):
+    """Update AI config from a dict (typically from config.yaml)."""
+    with _ai_config_lock:
+        if "provider" in new_cfg:
+            _ai_config["provider"] = new_cfg["provider"]
+        for prov in SUPPORTED_PROVIDERS:
+            if prov in new_cfg and isinstance(new_cfg[prov], dict):
+                if prov not in _ai_config:
+                    _ai_config[prov] = {}
+                _ai_config[prov].update(new_cfg[prov])
+
+
+def _get_active_provider():
+    """Return the active provider name."""
+    with _ai_config_lock:
+        return _ai_config.get("provider", PROVIDER_OLLAMA)
+
+
+def _get_provider_config(provider=None):
+    """Return config dict for the given (or active) provider."""
+    with _ai_config_lock:
+        prov = provider or _ai_config.get("provider", PROVIDER_OLLAMA)
+        return prov, dict(_ai_config.get(prov, {}))
+
 
 # ---------------------------------------------------------------------------
 # System prompt — comprehensive product knowledge
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT = """You are **Chappie**, the MyClover.Tech AI Assistant. You run entirely offline on this appliance — no data ever leaves this device.
+SYSTEM_PROMPT = """You are **Chappie**, the MyClover.Tech AI Assistant. You help IT professionals and MSPs configure, troubleshoot, and optimize their monitoring setup.
 
-You are an expert on **MyClover.Tech NetMon** (network monitoring) and **MyClover.Tech SentryLog** (log aggregation & security alerts). You help IT professionals and MSPs configure, troubleshoot, and optimize their monitoring setup.
+You are an expert on **MyClover.Tech NetMon** (network monitoring) and **MyClover.Tech SentryLog** (log aggregation & security alerts).
 
 ## Your Capabilities
 - Generate and explain YAML configuration snippets
@@ -94,14 +157,8 @@ alerts:
 
 helpdesk:                         # Enterprise only
   provider: freshservice          # or "connectwise"
-  # FreshService:
   domain: "company.freshservice.com"
   api_key: "your-api-key"
-  # ConnectWise:
-  # site: "company.connectwise.com"
-  # company_id: "company"
-  # public_key: "key"
-  # private_key: "key"
   auto_create: true
   auto_resolve: true
   default_priority: 2
@@ -178,17 +235,6 @@ security_vendors:              # Enterprise only
     client_id: ""
     client_secret: ""
     poll_interval_seconds: 120
-  sophos:
-    enabled: false
-    client_id: ""
-    client_secret: ""
-    poll_interval_seconds: 60
-  cortex_xdr:
-    enabled: false
-    api_key: ""
-    api_key_id: ""
-    base_url: ""
-    poll_interval_seconds: 120
 ```
 
 ### Sending Syslog to SentryLog
@@ -242,28 +288,32 @@ security_vendors:              # Enterprise only
 
 
 # ---------------------------------------------------------------------------
-# Ollama client (minimal, no external deps)
+# Ollama client
 # ---------------------------------------------------------------------------
 
-def _ollama_available():
+def _ollama_available(cfg=None):
     """Check if Ollama is running."""
+    if cfg is None:
+        _, cfg = _get_provider_config(PROVIDER_OLLAMA)
+    base = cfg.get("base_url", "http://127.0.0.1:11434")
     try:
         import urllib.request
-        req = urllib.request.Request(f"{OLLAMA_BASE}/api/tags", method="GET")
+        req = urllib.request.Request(f"{base}/api/tags", method="GET")
         with urllib.request.urlopen(req, timeout=3) as resp:
             return resp.status == 200
     except Exception:
         return False
 
 
-def _ollama_chat(messages, model=None, stream=False):
-    """Send a chat completion request to Ollama.
-
-    Returns the full response dict or yields chunks if stream=True.
-    """
+def _ollama_chat(messages, cfg=None, stream=False):
+    """Send a chat completion request to Ollama."""
     import urllib.request
 
-    model = model or DEFAULT_MODEL
+    if cfg is None:
+        _, cfg = _get_provider_config(PROVIDER_OLLAMA)
+    base = cfg.get("base_url", "http://127.0.0.1:11434")
+    model = cfg.get("model", "llama3.1:8b-instruct-q4_K_M")
+
     payload = json.dumps({
         "model": model,
         "messages": messages,
@@ -276,20 +326,20 @@ def _ollama_chat(messages, model=None, stream=False):
     }).encode()
 
     req = urllib.request.Request(
-        f"{OLLAMA_BASE}/api/chat",
+        f"{base}/api/chat",
         data=payload,
         headers={"Content-Type": "application/json"},
         method="POST",
     )
 
     if stream:
-        return _stream_response(req)
+        return _ollama_stream(req)
     else:
         with urllib.request.urlopen(req, timeout=120) as resp:
             return json.loads(resp.read().decode())
 
 
-def _stream_response(req):
+def _ollama_stream(req):
     """Yield streamed chunks from Ollama."""
     import urllib.request
     with urllib.request.urlopen(req, timeout=120) as resp:
@@ -310,6 +360,237 @@ def _stream_response(req):
 
 
 # ---------------------------------------------------------------------------
+# OpenAI-compatible client (works with OpenAI, Azure, local servers, etc.)
+# ---------------------------------------------------------------------------
+
+def _openai_available(cfg=None):
+    """Check if an OpenAI-compatible endpoint is reachable and configured."""
+    if cfg is None:
+        _, cfg = _get_provider_config(PROVIDER_OPENAI)
+    api_key = cfg.get("api_key", "")
+    base_url = cfg.get("base_url", "")
+    if not api_key or not base_url:
+        return False
+    try:
+        import urllib.request
+        req = urllib.request.Request(
+            f"{base_url.rstrip('/')}/models",
+            method="GET",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return resp.status == 200
+    except Exception:
+        # Some OpenAI-compatible servers don't support /models — that's OK
+        # as long as we have a key and URL, we'll try chat
+        return bool(api_key and base_url)
+
+
+def _openai_chat(messages, cfg=None, stream=False):
+    """Send a chat completion to an OpenAI-compatible API."""
+    import urllib.request
+
+    if cfg is None:
+        _, cfg = _get_provider_config(PROVIDER_OPENAI)
+    base_url = cfg.get("base_url", "https://api.openai.com/v1").rstrip("/")
+    api_key = cfg.get("api_key", "")
+    model = cfg.get("model", "gpt-4o-mini")
+
+    payload = json.dumps({
+        "model": model,
+        "messages": messages,
+        "temperature": 0.4,
+        "top_p": 0.9,
+        "stream": stream,
+    }).encode()
+
+    req = urllib.request.Request(
+        f"{base_url}/chat/completions",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+        method="POST",
+    )
+
+    if stream:
+        return _openai_stream(req)
+    else:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            data = json.loads(resp.read().decode())
+            return {
+                "message": {"content": data["choices"][0]["message"]["content"]},
+                "model": data.get("model", model),
+                "eval_count": data.get("usage", {}).get("completion_tokens", 0),
+            }
+
+
+def _openai_stream(req):
+    """Yield streamed chunks from an OpenAI-compatible API."""
+    import urllib.request
+    with urllib.request.urlopen(req, timeout=120) as resp:
+        buffer = b""
+        while True:
+            chunk = resp.read(1024)
+            if not chunk:
+                break
+            buffer += chunk
+            while b"\n" in buffer:
+                line, buffer = buffer.split(b"\n", 1)
+                line = line.strip()
+                if not line or line == b"data: [DONE]":
+                    if line == b"data: [DONE]":
+                        yield {"message": {"content": ""}, "done": True}
+                    continue
+                if line.startswith(b"data: "):
+                    try:
+                        data = json.loads(line[6:].decode())
+                        delta = data.get("choices", [{}])[0].get("delta", {})
+                        content = delta.get("content", "")
+                        done = data.get("choices", [{}])[0].get("finish_reason") is not None
+                        yield {"message": {"content": content}, "done": done}
+                    except (json.JSONDecodeError, IndexError, KeyError):
+                        pass
+
+
+# ---------------------------------------------------------------------------
+# Anthropic client
+# ---------------------------------------------------------------------------
+
+def _anthropic_available(cfg=None):
+    """Check if Anthropic API is configured and reachable."""
+    if cfg is None:
+        _, cfg = _get_provider_config(PROVIDER_ANTHROPIC)
+    api_key = cfg.get("api_key", "")
+    if not api_key:
+        return False
+    # Anthropic doesn't have a lightweight status endpoint,
+    # so we just verify the key is set
+    return True
+
+
+def _anthropic_chat(messages, cfg=None, stream=False):
+    """Send a message to the Anthropic API."""
+    import urllib.request
+
+    if cfg is None:
+        _, cfg = _get_provider_config(PROVIDER_ANTHROPIC)
+    base_url = cfg.get("base_url", "https://api.anthropic.com").rstrip("/")
+    api_key = cfg.get("api_key", "")
+    model = cfg.get("model", "claude-sonnet-4-20250514")
+
+    # Anthropic uses a separate system param, not in messages array
+    system_msg = ""
+    chat_messages = []
+    for m in messages:
+        if m["role"] == "system":
+            system_msg += m["content"] + "\n"
+        else:
+            chat_messages.append({"role": m["role"], "content": m["content"]})
+
+    payload = json.dumps({
+        "model": model,
+        "max_tokens": 4096,
+        "system": system_msg.strip(),
+        "messages": chat_messages,
+        "stream": stream,
+    }).encode()
+
+    req = urllib.request.Request(
+        f"{base_url}/v1/messages",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+        },
+        method="POST",
+    )
+
+    if stream:
+        return _anthropic_stream(req)
+    else:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            data = json.loads(resp.read().decode())
+            content = ""
+            for block in data.get("content", []):
+                if block.get("type") == "text":
+                    content += block["text"]
+            return {
+                "message": {"content": content},
+                "model": data.get("model", model),
+                "eval_count": data.get("usage", {}).get("output_tokens", 0),
+            }
+
+
+def _anthropic_stream(req):
+    """Yield streamed chunks from Anthropic."""
+    import urllib.request
+    with urllib.request.urlopen(req, timeout=120) as resp:
+        buffer = b""
+        while True:
+            chunk = resp.read(1024)
+            if not chunk:
+                break
+            buffer += chunk
+            while b"\n" in buffer:
+                line, buffer = buffer.split(b"\n", 1)
+                line = line.strip()
+                if not line:
+                    continue
+                if line.startswith(b"data: "):
+                    try:
+                        data = json.loads(line[6:].decode())
+                        evt_type = data.get("type", "")
+                        if evt_type == "content_block_delta":
+                            delta = data.get("delta", {})
+                            content = delta.get("text", "")
+                            yield {"message": {"content": content}, "done": False}
+                        elif evt_type == "message_stop":
+                            yield {"message": {"content": ""}, "done": True}
+                    except (json.JSONDecodeError, KeyError):
+                        pass
+
+
+# ---------------------------------------------------------------------------
+# Provider dispatch
+# ---------------------------------------------------------------------------
+
+_PROVIDER_MAP = {
+    PROVIDER_OLLAMA: {
+        "available": _ollama_available,
+        "chat": _ollama_chat,
+    },
+    PROVIDER_OPENAI: {
+        "available": _openai_available,
+        "chat": _openai_chat,
+    },
+    PROVIDER_ANTHROPIC: {
+        "available": _anthropic_available,
+        "chat": _anthropic_chat,
+    },
+}
+
+
+def _dispatch_available():
+    """Check if the active provider is available."""
+    prov, cfg = _get_provider_config()
+    handler = _PROVIDER_MAP.get(prov, _PROVIDER_MAP[PROVIDER_OLLAMA])
+    return handler["available"](cfg)
+
+
+def _dispatch_chat(messages, stream=False):
+    """Route chat to the active provider."""
+    prov, cfg = _get_provider_config()
+    handler = _PROVIDER_MAP.get(prov, _PROVIDER_MAP[PROVIDER_OLLAMA])
+    return handler["chat"](messages, cfg=cfg, stream=stream)
+
+
+# ---------------------------------------------------------------------------
 # Conversation manager
 # ---------------------------------------------------------------------------
 
@@ -321,30 +602,24 @@ class ConversationManager:
         self._lock = threading.Lock()
 
     def get_messages(self, session_id):
-        """Get conversation history for a session."""
         with self._lock:
             if session_id not in self._sessions:
                 self._sessions[session_id] = []
             return list(self._sessions[session_id])
 
     def add_message(self, session_id, role, content):
-        """Add a message to session history."""
         with self._lock:
             if session_id not in self._sessions:
                 self._sessions[session_id] = []
             self._sessions[session_id].append({"role": role, "content": content})
-            # Trim old messages
             if len(self._sessions[session_id]) > MAX_HISTORY * 2:
                 self._sessions[session_id] = self._sessions[session_id][-MAX_HISTORY * 2:]
 
     def clear_session(self, session_id):
-        """Clear a session's history."""
         with self._lock:
             self._sessions.pop(session_id, None)
 
     def cleanup_old(self, max_age_hours=24):
-        """Remove sessions not used recently. Called periodically."""
-        # Simple implementation — in production, track timestamps
         pass
 
 
@@ -356,33 +631,30 @@ _conversations = ConversationManager()
 # ---------------------------------------------------------------------------
 
 def is_available():
-    """Check if the AI assistant is available (Ollama running + model loaded)."""
-    return _ollama_available()
+    """Check if the AI assistant is available."""
+    return _dispatch_available()
 
 
 def chat(session_id, user_message, config_context=None):
-    """Send a message and get a response.
-
-    Args:
-        session_id: Unique session identifier (e.g., from Flask session)
-        user_message: The user's question/message
-        config_context: Optional dict of current config for context
-
-    Returns:
-        dict with 'response' (str) and 'session_id'
-    """
-    if not _ollama_available():
+    """Send a message and get a response."""
+    if not _dispatch_available():
+        provider = _get_active_provider()
+        if provider == PROVIDER_OLLAMA:
+            hint = "Start it with: `sudo systemctl start ollama`"
+        elif provider == PROVIDER_OPENAI:
+            hint = "Check your API key and endpoint URL in Settings → Chappie AI."
+        elif provider == PROVIDER_ANTHROPIC:
+            hint = "Check your API key in Settings → Chappie AI."
+        else:
+            hint = "Configure a provider in Settings → Chappie AI."
         return {
-            "response": "⚠️ The AI assistant is currently unavailable. Ollama may not be running.\n\n"
-                        "Start it with: `sudo systemctl start ollama`",
+            "response": f"⚠️ The AI assistant is currently unavailable ({provider}).\n\n{hint}",
             "session_id": session_id,
-            "error": "ollama_unavailable",
+            "error": "provider_unavailable",
         }
 
-    # Build messages
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
-    # Add config context if provided
     if config_context:
         context_msg = "Current appliance context:\n"
         if config_context.get("tier"):
@@ -395,47 +667,42 @@ def chat(session_id, user_message, config_context=None):
             context_msg += f"- Helpdesk: {config_context['helpdesk_provider']}\n"
         messages.append({"role": "system", "content": context_msg})
 
-    # Add conversation history
     history = _conversations.get_messages(session_id)
     messages.extend(history)
-
-    # Add user message
     messages.append({"role": "user", "content": user_message})
 
     try:
-        result = _ollama_chat(messages, stream=False)
+        result = _dispatch_chat(messages, stream=False)
         assistant_msg = result.get("message", {}).get("content", "")
 
-        # Save to history
         _conversations.add_message(session_id, "user", user_message)
         _conversations.add_message(session_id, "assistant", assistant_msg)
 
         return {
             "response": assistant_msg,
             "session_id": session_id,
-            "model": result.get("model", DEFAULT_MODEL),
+            "model": result.get("model", ""),
             "eval_count": result.get("eval_count", 0),
             "eval_duration": result.get("eval_duration", 0),
         }
     except Exception as e:
         log.error("AI chat error: %s", e)
+        provider = _get_active_provider()
         return {
-            "response": f"⚠️ Error communicating with the AI model: {str(e)}\n\n"
-                        "Try restarting Ollama: `sudo systemctl restart ollama`",
+            "response": f"⚠️ Error communicating with {provider}: {str(e)}\n\n"
+                        "Check your AI provider settings in Settings → Chappie AI.",
             "session_id": session_id,
             "error": str(e),
         }
 
 
 def chat_stream(session_id, user_message, config_context=None):
-    """Send a message and stream the response.
-
-    Yields dicts with 'content' (str) and 'done' (bool).
-    """
-    if not _ollama_available():
+    """Send a message and stream the response."""
+    if not _dispatch_available():
+        provider = _get_active_provider()
         yield {
-            "content": "⚠️ The AI assistant is currently unavailable. Ollama may not be running.\n\n"
-                       "Start it with: `sudo systemctl start ollama`",
+            "content": f"⚠️ The AI assistant is currently unavailable ({provider}).\n\n"
+                       "Configure your provider in Settings → Chappie AI.",
             "done": True,
         }
         return
@@ -455,7 +722,7 @@ def chat_stream(session_id, user_message, config_context=None):
 
     try:
         full_response = []
-        for chunk in _ollama_chat(messages, stream=True):
+        for chunk in _dispatch_chat(messages, stream=True):
             msg = chunk.get("message", {})
             content = msg.get("content", "")
             done = chunk.get("done", False)
@@ -463,7 +730,6 @@ def chat_stream(session_id, user_message, config_context=None):
                 full_response.append(content)
             yield {"content": content, "done": done}
 
-        # Save to history
         _conversations.add_message(session_id, "user", user_message)
         _conversations.add_message(session_id, "assistant", "".join(full_response))
 
@@ -480,23 +746,75 @@ def clear_conversation(session_id):
 
 def get_status():
     """Get AI assistant status info."""
-    available = _ollama_available()
+    provider = _get_active_provider()
+    _, cfg = _get_provider_config()
+    available = _dispatch_available()
+
     status = {
         "available": available,
-        "model": DEFAULT_MODEL,
-        "ollama_url": OLLAMA_BASE,
+        "provider": provider,
+        "model": cfg.get("model", ""),
     }
-    if available:
-        try:
-            import urllib.request
-            req = urllib.request.Request(f"{OLLAMA_BASE}/api/tags", method="GET")
-            with urllib.request.urlopen(req, timeout=3) as resp:
-                data = json.loads(resp.read().decode())
-                models = [m["name"] for m in data.get("models", [])]
-                status["loaded_models"] = models
-                status["model_ready"] = any(DEFAULT_MODEL.split(":")[0] in m for m in models)
-        except Exception:
+
+    if provider == PROVIDER_OLLAMA:
+        status["ollama_url"] = cfg.get("base_url", "http://127.0.0.1:11434")
+        if available:
+            try:
+                import urllib.request
+                base = cfg.get("base_url", "http://127.0.0.1:11434")
+                req = urllib.request.Request(f"{base}/api/tags", method="GET")
+                with urllib.request.urlopen(req, timeout=3) as resp:
+                    data = json.loads(resp.read().decode())
+                    models = [m["name"] for m in data.get("models", [])]
+                    status["loaded_models"] = models
+                    model_name = cfg.get("model", "llama3.1").split(":")[0]
+                    status["model_ready"] = any(model_name in m for m in models)
+            except Exception:
+                status["model_ready"] = False
+        else:
             status["model_ready"] = False
-    else:
-        status["model_ready"] = False
+    elif provider == PROVIDER_OPENAI:
+        status["base_url"] = cfg.get("base_url", "")
+        status["model_ready"] = available and bool(cfg.get("api_key"))
+        status["has_key"] = bool(cfg.get("api_key"))
+    elif provider == PROVIDER_ANTHROPIC:
+        status["base_url"] = cfg.get("base_url", "")
+        status["model_ready"] = available and bool(cfg.get("api_key"))
+        status["has_key"] = bool(cfg.get("api_key"))
+
     return status
+
+
+def test_connection(provider=None, config=None):
+    """Test connection to a specific provider with given config.
+
+    Returns dict with 'ok' (bool) and 'message' (str).
+    """
+    prov = provider or _get_active_provider()
+    cfg = config or _get_provider_config(prov)[1]
+
+    handler = _PROVIDER_MAP.get(prov)
+    if not handler:
+        return {"ok": False, "message": f"Unknown provider: {prov}"}
+
+    try:
+        if not handler["available"](cfg):
+            if prov == PROVIDER_OLLAMA:
+                return {"ok": False, "message": "Cannot reach Ollama. Is it running?"}
+            else:
+                return {"ok": False, "message": "API key or endpoint not configured."}
+
+        # Try a minimal chat to verify end-to-end
+        test_messages = [
+            {"role": "system", "content": "Reply with exactly: OK"},
+            {"role": "user", "content": "Test"},
+        ]
+        result = handler["chat"](test_messages, cfg=cfg, stream=False)
+        content = result.get("message", {}).get("content", "")
+        if content:
+            model = result.get("model", cfg.get("model", "unknown"))
+            return {"ok": True, "message": f"Connected successfully. Model: {model}"}
+        else:
+            return {"ok": False, "message": "Connected but received empty response."}
+    except Exception as e:
+        return {"ok": False, "message": f"Connection failed: {str(e)}"}
