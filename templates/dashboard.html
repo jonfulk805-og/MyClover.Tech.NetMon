@@ -1519,6 +1519,48 @@ a.port-link:hover {
             </div>
         </div>
     </div>
+    <div id="ai-settings-section" style="display:none;margin-top:20px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+            <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Chappie AI Assistant <span style="font-size:10px;color:#a78bfa;background:rgba(167,139,250,0.15);padding:2px 8px;border-radius:4px;margin-left:8px;">Enterprise</span></h3>
+            <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px;">Connect Chappie to a local Ollama instance, an OpenAI-compatible API, or Anthropic Claude.</p>
+            <div class="form-group" style="margin-bottom:16px;">
+                <label>AI Provider</label>
+                <select id="ai-set-provider" onchange="toggleAIProviderFields()" style="width:100%;">
+                    <option value="ollama">Ollama (Local / Remote)</option>
+                    <option value="openai">OpenAI-compatible API</option>
+                    <option value="anthropic">Anthropic (Claude)</option>
+                </select>
+            </div>
+            <div id="ai-ollama-fields">
+                <div class="form-row">
+                    <div class="form-group" style="flex:2;"><label>Ollama URL</label><input type="text" id="ai-ollama-url" placeholder="http://127.0.0.1:11434"></div>
+                    <div class="form-group" style="flex:1;"><label>Model</label><input type="text" id="ai-ollama-model" placeholder="llama3.1:8b-instruct-q4_K_M"></div>
+                </div>
+                <div style="font-size:11px;color:var(--text-dim);margin-bottom:12px;">For local: <code style="background:var(--bg-deep);padding:1px 5px;border-radius:3px;font-size:11px;">http://127.0.0.1:11434</code> &mdash; For remote: use the remote host IP/port.</div>
+            </div>
+            <div id="ai-openai-fields" style="display:none;">
+                <div class="form-group" style="margin-bottom:10px;"><label>API Endpoint URL</label><input type="text" id="ai-openai-url" placeholder="https://api.openai.com/v1"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>API Key</label><input type="password" id="ai-openai-key" placeholder="sk-..." autocomplete="off"></div>
+                    <div class="form-group"><label>Model</label><input type="text" id="ai-openai-model" placeholder="gpt-4o-mini"></div>
+                </div>
+                <div style="font-size:11px;color:var(--text-dim);margin-bottom:12px;">Works with OpenAI, Azure OpenAI, LM Studio, Groq, Together AI, or any OpenAI-compatible endpoint.</div>
+            </div>
+            <div id="ai-anthropic-fields" style="display:none;">
+                <div class="form-group" style="margin-bottom:10px;"><label>API Endpoint URL</label><input type="text" id="ai-anthropic-url" placeholder="https://api.anthropic.com"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>API Key</label><input type="password" id="ai-anthropic-key" placeholder="sk-ant-..." autocomplete="off"></div>
+                    <div class="form-group"><label>Model</label><input type="text" id="ai-anthropic-model" placeholder="claude-sonnet-4-20250514"></div>
+                </div>
+                <div style="font-size:11px;color:var(--text-dim);margin-bottom:12px;">Connects to the Anthropic Messages API.</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:4px;">
+                <button class="btn btn-primary btn-sm" onclick="saveAISettings()">Save AI Settings</button>
+                <button class="btn btn-sm" onclick="testAIConnection()">Test Connection</button>
+                <span id="ai-settings-result" style="font-size:12px;"></span>
+            </div>
+        </div>
+    </div>
     <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">
         <button class="btn btn-ghost" onclick="loadSettings()">Revert</button>
         <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
@@ -1662,7 +1704,7 @@ a.port-link:hover {
                 <span style="font-size:20px;">&#129302;</span>
                 <div>
                     <h3>Chappie AI Assistant</h3>
-                    <div style="font-size:11px;color:var(--text-dim);margin-top:1px;">Offline &bull; Your data never leaves this appliance</div>
+                    <div id="ai-provider-subtitle" style="font-size:11px;color:var(--text-dim);margin-top:1px;">Checking provider...</div>
                 </div>
             </div>
             <div style="display:flex;align-items:center;gap:10px;">
@@ -1675,7 +1717,7 @@ a.port-link:hover {
         </div>
         <div class="ai-chat-messages" id="ai-messages">
             <div class="ai-msg system">
-                &#128274; Enterprise Feature &mdash; Meet *Chappie*, your offline AI assistant. Powered by Llama 3.1 via Ollama.<br>
+                &#128274; Enterprise Feature &mdash; Meet <strong>Chappie</strong>, your AI assistant. Supports Ollama (local), OpenAI, and Anthropic.<br>
                 Ask me anything about configuring NetMon, SentryLog, network equipment, alerts, or troubleshooting.
             </div>
         </div>
@@ -5147,19 +5189,30 @@ function aiCheckStatus() {
         var dot = document.getElementById('ai-status-dot');
         var txt = document.getElementById('ai-status-text');
         if (!dot || !txt) return;
+        var provLabel = (d.provider || 'ollama').charAt(0).toUpperCase() + (d.provider || 'ollama').slice(1);
         if (d.available && d.model_ready) {
             dot.className = 'dot online';
-            txt.textContent = 'Online — ' + (d.model || 'llama3.1:8b');
+            txt.textContent = 'Online \u2014 ' + provLabel + ' (' + (d.model || 'unknown') + ')';
         } else if (d.available) {
             dot.className = 'dot online';
-            txt.textContent = 'Ollama running — model loading...';
+            txt.textContent = provLabel + ' connected \u2014 model loading...';
         } else {
             dot.className = 'dot offline';
-            txt.textContent = 'Offline — start Ollama to enable';
+            txt.textContent = 'Offline \u2014 configure in Settings \u2192 Chappie AI';
         }
         if (!d.tier_ok) {
             txt.textContent = 'Enterprise license required';
             dot.className = 'dot offline';
+        }
+        var sub = document.getElementById('ai-provider-subtitle');
+        if (sub) {
+            if (d.provider === 'ollama') {
+                sub.textContent = 'Ollama (local) \u2022 Your data never leaves this appliance';
+            } else if (d.provider === 'openai') {
+                sub.textContent = 'OpenAI-compatible API \u2022 Data sent to external endpoint';
+            } else if (d.provider === 'anthropic') {
+                sub.textContent = 'Anthropic Claude \u2022 Data sent to external endpoint';
+            }
         }
     }).catch(function(){
         var dot = document.getElementById('ai-status-dot');
@@ -5287,7 +5340,7 @@ function aiAsk(text) {
 function aiClearChat() {
     var container = document.getElementById('ai-messages');
     if (!container) return;
-    container.innerHTML = '<div class="ai-msg system">&#128274; Enterprise Feature &mdash; Meet *Chappie*, your offline AI assistant. Powered by Llama 3.1 via Ollama.<br>Ask me anything about configuring NetMon, SentryLog, network equipment, alerts, or troubleshooting.</div>';
+    container.innerHTML = '<div class="ai-msg system">&#128274; Enterprise Feature &mdash; Meet <strong>Chappie</strong>, your AI assistant. Supports Ollama (local), OpenAI, and Anthropic.<br>Ask me anything about configuring NetMon, SentryLog, network equipment, alerts, or troubleshooting.</div>';
     var sugg = document.getElementById('ai-suggestions');
     if (sugg) sugg.style.display = 'flex';
     _aiSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
@@ -5297,6 +5350,118 @@ function aiClearChat() {
         body: JSON.stringify({ session_id: _aiSessionId })
     }).catch(function(){});
 }
+
+// AI SETTINGS MANAGEMENT
+function toggleAIProviderFields() {
+    var prov = document.getElementById('ai-set-provider').value;
+    document.getElementById('ai-ollama-fields').style.display = prov === 'ollama' ? '' : 'none';
+    document.getElementById('ai-openai-fields').style.display = prov === 'openai' ? '' : 'none';
+    document.getElementById('ai-anthropic-fields').style.display = prov === 'anthropic' ? '' : 'none';
+}
+
+function loadAISettings() {
+    fetch('/api/ai/settings').then(function(r) {
+        if (r.status === 403) return null;
+        return r.json();
+    }).then(function(d) {
+        if (!d) return;
+        var sect = document.getElementById('ai-settings-section');
+        if (sect) sect.style.display = 'block';
+        document.getElementById('ai-set-provider').value = d.provider || 'ollama';
+        if (d.ollama) {
+            document.getElementById('ai-ollama-url').value = d.ollama.base_url || 'http://127.0.0.1:11434';
+            document.getElementById('ai-ollama-model').value = d.ollama.model || 'llama3.1:8b-instruct-q4_K_M';
+        }
+        if (d.openai) {
+            document.getElementById('ai-openai-url').value = d.openai.base_url || 'https://api.openai.com/v1';
+            document.getElementById('ai-openai-key').value = d.openai.api_key || '';
+            document.getElementById('ai-openai-model').value = d.openai.model || 'gpt-4o-mini';
+        }
+        if (d.anthropic) {
+            document.getElementById('ai-anthropic-url').value = d.anthropic.base_url || 'https://api.anthropic.com';
+            document.getElementById('ai-anthropic-key').value = d.anthropic.api_key || '';
+            document.getElementById('ai-anthropic-model').value = d.anthropic.model || 'claude-sonnet-4-20250514';
+        }
+        toggleAIProviderFields();
+    }).catch(function(){});
+}
+
+function saveAISettings() {
+    var prov = document.getElementById('ai-set-provider').value;
+    var payload = { provider: prov };
+    payload.ollama = {
+        base_url: document.getElementById('ai-ollama-url').value.trim(),
+        model: document.getElementById('ai-ollama-model').value.trim()
+    };
+    payload.openai = {
+        base_url: document.getElementById('ai-openai-url').value.trim(),
+        api_key: document.getElementById('ai-openai-key').value.trim(),
+        model: document.getElementById('ai-openai-model').value.trim()
+    };
+    payload.anthropic = {
+        base_url: document.getElementById('ai-anthropic-url').value.trim(),
+        api_key: document.getElementById('ai-anthropic-key').value.trim(),
+        model: document.getElementById('ai-anthropic-model').value.trim()
+    };
+    var res = document.getElementById('ai-settings-result');
+    res.textContent = 'Saving...'; res.style.color = 'var(--text-dim)';
+    fetch('/api/ai/settings', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    }).then(function(r){ return r.json(); }).then(function(d){
+        if (d.ok) {
+            res.textContent = '\u2705 Saved!'; res.style.color = '#22c55e';
+            aiCheckStatus();
+            setTimeout(function(){ res.textContent = ''; }, 4000);
+        } else {
+            res.textContent = '\u274c Error saving.'; res.style.color = '#ef4444';
+        }
+    }).catch(function(e){
+        res.textContent = '\u274c ' + e.message; res.style.color = '#ef4444';
+    });
+}
+
+function testAIConnection() {
+    var prov = document.getElementById('ai-set-provider').value;
+    var config = {};
+    if (prov === 'ollama') {
+        config.base_url = document.getElementById('ai-ollama-url').value.trim();
+        config.model = document.getElementById('ai-ollama-model').value.trim();
+    } else if (prov === 'openai') {
+        config.base_url = document.getElementById('ai-openai-url').value.trim();
+        config.api_key = document.getElementById('ai-openai-key').value.trim();
+        config.model = document.getElementById('ai-openai-model').value.trim();
+    } else if (prov === 'anthropic') {
+        config.base_url = document.getElementById('ai-anthropic-url').value.trim();
+        config.api_key = document.getElementById('ai-anthropic-key').value.trim();
+        config.model = document.getElementById('ai-anthropic-model').value.trim();
+    }
+    var res = document.getElementById('ai-settings-result');
+    res.textContent = 'Testing...'; res.style.color = 'var(--text-dim)';
+    fetch('/api/ai/test', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ provider: prov, config: config })
+    }).then(function(r){ return r.json(); }).then(function(d){
+        if (d.ok) {
+            res.textContent = '\u2705 ' + d.message; res.style.color = '#22c55e';
+        } else {
+            res.textContent = '\u274c ' + d.message; res.style.color = '#ef4444';
+        }
+        setTimeout(function(){ res.textContent = ''; }, 8000);
+    }).catch(function(e){
+        res.textContent = '\u274c ' + e.message; res.style.color = '#ef4444';
+    });
+}
+
+var _origLoadEntSettings = typeof loadEntSettings === 'function' ? loadEntSettings : null;
+loadEntSettings = function() {
+    if (_origLoadEntSettings) _origLoadEntSettings();
+    if (_currentTier === 'enterprise') {
+        loadAISettings();
+    }
+};
 
 // Check AI status on load and periodically
 aiCheckStatus();
