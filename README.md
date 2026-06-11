@@ -73,7 +73,51 @@ Everything in Pro, plus:
 
 ---
 
-## Quick Start
+## 🐳 Docker (Recommended)
+
+The fastest way to get NetMon running. Requires [Docker](https://docs.docker.com/get-docker/) (and optionally [Portainer](https://www.portainer.io/) for management).
+
+### Quick Start
+
+```bash
+docker run -d \
+  --name myclover-netmon \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  -v netmon-data:/app/data \
+  ghcr.io/jonfulk805-og/myclover-netmon:latest
+```
+
+Then open **http://localhost:8080** in your browser.
+
+### Docker Compose
+
+```bash
+curl -O https://raw.githubusercontent.com/jonfulk805-og/MyClover.Tech.NetMon/main/docker-compose.yml
+docker compose up -d
+```
+
+### Custom Configuration
+
+Mount your own `config.yaml` to customize devices and settings:
+
+```bash
+docker run -d \
+  --name myclover-netmon \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  -v netmon-data:/app/data \
+  -v $(pwd)/config.yaml:/app/config.yaml \
+  ghcr.io/jonfulk805-og/myclover-netmon:latest
+```
+
+### Portainer
+
+In Portainer, create a new Stack and paste the contents of `docker-compose.yml`. Click **Deploy the stack**.
+
+---
+
+## Manual Install (Python)
 
 ### 1. Install dependencies
 
