@@ -4186,7 +4186,7 @@ def create_app():
         result = ai_assistant.test_connection(provider=provider, config=config or None)
         return jsonify(result)
 
-    @app.route("/api/ai/chat",, methods=["POST"])
+    @app.route("/api/ai/chat", methods=["POST"])
     @require_tier(TIER_ENT)
     def api_ai_chat():
         """Send a message to the AI assistant."""
