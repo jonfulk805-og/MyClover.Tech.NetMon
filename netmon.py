@@ -1347,15 +1347,13 @@ def _validate_auth_token(token):
 def _check_auth(required_perm="read"):
     """Check if auth is enabled and if so, validate the request.
     Returns (username, role) or aborts with 401.
-    If auth is disabled (not Enterprise or no users configured), returns guest access.
+    If auth is disabled (no users configured), returns guest access.
     """
-    if get_tier() != TIER_ENT:
-        return ("guest", "admin")  # No auth on non-enterprise tiers
-
     with _config_lock:
         users = _config.get("users", [])
-    if not users:
-        return ("admin", "admin")  # No users configured = open access
+        auth_enabled = _config.get("auth_enabled", False)
+    if not auth_enabled or not users:
+        return ("admin", "admin")  # Auth disabled or no users = open access
 
     # Check Authorization header or cookie
     token = None
@@ -3113,6 +3111,7 @@ def create_app():
         smtp = cfg.get("smtp", {})
         dash = cfg.get("dashboard", {})
         settings = {
+            "auth_enabled": cfg.get("auth_enabled", False),
             "check_interval_seconds": cfg.get("check_interval_seconds", 60),
             "dashboard_host": dash.get("host", "0.0.0.0"),
             "dashboard_port": dash.get("port", 8080),
@@ -3132,6 +3131,8 @@ def create_app():
         data = request.get_json(force=True)
         with _config_lock:
             cfg = _config
+            if "auth_enabled" in data:
+                cfg["auth_enabled"] = bool(data["auth_enabled"])
             if "check_interval_seconds" in data:
                 val = int(data["check_interval_seconds"])
                 if val < 5:
@@ -3350,7 +3351,6 @@ def create_app():
         return jsonify({"username": username, "role": role})
 
     @app.route("/api/users", methods=["GET"])
-    @require_tier(TIER_ENT)
     def api_get_users():
         _check_auth("users")
         with _config_lock:
@@ -3360,7 +3360,6 @@ def create_app():
         return jsonify(safe)
 
     @app.route("/api/users", methods=["POST"])
-    @require_tier(TIER_ENT)
     def api_add_user():
         _check_auth("users")
         data = request.get_json(force=True) if request.data else {}
@@ -3381,8 +3380,31 @@ def create_app():
             save_config(_config)
         return jsonify({"status": "created", "username": username, "role": role})
 
+    @app.route("/api/users/<username>", methods=["PUT"])
+    def api_update_user(username):
+        _check_auth("users")
+        data = request.get_json(force=True) if request.data else {}
+        new_role = str(data.get("role", "")).strip()
+        new_password = str(data.get("password", "")).strip()
+        if new_role and new_role not in AUTH_ROLES:
+            return jsonify({"error": "Invalid role"}), 400
+        with _config_lock:
+            users = _config.get("users", [])
+            found = False
+            for u in users:
+                if u["username"] == username:
+                    if new_role:
+                        u["role"] = new_role
+                    if new_password:
+                        u["password"] = new_password
+                    found = True
+                    break
+            if not found:
+                return jsonify({"error": "User not found"}), 404
+            save_config(_config)
+        return jsonify({"status": "updated", "username": username})
+
     @app.route("/api/users/<username>", methods=["DELETE"])
-    @require_tier(TIER_ENT)
     def api_delete_user(username):
         _check_auth("users")
         with _config_lock:

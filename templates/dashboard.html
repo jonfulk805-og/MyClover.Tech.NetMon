@@ -767,12 +767,36 @@ a.port-link:hover {
 </head>
 <body>
 
+<!-- ========== LOGIN OVERLAY ========== -->
+<div id="login-overlay" style="display:none;position:fixed;inset:0;background:var(--bg-deep,#0a0c10);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:var(--bg-card,#161b22);border:1px solid var(--border,#2a2f38);border-radius:12px;padding:40px;width:360px;max-width:90vw;">
+        <div style="text-align:center;margin-bottom:24px;">
+            <h1 style="font-size:20px;color:var(--text-primary,#e0e0e0);margin:0;">MyClover<span style="color:var(--accent,#5b9aff);">.</span>tech<span style="color:var(--accent,#5b9aff);">.</span>netmon</h1>
+            <p style="color:var(--text-dim,#666);font-size:12px;margin-top:4px;">Sign in to continue</p>
+        </div>
+        <div id="login-error" style="display:none;background:var(--status-critical-bg,#3b1c1c);color:var(--status-critical,#ff4444);padding:10px 14px;border-radius:6px;margin-bottom:16px;font-size:13px;"></div>
+        <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim,#888);margin-bottom:6px;">Username</label>
+            <input type="text" id="login-username" style="width:100%;padding:10px 12px;background:var(--bg-deep,#0a0c10);border:1px solid var(--border,#2a2f38);border-radius:6px;color:var(--text-primary,#e0e0e0);font-size:14px;" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <div style="margin-bottom:20px;">
+            <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim,#888);margin-bottom:6px;">Password</label>
+            <input type="password" id="login-password" style="width:100%;padding:10px 12px;background:var(--bg-deep,#0a0c10);border:1px solid var(--border,#2a2f38);border-radius:6px;color:var(--text-primary,#e0e0e0);font-size:14px;" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <button onclick="doLogin()" id="login-btn" style="width:100%;padding:10px;background:var(--accent,#5b9aff);color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;">Sign In</button>
+    </div>
+</div>
+
 <div class="header">
     <div style="display:flex;align-items:baseline;">
         <h1>MyClover<span class="brand-dot">.</span>tech<span class="brand-dot">.</span>netmon</h1>
         <span class="subtitle">Network Monitoring System v5.7</span>
     </div>
-    <span class="refresh-info" id="refresh-info">Auto-refresh: 30s</span>
+    <div style="display:flex;align-items:center;gap:12px;">
+        <span id="auth-user-badge" style="display:none;font-size:12px;color:var(--text-dim);background:var(--bg-card);padding:4px 10px;border-radius:4px;border:1px solid var(--border);"></span>
+        <button id="logout-btn" onclick="doLogout()" style="display:none;padding:4px 12px;font-size:12px;background:none;border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;">Logout</button>
+        <span class="refresh-info" id="refresh-info">Auto-refresh: 30s</span>
+    </div>
 </div>
 
 <div class="tabs">
@@ -1488,6 +1512,65 @@ a.port-link:hover {
                         <input type="file" id="restore-file" accept=".zip" style="display:none;" onchange="handleRestoreFile(this)">
                     </label>
                     <div id="restore-status" style="font-size:11px;color:var(--text-dim);margin-top:6px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div style="margin-top:20px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+            <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">&#128274; Authentication</h3>
+            <div class="form-group" style="margin-bottom:16px;">
+                <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;">
+                    <input type="checkbox" id="set-auth-enabled" style="accent-color:var(--accent);width:16px;height:16px;" onchange="toggleAuthUI()">
+                    Enable user authentication (requires login to access dashboard)
+                </label>
+            </div>
+            <div id="auth-settings-panel" style="display:none;">
+                <div style="margin-bottom:16px;">
+                    <h4 style="color:var(--text-body);font-size:13px;margin-bottom:12px;">Users</h4>
+                    <table id="users-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead>
+                            <tr style="border-bottom:1px solid var(--border);text-align:left;">
+                                <th style="padding:8px 12px;color:var(--text-dim);font-weight:600;">Username</th>
+                                <th style="padding:8px 12px;color:var(--text-dim);font-weight:600;">Role</th>
+                                <th style="padding:8px 12px;color:var(--text-dim);font-weight:600;width:140px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-tbody">
+                            <tr><td colspan="3" style="padding:12px;color:var(--text-dim);text-align:center;">No users configured</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="background:var(--bg-deep);border:1px solid var(--border);border-radius:6px;padding:16px;">
+                    <h4 style="color:var(--text-body);font-size:13px;margin-bottom:12px;">Add User</h4>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 120px auto;gap:10px;align-items:end;">
+                        <div class="form-group" style="margin:0;">
+                            <label>Username</label>
+                            <input type="text" id="new-user-name" placeholder="username" autocomplete="off">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label>Password</label>
+                            <input type="password" id="new-user-pass" placeholder="password" autocomplete="new-password">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label>Role</label>
+                            <select id="new-user-role">
+                                <option value="admin">Admin</option>
+                                <option value="operator">Operator</option>
+                                <option value="viewer" selected>Viewer</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="addUser()" style="height:34px;">Add</button>
+                    </div>
+                    <div id="add-user-result" style="font-size:12px;margin-top:8px;"></div>
+                </div>
+                <div style="margin-top:12px;padding:10px 14px;background:rgba(91,154,255,0.08);border:1px solid rgba(91,154,255,0.2);border-radius:6px;">
+                    <div style="font-size:12px;color:var(--text-dim);">
+                        <strong style="color:var(--text-body);">Roles:</strong>
+                        <strong>Admin</strong> &mdash; Full access (settings, users, device management)&nbsp;&nbsp;|&nbsp;&nbsp;
+                        <strong>Operator</strong> &mdash; Can acknowledge alerts and toggle maintenance&nbsp;&nbsp;|&nbsp;&nbsp;
+                        <strong>Viewer</strong> &mdash; Read-only dashboard access
+                    </div>
                 </div>
             </div>
         </div>
@@ -3890,6 +3973,201 @@ function renderNetworkMap(data) {
     });
 }
 
+// ===== Authentication =====
+var _authUser = null;
+var _authRole = null;
+
+function checkAuth() {
+    fetch('/api/auth/me').then(function(r) {
+        if (r.status === 401) {
+            // Auth is enabled and we're not logged in
+            showLoginScreen();
+            return null;
+        }
+        return r.json();
+    }).then(function(d) {
+        if (!d) return;
+        _authUser = d.username;
+        _authRole = d.role;
+        hideLoginScreen();
+        applyRoleRestrictions();
+    }).catch(function() {
+        // If /api/auth/me fails, check if auth is even enabled
+        fetch('/api/settings').then(function(r){ return r.json(); }).then(function(s) {
+            if (s.auth_enabled) {
+                showLoginScreen();
+            } else {
+                _authUser = 'admin'; _authRole = 'admin';
+                hideLoginScreen();
+            }
+        });
+    });
+}
+
+function showLoginScreen() {
+    var overlay = document.getElementById('login-overlay');
+    overlay.style.display = 'flex';
+    setTimeout(function(){ document.getElementById('login-username').focus(); }, 100);
+}
+
+function hideLoginScreen() {
+    document.getElementById('login-overlay').style.display = 'none';
+    if (_authUser && _authUser !== 'guest' && _authUser !== 'admin') {
+        var badge = document.getElementById('auth-user-badge');
+        badge.textContent = _authUser + ' (' + _authRole + ')';
+        badge.style.display = 'inline';
+        document.getElementById('logout-btn').style.display = 'inline';
+    } else {
+        // Check if auth is enabled to decide whether to show badge
+        fetch('/api/settings').then(function(r){ return r.json(); }).then(function(s) {
+            if (s.auth_enabled && _authUser) {
+                var badge = document.getElementById('auth-user-badge');
+                badge.textContent = _authUser + ' (' + _authRole + ')';
+                badge.style.display = 'inline';
+                document.getElementById('logout-btn').style.display = 'inline';
+            }
+        }).catch(function(){});
+    }
+}
+
+function doLogin() {
+    var username = document.getElementById('login-username').value.trim();
+    var password = document.getElementById('login-password').value;
+    var errEl = document.getElementById('login-error');
+    var btn = document.getElementById('login-btn');
+    if (!username || !password) {
+        errEl.textContent = 'Please enter username and password.';
+        errEl.style.display = 'block';
+        return;
+    }
+    btn.disabled = true; btn.textContent = 'Signing in...';
+    fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username: username, password: password})
+    }).then(function(r) {
+        return r.json().then(function(d) { d._status = r.status; return d; });
+    }).then(function(d) {
+        btn.disabled = false; btn.textContent = 'Sign In';
+        if (d._status === 200) {
+            _authUser = d.username;
+            _authRole = d.role;
+            errEl.style.display = 'none';
+            document.getElementById('login-password').value = '';
+            hideLoginScreen();
+            applyRoleRestrictions();
+            loadSettings();
+        } else {
+            errEl.textContent = d.error || 'Invalid credentials.';
+            errEl.style.display = 'block';
+        }
+    }).catch(function(e) {
+        btn.disabled = false; btn.textContent = 'Sign In';
+        errEl.textContent = 'Connection error: ' + e.message;
+        errEl.style.display = 'block';
+    });
+}
+
+function doLogout() {
+    fetch('/api/auth/logout', { method: 'POST' }).then(function() {
+        _authUser = null; _authRole = null;
+        document.getElementById('auth-user-badge').style.display = 'none';
+        document.getElementById('logout-btn').style.display = 'none';
+        checkAuth();
+    });
+}
+
+function applyRoleRestrictions() {
+    // Hide admin-only elements for non-admin users
+    var adminEls = document.querySelectorAll('[data-auth-role="admin"]');
+    for (var i = 0; i < adminEls.length; i++) {
+        adminEls[i].style.display = (_authRole === 'admin') ? '' : 'none';
+    }
+}
+
+// --- User Management ---
+function toggleAuthUI() {
+    var enabled = document.getElementById('set-auth-enabled').checked;
+    document.getElementById('auth-settings-panel').style.display = enabled ? 'block' : 'none';
+}
+
+function loadUsers() {
+    fetch('/api/users').then(function(r) {
+        if (!r.ok) return [];
+        return r.json();
+    }).then(function(users) {
+        if (!users || !users.length) {
+            document.getElementById('users-tbody').innerHTML =
+                '<tr><td colspan="3" style="padding:12px;color:var(--text-dim);text-align:center;">No users configured. Add a user below to enable authentication.</td></tr>';
+            return;
+        }
+        var html = '';
+        users.forEach(function(u) {
+            var roleBg = u.role === 'admin' ? 'rgba(167,139,250,0.15)' : (u.role === 'operator' ? 'rgba(245,158,11,0.15)' : 'rgba(34,197,94,0.15)');
+            var roleColor = u.role === 'admin' ? '#a78bfa' : (u.role === 'operator' ? '#f59e0b' : '#22c55e');
+            html += '<tr style="border-bottom:1px solid var(--border);">';
+            html += '<td style="padding:8px 12px;color:var(--text-primary);">' + esc(u.username) + '</td>';
+            html += '<td style="padding:8px 12px;"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase;background:' + roleBg + ';color:' + roleColor + ';">' + esc(u.role) + '</span></td>';
+            html += '<td style="padding:8px 12px;">';
+            html += '<select onchange="updateUserRole(\'' + esc(u.username) + '\', this.value)" style="font-size:12px;padding:2px 6px;background:var(--bg-deep);color:var(--text-body);border:1px solid var(--border);border-radius:4px;margin-right:6px;">';
+            html += '<option value="" disabled selected>Change role</option>';
+            html += '<option value="admin"' + (u.role==='admin'?' disabled':'') + '>Admin</option>';
+            html += '<option value="operator"' + (u.role==='operator'?' disabled':'') + '>Operator</option>';
+            html += '<option value="viewer"' + (u.role==='viewer'?' disabled':'') + '>Viewer</option>';
+            html += '</select>';
+            html += '<button onclick="deleteUser(\'' + esc(u.username) + '\')" style="font-size:12px;padding:2px 8px;background:none;border:1px solid var(--status-critical);color:var(--status-critical);border-radius:4px;cursor:pointer;" title="Delete user">&times;</button>';
+            html += '</td></tr>';
+        });
+        document.getElementById('users-tbody').innerHTML = html;
+    }).catch(function(){});
+}
+
+function addUser() {
+    var username = document.getElementById('new-user-name').value.trim();
+    var password = document.getElementById('new-user-pass').value;
+    var role = document.getElementById('new-user-role').value;
+    var res = document.getElementById('add-user-result');
+    if (!username || !password) {
+        res.textContent = 'Username and password are required.';
+        res.style.color = 'var(--status-critical)';
+        return;
+    }
+    fetch('/api/users', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username: username, password: password, role: role})
+    }).then(function(r) { return r.json().then(function(d){ d._status = r.status; return d; }); })
+    .then(function(d) {
+        if (d._status === 200 || d._status === 201) {
+            res.textContent = 'User "' + username + '" created.';
+            res.style.color = 'var(--status-ok)';
+            document.getElementById('new-user-name').value = '';
+            document.getElementById('new-user-pass').value = '';
+            loadUsers();
+        } else {
+            res.textContent = d.error || 'Failed to create user.';
+            res.style.color = 'var(--status-critical)';
+        }
+        setTimeout(function(){ res.textContent = ''; }, 5000);
+    });
+}
+
+function updateUserRole(username, newRole) {
+    if (!newRole) return;
+    fetch('/api/users/' + encodeURIComponent(username), {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({role: newRole})
+    }).then(function(r) { return r.json(); })
+    .then(function() { loadUsers(); });
+}
+
+function deleteUser(username) {
+    if (!confirm('Delete user "' + username + '"?')) return;
+    fetch('/api/users/' + encodeURIComponent(username), { method: 'DELETE' })
+    .then(function() { loadUsers(); });
+}
+
 // ===== Settings =====
 function loadSettings() {
     fetch('/api/settings').then(function(r){ return r.json(); }).then(function(s) {
@@ -3906,6 +4184,10 @@ function loadSettings() {
         document.getElementById('set-cooldown').value = s.cooldown_minutes || 15;
         document.getElementById('settings-saved-msg').style.display = 'none';
         document.getElementById('settings-error-msg').style.display = 'none';
+        // Auth settings
+        document.getElementById('set-auth-enabled').checked = !!s.auth_enabled;
+        toggleAuthUI();
+        loadUsers();
     });
     // Load license info into settings
     fetch('/api/license').then(function(r){ return r.json(); }).then(function(lic) {
@@ -4036,6 +4318,7 @@ function loadEntSettings() {
 
 function saveSettings() {
     var payload = {
+        auth_enabled: document.getElementById('set-auth-enabled').checked,
         check_interval_seconds: parseInt(document.getElementById('set-interval').value) || 60,
         dashboard_host: document.getElementById('set-dash-host').value.trim(),
         dashboard_port: parseInt(document.getElementById('set-dash-port').value) || 8080,
@@ -4629,7 +4912,7 @@ function handleRestoreFile(input) {
 
 // ===== Auto-refresh =====
 function refreshAll() { loadStatus(); loadAlerts(); loadHistory(); setTimeout(updateWidgets, 1500); }
-try { refreshAll(); } catch(e) { console.error('[NetMon] refreshAll init error:', e); }
+try { checkAuth(); refreshAll(); } catch(e) { console.error('[NetMon] refreshAll init error:', e); }
 
 // Failsafe: if status-cards is still "Loading..." after 8 seconds, retry once
 setTimeout(function() {
