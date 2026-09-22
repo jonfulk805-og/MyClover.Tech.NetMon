@@ -289,6 +289,15 @@ def save_config(cfg, path=None):
         yaml.dump(cfg, fh, default_flow_style=False, sort_keys=False, allow_unicode=False)
 
 
+def _as_bool(value):
+    """Truthiness for values that arrive as JSON, form fields or SQLite ints."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    return str(value).strip().lower() in ("1", "true", "yes", "on")
+
+
 def _sanitize_device(data):
     """Normalise a device dict coming from the API."""
     d = {
@@ -304,9 +313,16 @@ def _sanitize_device(data):
     for c in data.get("checks") or []:
         chk = {"type": c.get("type", "ping")}
         for k in ("label", "port", "url", "expected_code", "community", "oid",
-                   "warning_ms", "critical_ms", "timeout_ms", "retries"):
+                   "warning_ms", "critical_ms", "timeout_ms", "retries",
+                   "ca_bundle"):
             if k in c and c[k] not in (None, ""):
                 chk[k] = c[k]
+        # verify_tls is a real boolean: False is meaningful and must survive an
+        # edit round trip, so it cannot go through the "not in (None, '')" gate
+        # above -- dropping it silently re-enables verification and breaks
+        # monitoring of internal hosts with self-signed certificates.
+        if "verify_tls" in c and c["verify_tls"] not in (None, ""):
+            chk["verify_tls"] = _as_bool(c["verify_tls"])
         d["checks"].append(chk)
     # Sanitize links list
     clean_links = []
@@ -490,6 +506,14 @@ def init_db():
                  ON security_scans(scan_id)""")
     c.execute("""CREATE INDEX IF NOT EXISTS idx_secfindings_scan
                  ON security_findings(scan_id)""")
+
+    # Migrate: record when a downtime window was cancelled, so SLA reporting
+    # can stop excusing downtime from the moment of cancellation.
+    try:
+        c.execute("SELECT cancelled_at FROM scheduled_downtime LIMIT 1")
+    except sqlite3.OperationalError:
+        c.execute("ALTER TABLE scheduled_downtime "
+                  "ADD COLUMN cancelled_at TEXT DEFAULT ''")
 
     # Migrate: add acknowledged columns to alerts if missing
     try:
@@ -1459,15 +1483,32 @@ def _maintenance_windows(conn, device_name, period_start, period_end):
     windows = []
     try:
         rows = conn.execute(
-            "SELECT start_time, end_time FROM scheduled_downtime "
-            "WHERE device_name=?", (device_name,)).fetchall()
+            "SELECT start_time, end_time, active, "
+            "COALESCE(cancelled_at, '') AS cancelled_at "
+            "FROM scheduled_downtime WHERE device_name=?",
+            (device_name,)).fetchall()
     except sqlite3.Error:
-        return windows
+        try:
+            rows = conn.execute(
+                "SELECT start_time, end_time, active, '' AS cancelled_at "
+                "FROM scheduled_downtime WHERE device_name=?",
+                (device_name,)).fetchall()
+        except sqlite3.Error:
+            return windows
     for row in rows:
         start = _parse_ts(row["start_time"])
         end = _parse_ts(row["end_time"])
         if not start or not end:
             continue
+        # A cancelled window only excuses downtime up to the moment it was
+        # cancelled. Without a recorded cancellation time (windows cancelled
+        # before this column existed) the whole window is ignored rather than
+        # used to hide a real outage.
+        if not _as_bool(row["active"] if row["active"] is not None else 1):
+            cancelled_at = _parse_ts(row["cancelled_at"] or "")
+            if not cancelled_at or cancelled_at <= start:
+                continue
+            end = min(end, cancelled_at)
         start = max(start, period_start)
         end = min(end, period_end)
         if end > start:
@@ -2006,6 +2047,12 @@ _CYCLE_TIMEOUT_FACTOR = 3
 _notify_queue = queue_mod.Queue(maxsize=1000)
 _notify_worker = None
 _notify_dropped = 0
+_check_pool = None
+_check_pool_workers = 0
+_check_pool_lock = threading.Lock()
+_inflight = set()
+_inflight_lock = threading.Lock()
+_late_results = queue_mod.Queue()
 _cycle_stats_lock = threading.Lock()
 _cycle_stats = {
     "last_started_at": None,
@@ -2013,6 +2060,8 @@ _cycle_stats = {
     "last_duration_seconds": None,
     "checks_run": 0,
     "checks_timed_out": 0,
+    "checks_skipped_inflight": 0,
+    "checks_recovered_late": 0,
     "workers": 0,
     "interval_seconds": None,
     "overruns": 0,
@@ -2128,6 +2177,60 @@ def _collect_due_checks(devices, downtime_devices, parent_map, status_map):
     return tasks
 
 
+def _check_key(device, check):
+    """Identity of one check, used to avoid running it twice concurrently."""
+    return (device.get("name"), check.get("type"), check.get("label"),
+            check.get("port"), check.get("url"), device.get("host"))
+
+
+def _get_check_pool(workers):
+    """A long-lived bounded pool.
+
+    The pool outlives a single cycle on purpose: a check that overruns the
+    cycle budget keeps running in the background instead of holding the
+    scheduler hostage, while `max_workers` still caps total concurrency.
+    """
+    global _check_pool, _check_pool_workers
+    with _check_pool_lock:
+        if _check_pool is None or workers != _check_pool_workers:
+            old = _check_pool
+            _check_pool = concurrent.futures.ThreadPoolExecutor(
+                max_workers=workers, thread_name_prefix="netmon-check")
+            _check_pool_workers = workers
+            if old is not None:
+                # Do not wait: stragglers finish on their own threads.
+                old.shutdown(wait=False)
+        return _check_pool
+
+
+def _run_tracked_check(device, check, key, abandoned):
+    """Run one check, releasing its in-flight slot and rescuing late results.
+
+    If the cycle has already given up waiting (`abandoned` is set) the result
+    is handed to the late-result queue so the next cycle can store it instead
+    of throwing the work away.
+    """
+    try:
+        result = run_check(device, check)
+        if abandoned.is_set():
+            _late_results.put((device, result))
+            return None
+        return result
+    finally:
+        with _inflight_lock:
+            _inflight.discard(key)
+
+
+def _drain_late_results():
+    """Results from checks that finished after their cycle had moved on."""
+    late = []
+    while True:
+        try:
+            late.append(_late_results.get_nowait())
+        except queue_mod.Empty:
+            return late
+
+
 def run_check_cycle(cfg, devices):
     """Run every due check on a bounded pool. Returns (results, timed_out)."""
     parent_map = _get_parent_map(devices)
@@ -2141,32 +2244,78 @@ def run_check_cycle(cfg, devices):
     workers = int(cfg.get("max_check_workers", _MAX_CHECK_WORKERS_DEFAULT) or
                   _MAX_CHECK_WORKERS_DEFAULT)
     workers = max(1, min(workers, len(tasks)))
-    budget = max(interval * _CYCLE_TIMEOUT_FACTOR, 30)
+    # Hard deadline for collecting this cycle's results. Configurable so an
+    # operator (and the test suite) can tighten it; defaults to a few intervals.
+    budget = cfg.get("max_cycle_seconds")
+    try:
+        budget = float(budget) if budget else 0.0
+    except (TypeError, ValueError):
+        budget = 0.0
+    if budget <= 0:
+        budget = max(interval * _CYCLE_TIMEOUT_FACTOR, 30)
 
-    results = []
+    # Results rescued from checks that overran a previous cycle.
+    results = _drain_late_results()
+    recovered = len(results)
     timed_out = 0
-    with concurrent.futures.ThreadPoolExecutor(
-            max_workers=workers, thread_name_prefix="netmon-check") as pool:
-        futures = {pool.submit(run_check, dev, chk): (dev, chk)
-                   for dev, chk in tasks}
+    skipped = 0
+    abandoned = threading.Event()
+    pool = _get_check_pool(workers)
+
+    futures = {}
+    for dev, chk in tasks:
+        key = _check_key(dev, chk)
+        with _inflight_lock:
+            if key in _inflight:
+                skipped += 1
+                continue
+            _inflight.add(key)
         try:
-            for future in concurrent.futures.as_completed(futures, timeout=budget):
+            futures[pool.submit(_run_tracked_check, dev, chk, key, abandoned)] = \
+                (dev, chk)
+        except RuntimeError:
+            # Pool was replaced mid-cycle; release the slot and retry next time.
+            with _inflight_lock:
+                _inflight.discard(key)
+            skipped += 1
+    if skipped:
+        log.warning("%d check(s) skipped -- still running from an earlier cycle",
+                    skipped)
+
+    try:
+        for future in concurrent.futures.as_completed(futures, timeout=budget):
+            dev, chk = futures[future]
+            try:
+                result = future.result()
+            except Exception as exc:
+                log.error("Check failed for %s/%s: %s", dev.get("name"),
+                          chk.get("type"), exc)
+                timed_out += 1
+                continue
+            if result is not None:
+                results.append((dev, result))
+    except concurrent.futures.TimeoutError:
+        # Stop waiting. Queued checks are cancelled outright; checks already
+        # running keep their worker and deliver into the late-result queue.
+        abandoned.set()
+        pending = [f for f in futures if not f.done()]
+        timed_out += len(pending)
+        cancelled = 0
+        for future in pending:
+            if future.cancel():
+                cancelled += 1
+                # A cancelled future never runs the wrapper, so release its
+                # in-flight slot here or the check is skipped forever.
                 dev, chk = futures[future]
-                try:
-                    results.append((dev, future.result()))
-                except Exception as exc:
-                    log.error("Check failed for %s/%s: %s", dev.get("name"),
-                              chk.get("type"), exc)
-                    timed_out += 1
-        except concurrent.futures.TimeoutError:
-            pending = [f for f in futures if not f.done()]
-            timed_out += len(pending)
-            log.error("%d check(s) exceeded the %ds cycle budget -- cancelling",
-                      len(pending), budget)
-            for future in pending:
-                future.cancel()
+                with _inflight_lock:
+                    _inflight.discard(_check_key(dev, chk))
+        log.error("%d check(s) exceeded the %ss cycle budget -- %d cancelled, "
+                  "%d still running in the background", len(pending), budget,
+                  cancelled, len(pending) - cancelled)
     with _cycle_stats_lock:
         _cycle_stats["workers"] = workers
+        _cycle_stats["checks_skipped_inflight"] = skipped
+        _cycle_stats["checks_recovered_late"] = recovered
     return results, timed_out
 
 
@@ -3502,7 +3651,10 @@ def create_app():
     @require_tier(TIER_PRO)
     def api_cancel_downtime(dt_id):
         conn = sqlite3.connect(str(DB_PATH))
-        conn.execute("UPDATE scheduled_downtime SET active=0 WHERE id=?", (dt_id,))
+        conn.execute(
+            "UPDATE scheduled_downtime SET active=0, cancelled_at=? WHERE id=?",
+            (datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat(),
+             dt_id))
         conn.commit()
         conn.close()
         return jsonify({"status": "cancelled"})
