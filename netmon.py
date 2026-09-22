@@ -39,6 +39,9 @@ import io
 import zipfile
 import glob as glob_mod
 import functools
+import shutil
+import queue as queue_mod
+import concurrent.futures
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -67,8 +70,21 @@ except ImportError:
 # Globals
 # ---------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "netmon.db"
-DEFAULT_CFG = BASE_DIR / "config.yaml"
+
+
+def _env_path(name, default):
+    """Path from an environment variable, or a default. Empty means unset."""
+    val = os.environ.get(name, "").strip()
+    return Path(val).expanduser() if val else default
+
+
+# All persistent state lives under DATA_DIR so a single mounted volume
+# (docker: /app/data) survives container replacement.
+DATA_DIR = _env_path("NETMON_DATA_DIR", BASE_DIR)
+DB_PATH = _env_path("NETMON_DB_PATH", DATA_DIR / "netmon.db")
+DEFAULT_CFG = _env_path("NETMON_CONFIG", DATA_DIR / "config.yaml")
+BACKUP_DIR = _env_path("NETMON_BACKUP_DIR", DATA_DIR / "backups")
+SECRET_PATH = _env_path("NETMON_SECRET_FILE", DATA_DIR / "auth_secret.key")
 
 _config = {}
 _config_lock = threading.Lock()
@@ -78,6 +94,39 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+def _copy_if_missing(src, dst):
+    """Copy a legacy file into the data dir on first run. Never overwrites."""
+    try:
+        if src.resolve() == dst.resolve():
+            return False
+    except OSError:
+        pass
+    if src == dst or not src.exists() or dst.exists():
+        return False
+    try:
+        shutil.copy2(str(src), str(dst))
+        print("[OK] Migrated %s -> %s" % (src, dst))
+        return True
+    except OSError as exc:
+        print("[WARN] Could not migrate %s: %s" % (src, exc))
+        return False
+
+
+def ensure_data_dir():
+    """Create the data/backup dirs and migrate pre-volume installs once."""
+    for d in (DATA_DIR, BACKUP_DIR, DB_PATH.parent, DEFAULT_CFG.parent):
+        try:
+            d.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            print("[WARN] Cannot create %s: %s" % (d, exc))
+    _copy_if_missing(BASE_DIR / "netmon.db", DB_PATH)
+    for suffix in ("-wal", "-shm"):
+        _copy_if_missing(Path(str(BASE_DIR / "netmon.db") + suffix),
+                         Path(str(DB_PATH) + suffix))
+    _copy_if_missing(BASE_DIR / "config.yaml", DEFAULT_CFG)
+
+
+ensure_data_dir()
 log = logging.getLogger("netmon")
 
 # ---------------------------------------------------------------------------
@@ -240,6 +289,15 @@ def save_config(cfg, path=None):
         yaml.dump(cfg, fh, default_flow_style=False, sort_keys=False, allow_unicode=False)
 
 
+def _as_bool(value):
+    """Truthiness for values that arrive as JSON, form fields or SQLite ints."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    return str(value).strip().lower() in ("1", "true", "yes", "on")
+
+
 def _sanitize_device(data):
     """Normalise a device dict coming from the API."""
     d = {
@@ -255,9 +313,16 @@ def _sanitize_device(data):
     for c in data.get("checks") or []:
         chk = {"type": c.get("type", "ping")}
         for k in ("label", "port", "url", "expected_code", "community", "oid",
-                   "warning_ms", "critical_ms", "timeout_ms", "retries"):
+                   "warning_ms", "critical_ms", "timeout_ms", "retries",
+                   "ca_bundle"):
             if k in c and c[k] not in (None, ""):
                 chk[k] = c[k]
+        # verify_tls is a real boolean: False is meaningful and must survive an
+        # edit round trip, so it cannot go through the "not in (None, '')" gate
+        # above -- dropping it silently re-enables verification and breaks
+        # monitoring of internal hosts with self-signed certificates.
+        if "verify_tls" in c and c["verify_tls"] not in (None, ""):
+            chk["verify_tls"] = _as_bool(c["verify_tls"])
         d["checks"].append(chk)
     # Sanitize links list
     clean_links = []
@@ -273,8 +338,12 @@ def _sanitize_device(data):
 
 def _reload_config():
     global _config
+    migrated = False
     with _config_lock:
         _config = load_config()
+        if migrate_user_passwords(_config):
+            migrated = True
+            save_config(_config)
         # Load AI assistant config if present
         try:
             import ai_assistant as _ai_mod
@@ -283,6 +352,8 @@ def _reload_config():
                 _ai_mod.update_config(ai_cfg)
         except ImportError:
             pass
+    if migrated:
+        log.info("Migrated plaintext user passwords to PBKDF2 hashes")
     _load_license()
 
 
@@ -435,6 +506,14 @@ def init_db():
                  ON security_scans(scan_id)""")
     c.execute("""CREATE INDEX IF NOT EXISTS idx_secfindings_scan
                  ON security_findings(scan_id)""")
+
+    # Migrate: record when a downtime window was cancelled, so SLA reporting
+    # can stop excusing downtime from the moment of cancellation.
+    try:
+        c.execute("SELECT cancelled_at FROM scheduled_downtime LIMIT 1")
+    except sqlite3.OperationalError:
+        c.execute("ALTER TABLE scheduled_downtime "
+                  "ADD COLUMN cancelled_at TEXT DEFAULT ''")
 
     # Migrate: add acknowledged columns to alerts if missing
     try:
@@ -774,19 +853,45 @@ def scan_ports(host, ports, timeout_ms=1000):
     return open_ports
 
 
-def http_check(url, expected_code=200, timeout_ms=5000):
-    """HTTP/HTTPS endpoint check."""
+def _tls_verify_setting(check=None):
+    """Resolve certificate verification for an HTTP check.
+
+    Certificates are verified by default -- an expired or bogus certificate
+    must not report healthy from a monitoring product. Per check:
+        verify_tls: false      -> skip verification (opt-in, logged)
+        ca_bundle: /path/ca.pem -> verify against a custom CA
+    """
+    check = check or {}
+    ca_bundle = str(check.get("ca_bundle", "") or "").strip()
+    if ca_bundle:
+        return ca_bundle
+    if "verify_tls" in check:
+        return bool(check["verify_tls"])
+    with _config_lock:
+        default_ca = str(_config.get("http_ca_bundle", "") or "").strip()
+        default_verify = _config.get("http_verify_tls", True)
+    if default_ca:
+        return default_ca
+    return bool(default_verify)
+
+
+def http_check(url, expected_code=200, timeout_ms=5000, verify=True):
+    """HTTP/HTTPS endpoint check. TLS certificates are verified by default."""
     if req_lib is None:
         return {"ok": False, "ms": None, "msg": "requests library not installed"}
     try:
         t0 = time.time()
-        resp = req_lib.get(url, timeout=timeout_ms / 1000.0, verify=False, allow_redirects=True)
+        resp = req_lib.get(url, timeout=timeout_ms / 1000.0, verify=verify,
+                           allow_redirects=True)
         ms = (time.time() - t0) * 1000
         if resp.status_code == int(expected_code):
             return {"ok": True, "ms": ms, "msg": "HTTP %d OK" % resp.status_code}
         else:
             return {"ok": False, "ms": ms,
                     "msg": "HTTP %d (expected %d)" % (resp.status_code, int(expected_code))}
+    except req_lib.exceptions.SSLError as e:
+        return {"ok": False, "ms": None,
+                "msg": "TLS certificate error: %s" % str(e)[:160]}
     except req_lib.exceptions.Timeout:
         return {"ok": False, "ms": None, "msg": "HTTP timeout"}
     except Exception as e:
@@ -836,7 +941,9 @@ def run_check(device, check):
     elif ctype == "port":
         r = port_check(host, check.get("port", 80), timeout)
     elif ctype == "http":
-        r = http_check(check.get("url", "http://" + host), check.get("expected_code", 200), timeout)
+        r = http_check(check.get("url", "http://" + host),
+                       check.get("expected_code", 200), timeout,
+                       verify=_tls_verify_setting(check))
     elif ctype == "snmp":
         r = snmp_check(host, check.get("community", "public"), check.get("oid", "1.3.6.1.2.1.1.3.0"), timeout)
     elif ctype == "plugin":
@@ -1193,17 +1300,244 @@ def snmp_deep_poll(host, community="public", timeout_ms=5000):
 # SLA / Uptime Report Generation (Enterprise)
 # ---------------------------------------------------------------------------
 
+# Availability is computed from timestamped state transitions per sensor, not
+# from counting rows: with several sensors on one device, row counting lets a
+# healthy sensor cancel out a failing one and multiplies samples by the
+# configured interval even when polling drifted.
+#
+# A gap longer than _SLA_MAX_GAP_MULTIPLIER x interval is "unknown" (monitoring
+# itself was down / no observations) and is excluded from the availability
+# denominator instead of being billed as downtime. Scheduled maintenance is
+# excluded too and reported separately.
+_SLA_MAX_GAP_MULTIPLIER = 3
+DEVICE_AVAILABILITY_MODES = ("any_sensor_down", "worst_sensor", "mean_sensor")
+DEFAULT_DEVICE_AVAILABILITY_MODE = "any_sensor_down"
+
+
+def _parse_ts(value):
+    try:
+        return datetime.datetime.fromisoformat(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _merge_intervals(intervals):
+    """Union of (start, end) pairs, sorted and non-overlapping."""
+    merged = []
+    for start, end in sorted(i for i in intervals if i[1] > i[0]):
+        if merged and start <= merged[-1][1]:
+            if end > merged[-1][1]:
+                merged[-1][1] = end
+        else:
+            merged.append([start, end])
+    return [(a, b) for a, b in merged]
+
+
+def _subtract_intervals(base, cuts):
+    """base minus cuts, both lists of (start, end)."""
+    result = []
+    for start, end in _merge_intervals(base):
+        pieces = [(start, end)]
+        for cut_start, cut_end in _merge_intervals(cuts):
+            next_pieces = []
+            for piece_start, piece_end in pieces:
+                if cut_end <= piece_start or cut_start >= piece_end:
+                    next_pieces.append((piece_start, piece_end))
+                    continue
+                if cut_start > piece_start:
+                    next_pieces.append((piece_start, cut_start))
+                if cut_end < piece_end:
+                    next_pieces.append((cut_end, piece_end))
+            pieces = next_pieces
+        result.extend(pieces)
+    return _merge_intervals(result)
+
+
+def _intersect_intervals(first, second):
+    """Overlapping parts of two interval lists."""
+    out = []
+    for start_a, end_a in _merge_intervals(first):
+        for start_b, end_b in _merge_intervals(second):
+            start, end = max(start_a, start_b), min(end_a, end_b)
+            if end > start:
+                out.append((start, end))
+    return _merge_intervals(out)
+
+
+def _interval_minutes(intervals):
+    return sum((end - start).total_seconds() for start, end in intervals) / 60.0
+
+
+def sensor_state_intervals(samples, period_start, period_end, interval_seconds):
+    """Turn one sensor's samples into up/down/unknown intervals.
+
+    samples: iterable of (timestamp, status) already ordered by timestamp.
+    A sample's state holds until the next sample for the same sensor, capped at
+    _SLA_MAX_GAP_MULTIPLIER x interval; the remainder is unknown.
+    """
+    max_hold = datetime.timedelta(
+        seconds=max(interval_seconds, 1) * _SLA_MAX_GAP_MULTIPLIER)
+    ordered = []
+    for raw_ts, status in samples:
+        ts = _parse_ts(raw_ts)
+        if ts is None or ts > period_end:
+            continue
+        ordered.append((max(ts, period_start), str(status or "").upper()))
+    ordered.sort(key=lambda item: item[0])
+
+    up, down, unknown = [], [], []
+    if not ordered:
+        return {"up": [], "down": [], "unknown": [(period_start, period_end)]}
+    if ordered[0][0] > period_start:
+        unknown.append((period_start, ordered[0][0]))
+    for index, (ts, status) in enumerate(ordered):
+        next_ts = ordered[index + 1][0] if index + 1 < len(ordered) else period_end
+        covered_end = min(next_ts, ts + max_hold)
+        if covered_end > ts:
+            bucket = up if status == "OK" else down
+            bucket.append((ts, covered_end))
+        if next_ts > covered_end:
+            unknown.append((covered_end, next_ts))
+    return {"up": _merge_intervals(up), "down": _merge_intervals(down),
+            "unknown": _merge_intervals(unknown)}
+
+
+def device_availability(sensor_intervals, period_start, period_end,
+                        maintenance=(), mode=DEFAULT_DEVICE_AVAILABILITY_MODE):
+    """Roll per-sensor intervals up into one explicit device-level number.
+
+    Modes:
+      any_sensor_down - the device is down while *any* sensor is down (default;
+                        strictest, matches "the service is degraded").
+      worst_sensor    - availability of the least available sensor.
+      mean_sensor     - unweighted mean of sensor availabilities.
+    """
+    maintenance = _merge_intervals(list(maintenance))
+    per_sensor = {}
+    for key, states in sensor_intervals.items():
+        up = _subtract_intervals(states["up"], maintenance)
+        down = _subtract_intervals(states["down"], maintenance)
+        unknown = _subtract_intervals(states["unknown"], maintenance)
+        observed = _interval_minutes(up) + _interval_minutes(down)
+        per_sensor[key] = {
+            "up_minutes": round(_interval_minutes(up), 2),
+            "down_minutes": round(_interval_minutes(down), 2),
+            "unknown_minutes": round(_interval_minutes(unknown), 2),
+            "availability_pct": (round(100.0 * _interval_minutes(up) / observed, 3)
+                                 if observed > 0 else None),
+            "down_intervals": down,
+        }
+
+    down_union = _merge_intervals(
+        [iv for data in per_sensor.values() for iv in data["down_intervals"]])
+    # Device data is "unknown" only where *every* sensor is unknown.
+    unknown_all = None
+    for states in sensor_intervals.values():
+        unknown = _subtract_intervals(states["unknown"], maintenance)
+        unknown_all = (unknown if unknown_all is None
+                       else _intersect_intervals(unknown_all, unknown))
+    if unknown_all is None:
+        unknown_all = _subtract_intervals([(period_start, period_end)], maintenance)
+    # Unknown time never counts as up or down.
+    unknown_union = _subtract_intervals(unknown_all, down_union)
+    period = [(period_start, period_end)]
+    observable = _subtract_intervals(period, maintenance)
+    observable = _subtract_intervals(observable, unknown_union)
+    down_union = _subtract_intervals(down_union, maintenance)
+    up_union = _subtract_intervals(observable, down_union)
+
+    observed_minutes = _interval_minutes(observable)
+    if mode == "worst_sensor":
+        values = [d["availability_pct"] for d in per_sensor.values()
+                  if d["availability_pct"] is not None]
+        availability = min(values) if values else None
+    elif mode == "mean_sensor":
+        values = [d["availability_pct"] for d in per_sensor.values()
+                  if d["availability_pct"] is not None]
+        availability = round(sum(values) / len(values), 3) if values else None
+    else:
+        availability = (round(100.0 * _interval_minutes(up_union) / observed_minutes, 3)
+                        if observed_minutes > 0 else None)
+
+    incidents = list(down_union)
+    mttr = (round(sum((end - start).total_seconds() for start, end in incidents)
+                  / len(incidents) / 60.0, 1) if incidents else 0)
+    for data in per_sensor.values():
+        data.pop("down_intervals", None)
+    return {
+        "mode": mode,
+        "availability_pct": availability,
+        "uptime_minutes": round(_interval_minutes(up_union), 2),
+        "downtime_minutes": round(_interval_minutes(down_union), 2),
+        "maintenance_minutes": round(_interval_minutes(
+            _subtract_intervals(maintenance, [])), 2),
+        "unknown_minutes": round(_interval_minutes(unknown_union), 2),
+        "incident_count": len(incidents),
+        "mttr_minutes": mttr,
+        "sensors": per_sensor,
+    }
+
+
+def _maintenance_windows(conn, device_name, period_start, period_end):
+    """Scheduled downtime windows clipped to the reporting period."""
+    windows = []
+    try:
+        rows = conn.execute(
+            "SELECT start_time, end_time, active, "
+            "COALESCE(cancelled_at, '') AS cancelled_at "
+            "FROM scheduled_downtime WHERE device_name=?",
+            (device_name,)).fetchall()
+    except sqlite3.Error:
+        try:
+            rows = conn.execute(
+                "SELECT start_time, end_time, active, '' AS cancelled_at "
+                "FROM scheduled_downtime WHERE device_name=?",
+                (device_name,)).fetchall()
+        except sqlite3.Error:
+            return windows
+    for row in rows:
+        start = _parse_ts(row["start_time"])
+        end = _parse_ts(row["end_time"])
+        if not start or not end:
+            continue
+        # A cancelled window only excuses downtime up to the moment it was
+        # cancelled. Without a recorded cancellation time (windows cancelled
+        # before this column existed) the whole window is ignored rather than
+        # used to hide a real outage.
+        if not _as_bool(row["active"] if row["active"] is not None else 1):
+            cancelled_at = _parse_ts(row["cancelled_at"] or "")
+            if not cancelled_at or cancelled_at <= start:
+                continue
+            end = min(end, cancelled_at)
+        start = max(start, period_start)
+        end = min(end, period_end)
+        if end > start:
+            windows.append((start, end))
+    return _merge_intervals(windows)
+
+
 def generate_sla_report(hours=720, device_filter=None):
-    """Generate SLA/uptime report data for all or specific devices.
-    Returns list of device reports with uptime %, MTTR, incident count.
+    """SLA/uptime report per device, from timestamped state transitions.
+
+    Each sensor is evaluated on its own timeline; the device number is an
+    explicit rollup (see device_availability). Maintenance windows and periods
+    without observations are reported separately, never as downtime.
     """
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
-    since = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - datetime.timedelta(hours=hours)).isoformat()
+    period_end = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+    period_start = period_end - datetime.timedelta(hours=hours)
+    since = period_start.isoformat()
 
-    # Get all device names
     with _config_lock:
         devices = _config.get("devices", [])
+        interval = _config.get("check_interval_seconds", 60)
+        mode = _config.get("sla_device_availability",
+                           DEFAULT_DEVICE_AVAILABILITY_MODE)
+    if mode not in DEVICE_AVAILABILITY_MODES:
+        log.warning("Unknown sla_device_availability %r -- using %s",
+                    mode, DEFAULT_DEVICE_AVAILABILITY_MODE)
+        mode = DEFAULT_DEVICE_AVAILABILITY_MODE
 
     reports = []
     for dev in devices:
@@ -1211,64 +1545,45 @@ def generate_sla_report(hours=720, device_filter=None):
         if device_filter and name not in device_filter:
             continue
 
-        # Total checks and OK checks
-        row = conn.execute(
-            "SELECT COUNT(*) as total, "
-            "SUM(CASE WHEN status='OK' THEN 1 ELSE 0 END) as ok_count "
-            "FROM check_results WHERE device_name=? AND timestamp>=?",
-            (name, since)).fetchone()
-        total = row["total"] or 0
-        ok_count = row["ok_count"] or 0
+        rows = conn.execute(
+            "SELECT timestamp, check_type, check_label, status "
+            "FROM check_results WHERE device_name=? AND timestamp>=? "
+            "ORDER BY timestamp ASC", (name, since)).fetchall()
 
-        if total == 0:
-            uptime_pct = None
-            downtime_minutes = 0
-        else:
-            uptime_pct = round(100.0 * ok_count / total, 3)
-            with _config_lock:
-                interval = _config.get("check_interval_seconds", 60)
-            downtime_minutes = round((total - ok_count) * interval / 60.0, 1)
+        by_sensor = {}
+        ok_count = 0
+        for row in rows:
+            key = "%s:%s" % (row["check_type"],
+                             row["check_label"] or row["check_type"])
+            by_sensor.setdefault(key, []).append((row["timestamp"], row["status"]))
+            if str(row["status"] or "").upper() == "OK":
+                ok_count += 1
 
-        # Count incidents (transitions to WARNING/CRITICAL)
-        alerts_row = conn.execute(
-            "SELECT COUNT(*) as cnt FROM alerts "
-            "WHERE device_name=? AND timestamp>=?",
-            (name, since)).fetchone()
-        incident_count = alerts_row["cnt"] or 0
-
-        # Calculate MTTR (mean time to recovery) in minutes
-        alerts_data = conn.execute(
-            "SELECT timestamp, status FROM check_results "
-            "WHERE device_name=? AND timestamp>=? ORDER BY timestamp ASC",
-            (name, since)).fetchall()
-
-        recovery_times = []
-        fail_start = None
-        for row in alerts_data:
-            if row["status"] in ("WARNING", "CRITICAL"):
-                if fail_start is None:
-                    fail_start = row["timestamp"]
-            elif row["status"] == "OK" and fail_start is not None:
-                try:
-                    t1 = datetime.datetime.fromisoformat(fail_start)
-                    t2 = datetime.datetime.fromisoformat(row["timestamp"])
-                    recovery_times.append((t2 - t1).total_seconds() / 60.0)
-                except Exception:
-                    pass
-                fail_start = None
-
-        mttr = round(sum(recovery_times) / len(recovery_times), 1) if recovery_times else 0
+        sensor_intervals = {
+            key: sensor_state_intervals(samples, period_start, period_end, interval)
+            for key, samples in by_sensor.items()
+        }
+        rollup = device_availability(
+            sensor_intervals, period_start, period_end,
+            maintenance=_maintenance_windows(conn, name, period_start, period_end),
+            mode=mode)
 
         reports.append({
             "device_name": name,
             "host": dev.get("host", ""),
             "group": dev.get("group", "Default"),
-            "total_checks": total,
+            "total_checks": len(rows),
             "ok_checks": ok_count,
-            "uptime_pct": uptime_pct,
-            "downtime_minutes": downtime_minutes,
-            "incident_count": incident_count,
-            "mttr_minutes": mttr,
+            "sensor_count": len(sensor_intervals),
+            "uptime_pct": rollup["availability_pct"],
+            "availability_mode": rollup["mode"],
+            "uptime_minutes": rollup["uptime_minutes"],
+            "downtime_minutes": rollup["downtime_minutes"],
+            "maintenance_minutes": rollup["maintenance_minutes"],
+            "unknown_minutes": rollup["unknown_minutes"],
+            "incident_count": rollup["incident_count"],
+            "mttr_minutes": rollup["mttr_minutes"],
+            "sensors": rollup["sensors"],
             "period_hours": hours,
         })
 
@@ -1281,15 +1596,19 @@ def generate_sla_csv(reports):
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        "Device", "Host", "Group", "Uptime %", "Downtime (min)",
-        "Incidents", "MTTR (min)", "Total Checks", "OK Checks",
+        "Device", "Host", "Group", "Uptime %", "Availability Mode",
+        "Downtime (min)", "Maintenance (min)", "No Data (min)",
+        "Incidents", "MTTR (min)", "Sensors", "Total Checks", "OK Checks",
         "Period (hours)",
     ])
     for r in reports:
         writer.writerow([
             r["device_name"], r["host"], r["group"],
             r["uptime_pct"] if r["uptime_pct"] is not None else "N/A",
-            r["downtime_minutes"], r["incident_count"], r["mttr_minutes"],
+            r.get("availability_mode", ""),
+            r["downtime_minutes"], r.get("maintenance_minutes", 0),
+            r.get("unknown_minutes", 0),
+            r["incident_count"], r["mttr_minutes"], r.get("sensor_count", 0),
             r["total_checks"], r["ok_checks"], r["period_hours"],
         ])
     return output.getvalue()
@@ -1301,8 +1620,103 @@ def generate_sla_csv(reports):
 # Simple JWT-like token auth. Users are stored in config.yaml.
 # Tokens are HMAC-SHA256 signed. No external dependencies.
 
-_AUTH_SECRET = b"netmon-auth-secret-2026"  # Change for production
 _AUTH_TOKEN_EXPIRY = 86400  # 24 hours
+_PBKDF2_ROUNDS = 200000
+_USERNAME_RE = re.compile(r"^[A-Za-z0-9._@-]{1,64}$")
+
+
+def _load_or_create_secret():
+    """Per-installation token signing secret, persisted in the data dir.
+
+    Never hard-coded: a fixed secret in public source lets anyone mint an
+    admin token. NETMON_AUTH_SECRET overrides (useful for multi-replica).
+    """
+    env = os.environ.get("NETMON_AUTH_SECRET", "").strip()
+    if env:
+        return env.encode("utf-8")
+    try:
+        if SECRET_PATH.exists():
+            data = SECRET_PATH.read_bytes().strip()
+            if len(data) >= 32:
+                return data
+        secret = secrets.token_hex(32).encode("ascii")
+        SECRET_PATH.parent.mkdir(parents=True, exist_ok=True)
+        SECRET_PATH.write_bytes(secret)
+        try:
+            os.chmod(str(SECRET_PATH), 0o600)
+        except OSError:
+            pass
+        log.info("Generated a new auth signing secret at %s", SECRET_PATH)
+        return secret
+    except OSError as exc:
+        log.warning("Cannot persist auth secret (%s) -- using an in-memory "
+                    "secret; sessions will not survive a restart", exc)
+        return secrets.token_hex(32).encode("ascii")
+
+
+_AUTH_SECRET = _load_or_create_secret()
+
+
+def hash_password(password, salt=None, rounds=_PBKDF2_ROUNDS):
+    """PBKDF2-SHA256 hash string: pbkdf2_sha256$rounds$salt$hex."""
+    salt = salt or secrets.token_hex(16)
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"),
+                             salt.encode("ascii"), rounds)
+    return "pbkdf2_sha256$%d$%s$%s" % (rounds, salt, dk.hex())
+
+
+def verify_password(password, stored):
+    """Verify a password against a stored hash. Plaintext is never accepted."""
+    if not stored or not isinstance(stored, str):
+        return False
+    parts = stored.split("$")
+    if len(parts) != 4 or parts[0] != "pbkdf2_sha256":
+        return False
+    try:
+        rounds = int(parts[1])
+    except ValueError:
+        return False
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"),
+                             parts[2].encode("ascii"), rounds)
+    return hmac.compare_digest(dk.hex(), parts[3])
+
+
+def migrate_user_passwords(cfg):
+    """Hash any plaintext `password:` entries in config. Returns True if changed.
+
+    Upgrade path for installs created before hashing existed.
+    """
+    changed = False
+    for user in cfg.get("users", []) or []:
+        if not isinstance(user, dict):
+            continue
+        plain = user.pop("password", None)
+        if plain not in (None, "") and not user.get("password_hash"):
+            user["password_hash"] = hash_password(str(plain))
+            changed = True
+        elif plain not in (None, ""):
+            changed = True  # dropped a redundant plaintext copy
+    return changed
+
+
+def _find_user(username):
+    with _config_lock:
+        for user in _config.get("users", []) or []:
+            if isinstance(user, dict) and user.get("username") == username:
+                return dict(user)
+    return None
+
+
+def _token_version(user):
+    """Fingerprint of the credentials a token was issued against.
+
+    Changing a role or password, or deleting the user, changes this value and
+    therefore invalidates every token already issued.
+    """
+    material = "%s|%s|%s" % (user.get("username", ""), user.get("role", ""),
+                             user.get("password_hash", ""))
+    return hmac.new(_AUTH_SECRET, material.encode("utf-8"),
+                    hashlib.sha256).hexdigest()[:12]
 
 # Roles: admin (full access), operator (can ack alerts, toggle maint),
 #         viewer (read-only)
@@ -1313,10 +1727,13 @@ AUTH_ROLES = {
 }
 
 
-def _generate_auth_token(username, role):
+def _generate_auth_token(username, role, version=None):
     """Generate a signed token for a user."""
     expires = int(time.time()) + _AUTH_TOKEN_EXPIRY
-    payload = "%s:%s:%d" % (username, role, expires)
+    if version is None:
+        user = _find_user(username) or {"username": username, "role": role}
+        version = _token_version(user)
+    payload = "%s:%s:%d:%s" % (username, role, expires, version)
     sig = hmac.new(_AUTH_SECRET, payload.encode("utf-8"),
                    hashlib.sha256).hexdigest()[:32]
     token = base64.urlsafe_b64encode(
@@ -1336,8 +1753,15 @@ def _validate_auth_token(token):
                                 hashlib.sha256).hexdigest()[:32]
         if not hmac.compare_digest(provided_sig, expected_sig):
             return None, None
-        username, role, expires_str = payload.split(":")
+        username, role, expires_str, version = payload.split(":")
         if int(expires_str) < int(time.time()):
+            return None, None
+        # Bind the token to the current credentials: deleting the user or
+        # changing their role/password invalidates outstanding tokens.
+        user = _find_user(username)
+        if not user or not hmac.compare_digest(version, _token_version(user)):
+            return None, None
+        if user.get("role", "viewer") != role:
             return None, None
         return username, role
     except Exception:
@@ -1352,8 +1776,12 @@ def _check_auth(required_perm="read"):
     with _config_lock:
         users = _config.get("users", [])
         auth_enabled = _config.get("auth_enabled", False)
-    if not auth_enabled or not users:
-        return ("admin", "admin")  # Auth disabled or no users = open access
+    if not auth_enabled:
+        return ("admin", "admin")  # Auth explicitly disabled = open access
+    if not users:
+        # Auth is on but every account is gone: fail closed rather than
+        # silently reopening the whole API.
+        abort(401)
 
     # Check Authorization header or cookie
     token = None
@@ -1374,6 +1802,45 @@ def _check_auth(required_perm="read"):
         abort(403)
 
     return (username, role)
+
+
+# Endpoints reachable without a token: the dashboard shell, static files and
+# the login/logout handlers. Everything else is protected by default.
+_AUTH_EXEMPT_ENDPOINTS = {
+    "static",
+    "dashboard",
+    "api_auth_login",
+    "api_auth_logout",
+}
+
+# Explicit permission per endpoint. Anything not listed falls back to the
+# heuristic in _required_perm_for(): GET -> read, everything else -> write.
+_ENDPOINT_PERMS = {
+    "api_auth_me": "read",
+    "api_get_settings": "config",
+    "api_update_settings": "config",
+    "api_test_email": "config",
+    "api_license": "read",
+    "api_activate_license": "config",
+    "api_backup": "config",
+    "api_restore": "config",
+}
+
+
+def _required_perm_for(endpoint, method):
+    """Map a Flask endpoint + method onto a required permission."""
+    if endpoint in _ENDPOINT_PERMS:
+        return _ENDPOINT_PERMS[endpoint]
+    name = endpoint or ""
+    if "user" in name:
+        return "users"
+    for token in ("setting", "config", "license", "backup", "restore",
+                  "plugin", "secret", "smtp", "webhook", "helpdesk"):
+        if token in name:
+            return "config"
+    if method in ("GET", "HEAD", "OPTIONS"):
+        return "read"
+    return "write"
 
 
 # ---------------------------------------------------------------------------
@@ -1569,86 +2036,359 @@ def run_scan(ip_range_str, scan_port_list=None, port_timeout=1000, max_threads=5
 _prev_status = {}
 _acked_keys = set()   # keys that have been acknowledged (suppress re-alert)
 
-def monitoring_loop():
+# --- Monitoring scheduler ---------------------------------------------------
+# The loop runs checks on a bounded worker pool and keeps a fixed schedule:
+# the next cycle starts one interval after the previous one *started*, so the
+# real polling interval no longer drifts with workload. Notifications are
+# handed to a background worker instead of blocking the cycle on SMTP.
+
+_MAX_CHECK_WORKERS_DEFAULT = 16
+_CYCLE_TIMEOUT_FACTOR = 3
+_notify_queue = queue_mod.Queue(maxsize=1000)
+_notify_worker = None
+_notify_dropped = 0
+_check_pool = None
+_check_pool_workers = 0
+_check_pool_lock = threading.Lock()
+_inflight = set()
+_inflight_lock = threading.Lock()
+_late_results = queue_mod.Queue()
+_cycle_stats_lock = threading.Lock()
+_cycle_stats = {
+    "last_started_at": None,
+    "last_finished_at": None,
+    "last_duration_seconds": None,
+    "checks_run": 0,
+    "checks_timed_out": 0,
+    "checks_skipped_inflight": 0,
+    "checks_recovered_late": 0,
+    "workers": 0,
+    "interval_seconds": None,
+    "overruns": 0,
+    "notify_queue_depth": 0,
+    "notify_dropped": 0,
+}
+
+
+def _deliver_notification(job):
+    """Send one alert's notifications. Runs off the monitoring thread."""
+    result = job["result"]
+    try:
+        emailed = send_alert_email(result, job["smtp_cfg"])
+        store_alert(result, email_sent=emailed)
+        if job.get("webhooks"):
+            send_webhook_notification(result, job["webhooks"])
+        if result.get("status") == "CRITICAL":
+            create_ticket_from_alert(dict(result))
+    except Exception as exc:
+        log.error("Notification delivery failed for %s: %s",
+                  result.get("device_name"), exc)
+
+
+def _notification_loop():
     while True:
+        job = _notify_queue.get()
+        try:
+            if job is None:
+                return
+            _deliver_notification(job)
+        finally:
+            _notify_queue.task_done()
+
+
+def start_notification_worker():
+    global _notify_worker
+    if _notify_worker is None or not _notify_worker.is_alive():
+        _notify_worker = threading.Thread(target=_notification_loop,
+                                          daemon=True,
+                                          name="netmon-notify")
+        _notify_worker.start()
+    return _notify_worker
+
+
+def queue_notification(result, smtp_cfg, webhooks):
+    """Queue an alert. Never blocks the monitoring cycle."""
+    global _notify_dropped
+    try:
+        _notify_queue.put_nowait({"result": dict(result), "smtp_cfg": smtp_cfg,
+                                  "webhooks": webhooks})
+    except queue_mod.Full:
+        _notify_dropped += 1
+        log.error("Notification queue full -- dropped alert for %s "
+                  "(%d dropped in total)", result.get("device_name"),
+                  _notify_dropped)
+
+
+def get_monitoring_health(now=None):
+    """Scheduler health for the dashboard: is the data we show current?"""
+    with _cycle_stats_lock:
+        stats = dict(_cycle_stats)
+    stats["notify_queue_depth"] = _notify_queue.qsize()
+    stats["notify_dropped"] = _notify_dropped
+    now = now or datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+    interval = stats.get("interval_seconds") or 60
+    finished = stats.get("last_finished_at")
+    if finished:
+        age = (now - datetime.datetime.fromisoformat(finished)).total_seconds()
+    else:
+        age = None
+    stats["seconds_since_last_cycle"] = round(age, 1) if age is not None else None
+    # Stale = we have missed more than two scheduled cycles.
+    stats["stale"] = age is None or age > interval * 2
+    return stats
+
+
+def annotate_staleness(rows, interval=None, now=None):
+    """Add age_seconds/stale to latest-status rows so the UI can show it."""
+    if interval is None:
+        with _config_lock:
+            interval = _config.get("check_interval_seconds", 60)
+    now = now or datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+    out = []
+    for row in rows:
+        row = dict(row)
+        ts = _parse_ts(row.get("timestamp"))
+        if ts is None:
+            row["age_seconds"] = None
+            row["stale"] = True
+        else:
+            age = (now - ts).total_seconds()
+            row["age_seconds"] = round(age, 1)
+            row["stale"] = age > max(interval, 1) * 2
+        out.append(row)
+    return out
+
+
+def _collect_due_checks(devices, downtime_devices, parent_map, status_map):
+    """Checks to run this cycle, after maintenance/dependency suppression."""
+    tasks = []
+    for dev in devices:
+        dev_name = dev["name"]
+        if dev.get("maintenance", False) or dev_name in downtime_devices:
+            reason = ("maintenance mode" if dev.get("maintenance")
+                      else "scheduled downtime")
+            log.info("  [SKIP] %s -- %s", dev_name, reason)
+            continue
+        if is_parent_down(dev_name, parent_map, status_map):
+            log.info("  [PARENT DOWN] %s -- parent unreachable, skipping", dev_name)
+            continue
+        for chk in dev.get("checks", []):
+            tasks.append((dev, chk))
+    return tasks
+
+
+def _check_key(device, check):
+    """Identity of one check, used to avoid running it twice concurrently."""
+    return (device.get("name"), check.get("type"), check.get("label"),
+            check.get("port"), check.get("url"), device.get("host"))
+
+
+def _get_check_pool(workers):
+    """A long-lived bounded pool.
+
+    The pool outlives a single cycle on purpose: a check that overruns the
+    cycle budget keeps running in the background instead of holding the
+    scheduler hostage, while `max_workers` still caps total concurrency.
+    """
+    global _check_pool, _check_pool_workers
+    with _check_pool_lock:
+        if _check_pool is None or workers != _check_pool_workers:
+            old = _check_pool
+            _check_pool = concurrent.futures.ThreadPoolExecutor(
+                max_workers=workers, thread_name_prefix="netmon-check")
+            _check_pool_workers = workers
+            if old is not None:
+                # Do not wait: stragglers finish on their own threads.
+                old.shutdown(wait=False)
+        return _check_pool
+
+
+def _run_tracked_check(device, check, key, abandoned):
+    """Run one check, releasing its in-flight slot and rescuing late results.
+
+    If the cycle has already given up waiting (`abandoned` is set) the result
+    is handed to the late-result queue so the next cycle can store it instead
+    of throwing the work away.
+    """
+    try:
+        result = run_check(device, check)
+        if abandoned.is_set():
+            _late_results.put((device, result))
+            return None
+        return result
+    finally:
+        with _inflight_lock:
+            _inflight.discard(key)
+
+
+def _drain_late_results():
+    """Results from checks that finished after their cycle had moved on."""
+    late = []
+    while True:
+        try:
+            late.append(_late_results.get_nowait())
+        except queue_mod.Empty:
+            return late
+
+
+def run_check_cycle(cfg, devices):
+    """Run every due check on a bounded pool. Returns (results, timed_out)."""
+    parent_map = _get_parent_map(devices)
+    status_map = _get_device_status_map(get_latest_per_check())
+    downtime_devices = get_active_downtimes()
+    tasks = _collect_due_checks(devices, downtime_devices, parent_map, status_map)
+    if not tasks:
+        return [], 0
+
+    interval = cfg.get("check_interval_seconds", 60)
+    workers = int(cfg.get("max_check_workers", _MAX_CHECK_WORKERS_DEFAULT) or
+                  _MAX_CHECK_WORKERS_DEFAULT)
+    workers = max(1, min(workers, len(tasks)))
+    # Hard deadline for collecting this cycle's results. Configurable so an
+    # operator (and the test suite) can tighten it; defaults to a few intervals.
+    budget = cfg.get("max_cycle_seconds")
+    try:
+        budget = float(budget) if budget else 0.0
+    except (TypeError, ValueError):
+        budget = 0.0
+    if budget <= 0:
+        budget = max(interval * _CYCLE_TIMEOUT_FACTOR, 30)
+
+    # Results rescued from checks that overran a previous cycle.
+    results = _drain_late_results()
+    recovered = len(results)
+    timed_out = 0
+    skipped = 0
+    abandoned = threading.Event()
+    pool = _get_check_pool(workers)
+
+    futures = {}
+    for dev, chk in tasks:
+        key = _check_key(dev, chk)
+        with _inflight_lock:
+            if key in _inflight:
+                skipped += 1
+                continue
+            _inflight.add(key)
+        try:
+            futures[pool.submit(_run_tracked_check, dev, chk, key, abandoned)] = \
+                (dev, chk)
+        except RuntimeError:
+            # Pool was replaced mid-cycle; release the slot and retry next time.
+            with _inflight_lock:
+                _inflight.discard(key)
+            skipped += 1
+    if skipped:
+        log.warning("%d check(s) skipped -- still running from an earlier cycle",
+                    skipped)
+
+    try:
+        for future in concurrent.futures.as_completed(futures, timeout=budget):
+            dev, chk = futures[future]
+            try:
+                result = future.result()
+            except Exception as exc:
+                log.error("Check failed for %s/%s: %s", dev.get("name"),
+                          chk.get("type"), exc)
+                timed_out += 1
+                continue
+            if result is not None:
+                results.append((dev, result))
+    except concurrent.futures.TimeoutError:
+        # Stop waiting. Queued checks are cancelled outright; checks already
+        # running keep their worker and deliver into the late-result queue.
+        abandoned.set()
+        pending = [f for f in futures if not f.done()]
+        timed_out += len(pending)
+        cancelled = 0
+        for future in pending:
+            if future.cancel():
+                cancelled += 1
+                # A cancelled future never runs the wrapper, so release its
+                # in-flight slot here or the check is skipped forever.
+                dev, chk = futures[future]
+                with _inflight_lock:
+                    _inflight.discard(_check_key(dev, chk))
+        log.error("%d check(s) exceeded the %ss cycle budget -- %d cancelled, "
+                  "%d still running in the background", len(pending), budget,
+                  cancelled, len(pending) - cancelled)
+    with _cycle_stats_lock:
+        _cycle_stats["workers"] = workers
+        _cycle_stats["checks_skipped_inflight"] = skipped
+        _cycle_stats["checks_recovered_late"] = recovered
+    return results, timed_out
+
+
+def _process_results(results, cfg):
+    """Store results and queue alerts for the notification worker."""
+    smtp_cfg = cfg.get("smtp", {})
+    webhooks = cfg.get("webhooks", [])
+    for _dev, r in results:
+        store_result(r)
+        key = r["device_name"] + "|" + (r.get("check_label") or "")
+        prev = _prev_status.get(key)
+        status_str = r["status"]
+        ms_str = ("%.1fms" % r["response_ms"]) if r["response_ms"] is not None else "N/A"
+        log.info("  [%s] %s / %s  %s  %s", status_str, r["device_name"],
+                 r.get("check_label", ""), ms_str, r.get("message", ""))
+
+        if status_str in ("WARNING", "CRITICAL"):
+            if prev != status_str and key not in _acked_keys:
+                queue_notification(r, smtp_cfg, webhooks)
+        elif status_str == "OK" and prev in ("WARNING", "CRITICAL"):
+            _acked_keys.discard(key)
+
+        _prev_status[key] = status_str
+
+
+def monitoring_loop(max_cycles=None):
+    """Scheduled monitoring loop. max_cycles is for tests."""
+    start_notification_worker()
+    cycles = 0
+    next_start = time.monotonic()
+    while max_cycles is None or cycles < max_cycles:
+        cycle_started = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+        clock_start = time.monotonic()
         _reload_config()
         with _config_lock:
             cfg = dict(_config)
         devices = cfg.get("devices", [])
-        interval = cfg.get("check_interval_seconds", 60)
-        smtp_cfg = cfg.get("smtp", {})
-
-        # Build dependency data
-        parent_map = _get_parent_map(devices)
-        status_list = get_latest_per_check()
-        status_map = _get_device_status_map(status_list)
-
-        # Get devices currently in scheduled downtime
-        downtime_devices = get_active_downtimes()
+        interval = max(int(cfg.get("check_interval_seconds", 60) or 60), 5)
 
         log.info("-- Check cycle: %d devices --", len(devices))
-        threads = []
-        results = []
-        results_lock = threading.Lock()
+        results, timed_out = run_check_cycle(cfg, devices)
+        _process_results(results, cfg)
 
-        def _run(dev, chk):
-            r = run_check(dev, chk)
-            with results_lock:
-                results.append((dev, r))
+        duration = time.monotonic() - clock_start
+        with _cycle_stats_lock:
+            _cycle_stats.update({
+                "last_started_at": cycle_started.isoformat(),
+                "last_finished_at": datetime.datetime.now(
+                    datetime.UTC).replace(tzinfo=None).isoformat(),
+                "last_duration_seconds": round(duration, 2),
+                "checks_run": len(results),
+                "checks_timed_out": timed_out,
+                "interval_seconds": interval,
+            })
 
-        for dev in devices:
-            dev_name = dev["name"]
-            # Skip if in maintenance mode or scheduled downtime
-            if dev.get("maintenance", False) or dev_name in downtime_devices:
-                reason = "maintenance mode" if dev.get("maintenance") else "scheduled downtime"
-                log.info("  [SKIP] %s -- %s", dev_name, reason)
-                continue
-            # Skip if parent is down (dependency suppression)
-            if is_parent_down(dev_name, parent_map, status_map):
-                log.info("  [PARENT DOWN] %s -- parent unreachable, skipping", dev_name)
-                continue
-            for chk in dev.get("checks", []):
-                t = threading.Thread(target=_run, args=(dev, chk))
-                t.start()
-                threads.append(t)
-
-        for t in threads:
-            t.join(timeout=30)
-
-        for dev, r in results:
-            store_result(r)
-            key = r["device_name"] + "|" + (r.get("check_label") or "")
-            prev = _prev_status.get(key)
-            status_str = r["status"]
-            ms_str = ("%.1fms" % r["response_ms"]) if r["response_ms"] is not None else "N/A"
-            log.info("  [%s] %s / %s  %s  %s",
-                     status_str, r["device_name"], r.get("check_label", ""), ms_str,
-                     r.get("message", ""))
-
-            if status_str in ("WARNING", "CRITICAL"):
-                # Only alert if status changed AND not acknowledged
-                if prev != status_str and key not in _acked_keys:
-                    emailed = send_alert_email(r, smtp_cfg)
-                    store_alert(r, email_sent=emailed)
-                    # Multi-channel webhooks (Enterprise)
-                    webhooks = cfg.get("webhooks", [])
-                    if webhooks:
-                        send_webhook_notification(r, webhooks)
-                    # Auto-create helpdesk ticket (Pro+)
-                    if status_str == "CRITICAL":
-                        threading.Thread(
-                            target=create_ticket_from_alert,
-                            args=(dict(r),),
-                            daemon=True,
-                        ).start()
-            elif status_str == "OK" and prev in ("WARNING", "CRITICAL"):
-                # Recovery: clear ack so future failures trigger alerts again
-                _acked_keys.discard(key)
-
-            _prev_status[key] = status_str
-
-        log.info("-- Cycle done. Next in %ds --", interval)
-        time.sleep(interval)
+        # Fixed cadence: the next cycle starts one interval after this one
+        # started, so a slow cycle does not push the schedule out.
+        next_start += interval
+        sleep_for = next_start - time.monotonic()
+        if sleep_for <= 0:
+            with _cycle_stats_lock:
+                _cycle_stats["overruns"] += 1
+            log.warning("Cycle took %.1fs, longer than the %ds interval -- "
+                        "consider raising max_check_workers or the interval",
+                        duration, interval)
+            next_start = time.monotonic()
+            sleep_for = 0
+        cycles += 1
+        if max_cycles is not None and cycles >= max_cycles:
+            break
+        log.info("-- Cycle done in %.1fs. Next in %.0fs --", duration, sleep_for)
+        if sleep_for > 0:
+            time.sleep(sleep_for)
 
 
 # ---------------------------------------------------------------------------
@@ -2621,6 +3361,20 @@ def run_security_scan(targets, scan_types, scan_id=None):
 def create_app():
     app = Flask(__name__, template_folder=str(BASE_DIR / "templates"))
 
+    @app.before_request
+    def _enforce_authorization():
+        """Central authorization gate.
+
+        Protected by default: a route has to be listed in
+        _AUTH_EXEMPT_ENDPOINTS to be reachable without a token, so adding a
+        new route cannot silently create an unauthenticated hole.
+        """
+        endpoint = request.endpoint
+        if endpoint is None or endpoint in _AUTH_EXEMPT_ENDPOINTS:
+            return None
+        _check_auth(_required_perm_for(endpoint, request.method))
+        return None
+
     @app.route("/")
     def dashboard():
         return render_template("dashboard.html")
@@ -2667,7 +3421,12 @@ def create_app():
 
     @app.route("/api/status")
     def api_status():
-        return jsonify(get_latest_per_check())
+        return jsonify(annotate_staleness(get_latest_per_check()))
+
+    @app.route("/api/monitoring-health")
+    def api_monitoring_health():
+        """Scheduler health: last cycle, drift, stale flag, queue depth."""
+        return jsonify(get_monitoring_health())
 
     @app.route("/api/alerts")
     def api_alerts():
@@ -2892,7 +3651,10 @@ def create_app():
     @require_tier(TIER_PRO)
     def api_cancel_downtime(dt_id):
         conn = sqlite3.connect(str(DB_PATH))
-        conn.execute("UPDATE scheduled_downtime SET active=0 WHERE id=?", (dt_id,))
+        conn.execute(
+            "UPDATE scheduled_downtime SET active=0, cancelled_at=? WHERE id=?",
+            (datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat(),
+             dt_id))
         conn.commit()
         conn.close()
         return jsonify({"status": "cancelled"})
@@ -3119,7 +3881,10 @@ def create_app():
             "smtp_port": smtp.get("smtp_port", 587),
             "use_tls": smtp.get("use_tls", True),
             "smtp_username": smtp.get("username", ""),
-            "smtp_password": smtp.get("password", ""),
+            # Never return the stored SMTP password. The UI shows whether
+            # one is set; submitting an empty value leaves it unchanged.
+            "smtp_password": "",
+            "smtp_password_set": bool(smtp.get("password", "")),
             "from_addr": smtp.get("from_addr", ""),
             "recipients": smtp.get("recipients", []),
             "cooldown_minutes": smtp.get("cooldown_minutes", 15),
@@ -3129,10 +3894,27 @@ def create_app():
     @app.route("/api/settings", methods=["PUT"])
     def api_update_settings():
         data = request.get_json(force=True)
+        if data.get("smtp_password", None) == "":
+            # Blank means "unchanged" -- the GET never reveals the stored value.
+            data = dict(data)
+            data.pop("smtp_password")
         with _config_lock:
             cfg = _config
             if "auth_enabled" in data:
-                cfg["auth_enabled"] = bool(data["auth_enabled"])
+                want = bool(data["auth_enabled"])
+                if want:
+                    admins = [u for u in cfg.get("users", []) or []
+                              if isinstance(u, dict)
+                              and u.get("role") == "admin"
+                              and u.get("password_hash")]
+                    if not admins:
+                        return jsonify({
+                            "error": "no_admin_user",
+                            "message": "Create an admin user before enabling "
+                                       "authentication, or you will lock "
+                                       "yourself out.",
+                        }), 400
+                cfg["auth_enabled"] = want
             if "check_interval_seconds" in data:
                 val = int(data["check_interval_seconds"])
                 if val < 5:
@@ -3328,9 +4110,11 @@ def create_app():
             users = _config.get("users", [])
 
         for u in users:
-            if u.get("username") == username and u.get("password") == password:
+            if u.get("username") != username:
+                continue
+            if verify_password(password, u.get("password_hash", "")):
                 role = u.get("role", "viewer")
-                token = _generate_auth_token(username, role)
+                token = _generate_auth_token(username, role, _token_version(u))
                 resp = jsonify({"token": token, "username": username,
                                 "role": role, "expires_in": _AUTH_TOKEN_EXPIRY})
                 resp.set_cookie("netmon_token", token, max_age=_AUTH_TOKEN_EXPIRY,
@@ -3370,12 +4154,19 @@ def create_app():
             return jsonify({"error": "Username and password required"}), 400
         if role not in AUTH_ROLES:
             return jsonify({"error": "Invalid role"}), 400
+        if not _USERNAME_RE.match(username):
+            return jsonify({"error": "Username may only contain letters, "
+                                     "digits and . _ @ -"}), 400
+        if len(password) < 8:
+            return jsonify({"error": "Password must be at least 8 characters"}), 400
         with _config_lock:
             users = _config.get("users", [])
             for u in users:
                 if u["username"] == username:
                     return jsonify({"error": "User already exists"}), 409
-            users.append({"username": username, "password": password, "role": role})
+            users.append({"username": username,
+                          "password_hash": hash_password(password),
+                          "role": role})
             _config["users"] = users
             save_config(_config)
         return jsonify({"status": "created", "username": username, "role": role})
@@ -3396,7 +4187,11 @@ def create_app():
                     if new_role:
                         u["role"] = new_role
                     if new_password:
-                        u["password"] = new_password
+                        if len(new_password) < 8:
+                            return jsonify({"error": "Password must be at "
+                                                     "least 8 characters"}), 400
+                        u["password_hash"] = hash_password(new_password)
+                        u.pop("password", None)
                     found = True
                     break
             if not found:
@@ -3409,7 +4204,18 @@ def create_app():
         _check_auth("users")
         with _config_lock:
             users = _config.get("users", [])
-            _config["users"] = [u for u in users if u["username"] != username]
+            remaining = [u for u in users if u.get("username") != username]
+            if len(remaining) == len(users):
+                return jsonify({"error": "User not found"}), 404
+            if _config.get("auth_enabled") and not [
+                    u for u in remaining
+                    if isinstance(u, dict) and u.get("role") == "admin"]:
+                return jsonify({
+                    "error": "last_admin",
+                    "message": "Cannot delete the last admin while "
+                               "authentication is enabled.",
+                }), 409
+            _config["users"] = remaining
             save_config(_config)
         return jsonify({"status": "deleted"})
 
