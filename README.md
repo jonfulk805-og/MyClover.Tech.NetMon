@@ -253,10 +253,16 @@ integration:
 Then set the same value as `netmon_integration.read_token` in SentryLog and flip
 `netmon_integration.enabled: true`.
 
-**`GET /api/integration/events`** — `from`, `to`, `device` (comma separated),
-`limit` (default 500, max 5000). Returns state *transitions* and alerts, oldest
-first, each with the device `host` so the consumer can match log sources. Repeated
-identical check results are not events.
+**`GET /api/integration/events`** — `from`, `to`, `device` and `host` (comma
+separated), `limit` (default 500, max 5000). Returns state *transitions* and
+alerts, oldest first, each with the device `host`, plus `device_hosts` (name →
+host for every requested device NetMon knows, even one that stayed healthy) and
+`truncated`. Repeated identical check results are not events. `host` narrows the
+result; it never widens it.
+
+**Time contract:** UTC on the wire. `from`/`to` are ISO-8601; any offset is
+honoured, and a bound without one is taken as UTC. Every emitted timestamp ends
+in `Z`. An unparseable bound is a `400`, not an empty window.
 
 Security notes worth knowing before you enable it:
 

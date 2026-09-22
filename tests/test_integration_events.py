@@ -7,10 +7,24 @@ load-bearing, so both are pinned here.
 import datetime
 
 
+def _utc_now():
+    return datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+
+
+def _stored_ts(minutes_ago):
+    """The format NetMon really writes: naive UTC isoformat (see run_check)."""
+    return (_utc_now() - datetime.timedelta(minutes=minutes_ago)).isoformat()
+
+
+def _wire_bound(minutes_ago):
+    """The format a consumer sends: timezone-aware UTC."""
+    return (_utc_now() - datetime.timedelta(minutes=minutes_ago)
+            ).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def _insert_result(netmon, device, label, status, minutes_ago, host="10.0.0.5",
                    check_type="ping", message=""):
-    ts = (datetime.datetime.now() - datetime.timedelta(minutes=minutes_ago)
-          ).strftime("%Y-%m-%d %H:%M:%S")
+    ts = _stored_ts(minutes_ago)
     conn = netmon.sqlite3.connect(str(netmon.DB_PATH))
     conn.execute(
         "INSERT INTO check_results (timestamp, device_name, host, check_type,"
@@ -22,8 +36,7 @@ def _insert_result(netmon, device, label, status, minutes_ago, host="10.0.0.5",
 
 
 def _insert_alert(netmon, device, status, minutes_ago, label="ping"):
-    ts = (datetime.datetime.now() - datetime.timedelta(minutes=minutes_ago)
-          ).strftime("%Y-%m-%d %H:%M:%S")
+    ts = _stored_ts(minutes_ago)
     conn = netmon.sqlite3.connect(str(netmon.DB_PATH))
     conn.execute(
         "INSERT INTO alerts (timestamp, device_name, check_type, check_label,"
@@ -74,8 +87,7 @@ def test_state_before_the_window_is_used_so_transitions_are_not_missed(netmon):
     _insert_result(netmon, "router", "ping", "ok", 120)
     _insert_result(netmon, "router", "ping", "critical", 30)
 
-    start = (datetime.datetime.now() - datetime.timedelta(minutes=60)
-             ).strftime("%Y-%m-%d %H:%M:%S")
+    start = _wire_bound(60)
     events = netmon.get_device_events(start=start)["events"]
     assert len(events) == 1
     assert events[0]["previous_status"] == "ok", (
@@ -97,6 +109,7 @@ def test_alerts_are_merged_in_chronological_order(netmon):
     events = netmon.get_device_events()["events"]
     assert [e["type"] for e in events] == ["state_change", "alert",
                                            "state_change"]
+    assert all(e["timestamp"].endswith("Z") for e in events)
     assert events == sorted(events, key=lambda e: e["timestamp"])
 
 
@@ -105,8 +118,7 @@ def test_device_filter_and_window_are_applied(netmon):
     _insert_result(netmon, "switch", "ping", "critical", 30)
     _insert_result(netmon, "router", "ping", "warning", 5)
 
-    start = (datetime.datetime.now() - datetime.timedelta(minutes=10)
-             ).strftime("%Y-%m-%d %H:%M:%S")
+    start = _wire_bound(10)
     result = netmon.get_device_events(start=start, device_filter=["router"])
     assert [e["device"] for e in result["events"]] == ["router"]
     assert result["events"][0]["status"] == "warning"
@@ -128,6 +140,109 @@ def test_limit_is_bounded_and_keeps_the_newest_events(netmon):
         netmon._EVENTS_MAX_LIMIT
     assert netmon.get_device_events(limit="nonsense")["limit"] == \
         netmon._EVENTS_DEFAULT_LIMIT
+
+
+# --------------------------------------------------------------------------
+# Time contract (review round 1, P1): real stored rows vs real consumer bounds
+# --------------------------------------------------------------------------
+
+def _real_result(netmon, status, name="router", host="10.0.0.5"):
+    """A result produced by NetMon's own code path, not a hand-written row."""
+    r = netmon.run_check({"name": name, "host": host},
+                         {"type": "unknown-type", "label": "ping"})
+    r["status"] = status
+    netmon.store_result(r)
+    return r
+
+
+def test_window_encloses_a_real_run_check_result(netmon):
+    """The reported bug: T-format rows fell outside a space-format end bound."""
+    _real_result(netmon, "CRITICAL")
+    start = _wire_bound(5)
+    end = (_utc_now() + datetime.timedelta(minutes=5)).strftime(
+        "%Y-%m-%dT%H:%M:%SZ")
+    events = netmon.get_device_events(start=start, end=end)["events"]
+    assert len(events) == 1, "a result inside the window was dropped"
+
+    # A bound written with a space instead of a T is the same instant.
+    events = netmon.get_device_events(
+        start=start.replace("T", " "), end=end.replace("T", " "))["events"]
+    assert len(events) == 1
+
+
+def test_offset_bounds_are_converted_to_utc(netmon):
+    """-07:00 bounds must mean the same instant, not the same wall clock."""
+    _insert_result(netmon, "router", "ping", "critical", 30)
+    pdt = datetime.timezone(datetime.timedelta(hours=-7))
+    now_pdt = datetime.datetime.now(pdt)
+    start = (now_pdt - datetime.timedelta(minutes=45)).isoformat()
+    end = (now_pdt - datetime.timedelta(minutes=15)).isoformat()
+    assert len(netmon.get_device_events(start=start, end=end)["events"]) == 1
+
+    # The same wall-clock numbers without the offset are 7 hours earlier in
+    # UTC and must NOT match -- this is the offset half of the bug.
+    naive_start = (now_pdt - datetime.timedelta(minutes=45)).strftime(
+        "%Y-%m-%dT%H:%M:%SZ")
+    naive_end = (now_pdt - datetime.timedelta(minutes=15)).strftime(
+        "%Y-%m-%dT%H:%M:%SZ")
+    assert netmon.get_device_events(start=naive_start,
+                                    end=naive_end)["events"] == []
+
+
+def test_emitted_timestamps_are_canonical_utc(netmon):
+    r = _real_result(netmon, "CRITICAL")
+    ev = netmon.get_device_events()["events"][0]
+    assert ev["timestamp"] == r["timestamp"] + "Z"
+
+
+def test_ordering_uses_instants_not_mixed_strings(netmon):
+    """A legacy space-format row must still sort by time, not by character."""
+    conn = netmon.sqlite3.connect(str(netmon.DB_PATH))
+    older = (_utc_now() - datetime.timedelta(minutes=20)).isoformat()
+    newer = (_utc_now() - datetime.timedelta(minutes=10)).strftime(
+        "%Y-%m-%d %H:%M:%S")
+    for ts, dev in ((older, "a-router"), (newer, "b-switch")):
+        conn.execute(
+            "INSERT INTO check_results (timestamp, device_name, host,"
+            " check_type, check_label, status) VALUES (?,?,?,?,?,?)",
+            (ts, dev, "10.0.0.5", "ping", "ping", "critical"))
+    conn.commit()
+    conn.close()
+    events = netmon.get_device_events()["events"]
+    assert [e["device"] for e in events] == ["a-router", "b-switch"]
+
+
+def test_unparseable_bound_is_a_400_not_an_empty_window(netmon, client):
+    resp = client.get("/api/integration/events?from=yesterday-ish")
+    assert resp.status_code == 400
+
+
+# --------------------------------------------------------------------------
+# Host scoping (review round 1, P2 x2)
+# --------------------------------------------------------------------------
+
+def test_host_filter_restricts_events(netmon):
+    _insert_result(netmon, "router", "ping", "critical", 20, host="10.0.0.5")
+    _insert_result(netmon, "nas", "ping", "critical", 20, host="10.0.0.9")
+    events = netmon.get_device_events(host_filter=["10.0.0.5"])["events"]
+    assert [e["host"] for e in events] == ["10.0.0.5"]
+
+    none = netmon.get_device_events(host_filter=["10.9.9.9"])["events"]
+    assert none == [], "an unknown host widened to every device"
+
+
+def test_steady_device_still_reports_its_host(netmon):
+    """No transitions is the healthy case, and the consumer still needs the host."""
+    with netmon._config_lock:
+        netmon._config["devices"] = [{"name": "router", "host": "10.0.0.5",
+                                      "checks": []}]
+    for minutes in (30, 20, 10):
+        _insert_result(netmon, "router", "ping", "ok", minutes)
+    result = netmon.get_device_events(start=_wire_bound(25),
+                                      device_filter=["router", "ghost"])
+    assert result["events"] == []
+    assert result["device_hosts"] == {"router": "10.0.0.5"}, (
+        "unknown devices must not appear; known ones must")
 
 
 # --------------------------------------------------------------------------

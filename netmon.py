@@ -3402,12 +3402,75 @@ def _device_hosts():
                 for d in _config.get("devices", []) or []}
 
 
+# --- Integration time contract ----------------------------------------------
+# NetMon stores naive UTC ISO timestamps (``datetime.now(UTC).isoformat()``,
+# with a ``T`` and sometimes microseconds). The integration feed speaks
+# timezone-aware UTC on the wire: query bounds may carry any offset (naive
+# bounds are taken as UTC, NetMon's own convention) and every emitted timestamp
+# ends in ``Z``. Rows are compared on their first 19 characters with any space
+# separator normalised to ``T``, so legacy rows and fractional seconds cannot
+# fall out of a window because of string ordering.
+_TS_SQL = "REPLACE(SUBSTR(timestamp, 1, 19), ' ', 'T')"
+
+
+def _parse_instant(value):
+    """Parse an ISO-8601 instant into naive UTC. Naive input is taken as UTC.
+
+    Returns None for empty input; raises ValueError for garbage so the route
+    can answer 400 instead of silently returning an empty window.
+    """
+    if value is None:
+        return None
+    if isinstance(value, datetime.datetime):
+        dt = value
+    else:
+        text = str(value).strip()
+        if not text:
+            return None
+        if text.endswith(("Z", "z")):
+            text = text[:-1] + "+00:00"
+        dt = datetime.datetime.fromisoformat(text)
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(datetime.UTC).replace(tzinfo=None)
+    return dt
+
+
+def _sql_bound(dt):
+    return dt.strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def _wire_timestamp(stored):
+    """Stored NetMon timestamp -> canonical ``YYYY-MM-DDTHH:MM:SS[.ffffff]Z``."""
+    try:
+        dt = _parse_instant(stored)
+    except (TypeError, ValueError):
+        return str(stored or "")
+    if dt is None:
+        return ""
+    return dt.isoformat() + "Z"
+
+
+def _resolve_host_filter(conn, host_filter, hosts):
+    """Device names a host filter refers to (configured host or observed host)."""
+    wanted = set(host_filter)
+    names = {name for name, host in hosts.items() if host in wanted}
+    placeholders = ",".join(["?"] * len(host_filter))
+    for row in conn.execute(
+            "SELECT DISTINCT device_name FROM check_results WHERE host IN (%s)"
+            % placeholders, list(host_filter)):
+        names.add(row[0])
+    return names
+
+
 def get_device_events(start=None, end=None, device_filter=None,
-                      limit=_EVENTS_DEFAULT_LIMIT):
+                      limit=_EVENTS_DEFAULT_LIMIT, host_filter=None):
     """Device state transitions and alerts in a time window.
 
-    Returns events sorted oldest first, each carrying the device host so a
-    consumer can line them up against log sources.
+    Returns events sorted oldest first (by parsed instant), each carrying the
+    device host so a consumer can line them up against log sources, plus
+    ``device_hosts`` for every requested device NetMon knows -- a device that
+    stayed healthy has no transitions, and the consumer still needs its host.
+    Timestamps are canonical UTC with a ``Z``; see the time contract above.
     """
     try:
         limit = int(limit)
@@ -3415,18 +3478,37 @@ def get_device_events(start=None, end=None, device_filter=None,
         limit = _EVENTS_DEFAULT_LIMIT
     limit = max(1, min(limit, _EVENTS_MAX_LIMIT))
     hosts = _device_hosts()
+    start_dt = _parse_instant(start)
+    end_dt = _parse_instant(end)
+    device_filter = list(device_filter or [])
+    host_filter = [h for h in (host_filter or []) if h]
+
+    device_hosts = {}
+    for name in device_filter:
+        if hosts.get(name):
+            device_hosts[name] = hosts[name]
 
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     try:
+        if host_filter:
+            # An explicit host is a restriction: narrow (never widen) the device
+            # set to the devices that actually live on those hosts.
+            by_host = _resolve_host_filter(conn, host_filter, hosts)
+            device_filter = ([d for d in device_filter if d in by_host]
+                             if device_filter else sorted(by_host))
+            if not device_filter:
+                return {"events": [], "truncated": False, "count": 0,
+                        "limit": limit, "device_hosts": device_hosts}
+
         where = []
         params = []
-        if start:
-            where.append("timestamp >= ?")
-            params.append(start)
-        if end:
-            where.append("timestamp <= ?")
-            params.append(end)
+        if start_dt:
+            where.append("%s >= ?" % _TS_SQL)
+            params.append(_sql_bound(start_dt))
+        if end_dt:
+            where.append("%s <= ?" % _TS_SQL)
+            params.append(_sql_bound(end_dt))
         if device_filter:
             placeholders = ",".join(["?"] * len(device_filter))
             where.append("device_name IN (%s)" % placeholders)
@@ -3436,9 +3518,9 @@ def get_device_events(start=None, end=None, device_filter=None,
         # The status a check was in *before* the window opened, so a transition
         # that happens on the first in-window row is not missed.
         previous = {}
-        if start:
-            pre_where = ["timestamp < ?"]
-            pre_params = [start]
+        if start_dt:
+            pre_where = ["%s < ?" % _TS_SQL]
+            pre_params = [_sql_bound(start_dt)]
             if device_filter:
                 placeholders = ",".join(["?"] * len(device_filter))
                 pre_where.append("device_name IN (%s)" % placeholders)
@@ -3471,7 +3553,7 @@ def get_device_events(start=None, end=None, device_filter=None,
                     continue
             events.append({
                 "type": "state_change",
-                "timestamp": row["timestamp"],
+                "timestamp": _wire_timestamp(row["timestamp"]),
                 "device": row["device_name"],
                 "host": row["host"] or hosts.get(row["device_name"], ""),
                 "check_type": row["check_type"],
@@ -3491,7 +3573,7 @@ def get_device_events(start=None, end=None, device_filter=None,
                 "%s ORDER BY id ASC" % alert_clause, alert_params):
             events.append({
                 "type": "alert",
-                "timestamp": row["timestamp"],
+                "timestamp": _wire_timestamp(row["timestamp"]),
                 "device": row["device_name"],
                 "host": hosts.get(row["device_name"], ""),
                 "check_type": row["check_type"],
@@ -3505,14 +3587,21 @@ def get_device_events(start=None, end=None, device_filter=None,
     finally:
         conn.close()
 
-    events.sort(key=lambda e: (e["timestamp"], e["device"]))
+    def _instant(ev):
+        try:
+            return _parse_instant(ev["timestamp"]) or datetime.datetime.min
+        except (TypeError, ValueError):
+            return datetime.datetime.min
+
+    events.sort(key=lambda e: (_instant(e), e["device"]))
     truncated = len(events) > limit
     if truncated:
         # Keep the newest when trimming: a timeline is read from the incident
         # backwards, so the oldest events are the ones that can be dropped.
         events = events[-limit:]
     return {"events": events, "truncated": truncated,
-            "count": len(events), "limit": limit}
+            "count": len(events), "limit": limit,
+            "device_hosts": device_hosts}
 
 
 def create_app():
@@ -3586,14 +3675,23 @@ def create_app():
         """Device state transitions for the shared incident timeline."""
         devices = request.args.get("device", "")
         device_filter = [d.strip() for d in devices.split(",") if d.strip()]
-        result = get_device_events(
-            start=request.args.get("from") or None,
-            end=request.args.get("to") or None,
-            device_filter=device_filter or None,
-            limit=request.args.get("limit", _EVENTS_DEFAULT_LIMIT))
+        host_arg = request.args.get("host", "")
+        host_filter = [h.strip() for h in host_arg.split(",") if h.strip()]
+        try:
+            result = get_device_events(
+                start=request.args.get("from") or None,
+                end=request.args.get("to") or None,
+                device_filter=device_filter or None,
+                host_filter=host_filter or None,
+                limit=request.args.get("limit", _EVENTS_DEFAULT_LIMIT))
+        except ValueError:
+            # A bound we cannot parse must not look like a quiet window.
+            return jsonify({"error": "from/to must be ISO-8601 timestamps, "
+                                     "e.g. 2026-09-22T17:00:00Z"}), 400
         result["source"] = "netmon"
-        result["generated_at"] = datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S")
+        result["time_contract"] = "utc-iso8601"
+        result["generated_at"] = datetime.datetime.now(
+            datetime.UTC).replace(tzinfo=None).isoformat() + "Z"
         return jsonify(result)
 
     @app.route("/api/status")
