@@ -37,9 +37,12 @@ RUN mkdir -p /app/data
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-# Default environment
-ENV NETMON_CONFIG=/app/config.yaml
+# Default environment -- everything mutable lives on the /app/data volume
+ENV NETMON_DATA_DIR=/app/data
+ENV NETMON_CONFIG=/app/data/config.yaml
 ENV NETMON_DB_PATH=/app/data/netmon.db
+ENV NETMON_BACKUP_DIR=/app/data/backups
+ENV NETMON_PLUGIN_DIR=/app/data/plugins
 
 EXPOSE 8080
 

@@ -21,6 +21,7 @@ import struct
 import sqlite3
 import smtplib
 import hashlib
+import shutil
 import hmac
 import logging
 import threading
@@ -67,8 +68,57 @@ except ImportError:
 # Globals
 # ---------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "netmon.db"
-DEFAULT_CFG = BASE_DIR / "config.yaml"
+
+
+def _resolve_path(env_var, default):
+    """Resolve a filesystem path from an environment variable.
+
+    Container deployments mount a volume and point these variables at it, so
+    the database, config and backups survive container replacement. When the
+    variable is unset we fall back to the historical layout next to the
+    script, which keeps bare-metal installs working unchanged.
+    """
+    raw = os.getenv(env_var)
+    if raw:
+        return Path(raw).expanduser()
+    return Path(default)
+
+
+DATA_DIR = _resolve_path("NETMON_DATA_DIR", BASE_DIR)
+DB_PATH = _resolve_path("NETMON_DB_PATH", DATA_DIR / "netmon.db")
+DEFAULT_CFG = _resolve_path("NETMON_CONFIG", DATA_DIR / "config.yaml")
+BACKUP_DIR = _resolve_path("NETMON_BACKUP_DIR", DATA_DIR / "backups")
+
+
+def _ensure_data_dirs():
+    """Create the data/backup directories and migrate legacy files into them.
+
+    Older images wrote netmon.db and config.yaml next to netmon.py (inside the
+    image layer, so they were lost on container replacement). If a data dir is
+    now configured and only the legacy copies exist, move them over once.
+    """
+    for directory in (DATA_DIR, DB_PATH.parent, DEFAULT_CFG.parent, BACKUP_DIR):
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            log.warning("Could not create directory %s: %s", directory, exc)
+
+    legacy_pairs = (
+        (BASE_DIR / "netmon.db", DB_PATH),
+        (BASE_DIR / "config.yaml", DEFAULT_CFG),
+    )
+    for legacy, target in legacy_pairs:
+        try:
+            if legacy.resolve() == target.resolve():
+                continue
+        except OSError:
+            continue
+        if legacy.is_file() and not target.exists():
+            try:
+                shutil.copy2(str(legacy), str(target))
+                log.info("Migrated %s -> %s", legacy, target)
+            except OSError as exc:
+                log.warning("Could not migrate %s: %s", legacy, exc)
 
 _config = {}
 _config_lock = threading.Lock()
@@ -1070,7 +1120,7 @@ def _send_generic_webhook(result, url):
 # ---------------------------------------------------------------------------
 # Custom Check Plugins (Enterprise)
 # ---------------------------------------------------------------------------
-PLUGIN_DIR = BASE_DIR / "plugins"
+PLUGIN_DIR = _resolve_path("NETMON_PLUGIN_DIR", BASE_DIR / "plugins")
 
 
 def run_plugin_check(device, check):
@@ -3662,7 +3712,7 @@ def create_app():
         import sqlite3 as _sqlite3
         ts = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).strftime("%Y%m%d_%H%M%S")
         buf = io.BytesIO()
-        tmp_db = DB_PATH.parent / ".netmon_backup_tmp.db"
+        tmp_db = BACKUP_DIR / ".netmon_backup_tmp.db"
         try:
             with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
                 # Database -- use SQLite backup API for a consistent snapshot
@@ -4275,6 +4325,9 @@ def create_app():
 
 def main():
     log.info("MyClover.Tech.netmon v5.7 starting...")
+    _ensure_data_dirs()
+    log.info("Data dir: %s | config: %s | db: %s | backups: %s",
+             DATA_DIR, DEFAULT_CFG, DB_PATH, BACKUP_DIR)
     _reload_config()
 
     with _config_lock:
