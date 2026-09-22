@@ -1815,7 +1815,13 @@ _AUTH_EXEMPT_ENDPOINTS = {
 
 # Explicit permission per endpoint. Anything not listed falls back to the
 # heuristic in _required_perm_for(): GET -> read, everything else -> write.
+# Endpoints that additionally accept the integration token (read-only).
+_INTEGRATION_TOKEN_ENDPOINTS = {
+    "api_integration_events",
+}
+
 _ENDPOINT_PERMS = {
+    "api_integration_events": "read",
     "api_auth_me": "read",
     "api_get_settings": "config",
     "api_update_settings": "config",
@@ -3358,6 +3364,157 @@ def run_security_scan(targets, scan_types, scan_id=None):
              scan_id, final_status, len(all_findings), len(targets))
     return {"scan_id": scan_id, "summary": summary}
 
+# --- Cross-product incident timeline -------------------------------------
+# SentryLog correlates its syslog messages against device state changes from
+# here. Only state *transitions* are exported, not every check result: a
+# timeline of "ping ok" every 60 seconds is noise, and the interesting question
+# is always what changed just before the logs got loud.
+
+_EVENTS_MAX_LIMIT = 5000
+_EVENTS_DEFAULT_LIMIT = 500
+
+
+def _integration_token():
+    with _config_lock:
+        return str((_config.get("integration", {}) or {}).get(
+            "read_token", "") or "")
+
+
+def _integration_token_ok():
+    """True when the request carries the configured integration token.
+
+    An empty configured token means the integration is off; it must never mean
+    "any request matches".
+    """
+    expected = _integration_token()
+    if not expected:
+        return False
+    provided = request.headers.get("X-Netmon-Integration-Token", "")
+    if not provided:
+        return False
+    return hmac.compare_digest(str(provided), expected)
+
+
+def _device_hosts():
+    """device name -> host, so the consumer can match logs by source IP."""
+    with _config_lock:
+        return {d.get("name", ""): d.get("host", "")
+                for d in _config.get("devices", []) or []}
+
+
+def get_device_events(start=None, end=None, device_filter=None,
+                      limit=_EVENTS_DEFAULT_LIMIT):
+    """Device state transitions and alerts in a time window.
+
+    Returns events sorted oldest first, each carrying the device host so a
+    consumer can line them up against log sources.
+    """
+    try:
+        limit = int(limit)
+    except (TypeError, ValueError):
+        limit = _EVENTS_DEFAULT_LIMIT
+    limit = max(1, min(limit, _EVENTS_MAX_LIMIT))
+    hosts = _device_hosts()
+
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.row_factory = sqlite3.Row
+    try:
+        where = []
+        params = []
+        if start:
+            where.append("timestamp >= ?")
+            params.append(start)
+        if end:
+            where.append("timestamp <= ?")
+            params.append(end)
+        if device_filter:
+            placeholders = ",".join(["?"] * len(device_filter))
+            where.append("device_name IN (%s)" % placeholders)
+            params.extend(device_filter)
+        clause = (" WHERE " + " AND ".join(where)) if where else ""
+
+        # The status a check was in *before* the window opened, so a transition
+        # that happens on the first in-window row is not missed.
+        previous = {}
+        if start:
+            pre_where = ["timestamp < ?"]
+            pre_params = [start]
+            if device_filter:
+                placeholders = ",".join(["?"] * len(device_filter))
+                pre_where.append("device_name IN (%s)" % placeholders)
+                pre_params.extend(device_filter)
+            for row in conn.execute(
+                    "SELECT cr.device_name, cr.check_label, cr.status "
+                    "FROM check_results cr INNER JOIN ("
+                    "  SELECT device_name, check_label, MAX(id) AS max_id"
+                    "  FROM check_results WHERE %s"
+                    "  GROUP BY device_name, check_label) latest"
+                    " ON cr.id = latest.max_id"
+                    % " AND ".join(pre_where), pre_params):
+                previous[(row["device_name"], row["check_label"])] = row["status"]
+
+        events = []
+        for row in conn.execute(
+                "SELECT timestamp, device_name, host, check_type, check_label,"
+                " status, response_ms, message FROM check_results"
+                "%s ORDER BY id ASC" % clause, params):
+            key = (row["device_name"], row["check_label"])
+            prior = previous.get(key)
+            if prior == row["status"]:
+                continue
+            previous[key] = row["status"]
+            if prior is None:
+                # First observation in the window with no prior state is a
+                # baseline, not a transition -- only report it if it is bad,
+                # otherwise every fresh database looks like a recovery storm.
+                if str(row["status"]).lower() in ("ok", "up"):
+                    continue
+            events.append({
+                "type": "state_change",
+                "timestamp": row["timestamp"],
+                "device": row["device_name"],
+                "host": row["host"] or hosts.get(row["device_name"], ""),
+                "check_type": row["check_type"],
+                "check_label": row["check_label"],
+                "status": row["status"],
+                "previous_status": prior or "",
+                "response_ms": row["response_ms"],
+                "message": row["message"] or "",
+            })
+
+        alert_where = list(where)
+        alert_params = list(params)
+        alert_clause = (" WHERE " + " AND ".join(alert_where)) if alert_where else ""
+        for row in conn.execute(
+                "SELECT timestamp, device_name, check_type, check_label, status,"
+                " message, acknowledged, acknowledged_by FROM alerts"
+                "%s ORDER BY id ASC" % alert_clause, alert_params):
+            events.append({
+                "type": "alert",
+                "timestamp": row["timestamp"],
+                "device": row["device_name"],
+                "host": hosts.get(row["device_name"], ""),
+                "check_type": row["check_type"],
+                "check_label": row["check_label"],
+                "status": row["status"],
+                "previous_status": "",
+                "message": row["message"] or "",
+                "acknowledged": bool(row["acknowledged"]),
+                "acknowledged_by": row["acknowledged_by"] or "",
+            })
+    finally:
+        conn.close()
+
+    events.sort(key=lambda e: (e["timestamp"], e["device"]))
+    truncated = len(events) > limit
+    if truncated:
+        # Keep the newest when trimming: a timeline is read from the incident
+        # backwards, so the oldest events are the ones that can be dropped.
+        events = events[-limit:]
+    return {"events": events, "truncated": truncated,
+            "count": len(events), "limit": limit}
+
+
 def create_app():
     app = Flask(__name__, template_folder=str(BASE_DIR / "templates"))
 
@@ -3371,6 +3528,11 @@ def create_app():
         """
         endpoint = request.endpoint
         if endpoint is None or endpoint in _AUTH_EXEMPT_ENDPOINTS:
+            return None
+        # SentryLog reads the event feed with a shared integration token. It is
+        # accepted only on that one read-only endpoint, so the token cannot be
+        # replayed against the rest of the API, and only when it is configured.
+        if endpoint in _INTEGRATION_TOKEN_ENDPOINTS and _integration_token_ok():
             return None
         _check_auth(_required_perm_for(endpoint, request.method))
         return None
@@ -3418,6 +3580,21 @@ def create_app():
         })
 
     # --- Status / History / Alerts ---
+
+    @app.route("/api/integration/events")
+    def api_integration_events():
+        """Device state transitions for the shared incident timeline."""
+        devices = request.args.get("device", "")
+        device_filter = [d.strip() for d in devices.split(",") if d.strip()]
+        result = get_device_events(
+            start=request.args.get("from") or None,
+            end=request.args.get("to") or None,
+            device_filter=device_filter or None,
+            limit=request.args.get("limit", _EVENTS_DEFAULT_LIMIT))
+        result["source"] = "netmon"
+        result["generated_at"] = datetime.datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S")
+        return jsonify(result)
 
     @app.route("/api/status")
     def api_status():
