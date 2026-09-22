@@ -3060,6 +3060,35 @@ document.querySelectorAll('.tab').forEach(function(tab) {
     });
 });
 
+// ===== Monitoring freshness banner =====
+// The monitoring loop reports when its last cycle finished. If we are more
+// than two intervals behind, say so instead of showing stale data silently.
+function updateFreshnessBanner() {
+    fetch('/api/monitoring-health').then(function(r){ return r.ok ? r.json() : null; }).then(function(h) {
+        var el = document.getElementById('freshness-banner');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'freshness-banner';
+            el.style.cssText = 'display:none;margin:8px 0;padding:8px 12px;border-radius:6px;font-size:13px;';
+            var host = document.querySelector('.content') || document.body;
+            host.insertBefore(el, host.firstChild);
+        }
+        if (!h) { el.style.display = 'none'; return; }
+        if (h.stale) {
+            var age = (h.seconds_since_last_cycle === null || h.seconds_since_last_cycle === undefined)
+                ? 'never completed' : Math.round(h.seconds_since_last_cycle) + 's ago';
+            el.style.background = '#4a2600'; el.style.color = '#ffb347';
+            el.textContent = 'Data may be stale - last monitoring cycle ' + age +
+                ' (interval ' + (h.interval_seconds || '?') + 's).';
+            el.style.display = 'block';
+        } else {
+            el.style.display = 'none';
+        }
+    }).catch(function(){});
+}
+setInterval(updateFreshnessBanner, 30000);
+updateFreshnessBanner();
+
 // ===== Status Tab =====
 function loadStatus() {
     console.log('[NetMon] loadStatus() called');
@@ -3083,6 +3112,7 @@ function loadStatus() {
         });
         buildStatusData(parentMap, statusMap);
         applyFilters();
+        updateFreshnessBanner();
         console.log('[NetMon] loadStatus complete');
     }).catch(function(err) {
         console.error('[NetMon] loadStatus error:', err);
