@@ -4178,7 +4178,11 @@ function loadSettings() {
         document.getElementById('set-smtp-port').value = s.smtp_port || 587;
         document.getElementById('set-smtp-tls').checked = s.use_tls !== false;
         document.getElementById('set-smtp-user').value = s.smtp_username || '';
-        document.getElementById('set-smtp-pass').value = s.smtp_password || '';
+        // The API never returns the stored SMTP password. Leave the field
+        // blank to keep the existing one; type a new value to replace it.
+        var passEl = document.getElementById('set-smtp-pass');
+        passEl.value = '';
+        passEl.placeholder = s.smtp_password_set ? '(unchanged - type to replace)' : '';
         document.getElementById('set-from-addr').value = s.from_addr || '';
         document.getElementById('set-recipients').value = (s.recipients || []).join(', ');
         document.getElementById('set-cooldown').value = s.cooldown_minutes || 15;

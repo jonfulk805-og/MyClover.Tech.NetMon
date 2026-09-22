@@ -39,6 +39,7 @@ import io
 import zipfile
 import glob as glob_mod
 import functools
+import shutil
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -67,8 +68,21 @@ except ImportError:
 # Globals
 # ---------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "netmon.db"
-DEFAULT_CFG = BASE_DIR / "config.yaml"
+
+
+def _env_path(name, default):
+    """Path from an environment variable, or a default. Empty means unset."""
+    val = os.environ.get(name, "").strip()
+    return Path(val).expanduser() if val else default
+
+
+# All persistent state lives under DATA_DIR so a single mounted volume
+# (docker: /app/data) survives container replacement.
+DATA_DIR = _env_path("NETMON_DATA_DIR", BASE_DIR)
+DB_PATH = _env_path("NETMON_DB_PATH", DATA_DIR / "netmon.db")
+DEFAULT_CFG = _env_path("NETMON_CONFIG", DATA_DIR / "config.yaml")
+BACKUP_DIR = _env_path("NETMON_BACKUP_DIR", DATA_DIR / "backups")
+SECRET_PATH = _env_path("NETMON_SECRET_FILE", DATA_DIR / "auth_secret.key")
 
 _config = {}
 _config_lock = threading.Lock()
@@ -78,6 +92,39 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+def _copy_if_missing(src, dst):
+    """Copy a legacy file into the data dir on first run. Never overwrites."""
+    try:
+        if src.resolve() == dst.resolve():
+            return False
+    except OSError:
+        pass
+    if src == dst or not src.exists() or dst.exists():
+        return False
+    try:
+        shutil.copy2(str(src), str(dst))
+        print("[OK] Migrated %s -> %s" % (src, dst))
+        return True
+    except OSError as exc:
+        print("[WARN] Could not migrate %s: %s" % (src, exc))
+        return False
+
+
+def ensure_data_dir():
+    """Create the data/backup dirs and migrate pre-volume installs once."""
+    for d in (DATA_DIR, BACKUP_DIR, DB_PATH.parent, DEFAULT_CFG.parent):
+        try:
+            d.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            print("[WARN] Cannot create %s: %s" % (d, exc))
+    _copy_if_missing(BASE_DIR / "netmon.db", DB_PATH)
+    for suffix in ("-wal", "-shm"):
+        _copy_if_missing(Path(str(BASE_DIR / "netmon.db") + suffix),
+                         Path(str(DB_PATH) + suffix))
+    _copy_if_missing(BASE_DIR / "config.yaml", DEFAULT_CFG)
+
+
+ensure_data_dir()
 log = logging.getLogger("netmon")
 
 # ---------------------------------------------------------------------------
@@ -273,8 +320,12 @@ def _sanitize_device(data):
 
 def _reload_config():
     global _config
+    migrated = False
     with _config_lock:
         _config = load_config()
+        if migrate_user_passwords(_config):
+            migrated = True
+            save_config(_config)
         # Load AI assistant config if present
         try:
             import ai_assistant as _ai_mod
@@ -283,6 +334,8 @@ def _reload_config():
                 _ai_mod.update_config(ai_cfg)
         except ImportError:
             pass
+    if migrated:
+        log.info("Migrated plaintext user passwords to PBKDF2 hashes")
     _load_license()
 
 
@@ -1301,8 +1354,103 @@ def generate_sla_csv(reports):
 # Simple JWT-like token auth. Users are stored in config.yaml.
 # Tokens are HMAC-SHA256 signed. No external dependencies.
 
-_AUTH_SECRET = b"netmon-auth-secret-2026"  # Change for production
 _AUTH_TOKEN_EXPIRY = 86400  # 24 hours
+_PBKDF2_ROUNDS = 200000
+_USERNAME_RE = re.compile(r"^[A-Za-z0-9._@-]{1,64}$")
+
+
+def _load_or_create_secret():
+    """Per-installation token signing secret, persisted in the data dir.
+
+    Never hard-coded: a fixed secret in public source lets anyone mint an
+    admin token. NETMON_AUTH_SECRET overrides (useful for multi-replica).
+    """
+    env = os.environ.get("NETMON_AUTH_SECRET", "").strip()
+    if env:
+        return env.encode("utf-8")
+    try:
+        if SECRET_PATH.exists():
+            data = SECRET_PATH.read_bytes().strip()
+            if len(data) >= 32:
+                return data
+        secret = secrets.token_hex(32).encode("ascii")
+        SECRET_PATH.parent.mkdir(parents=True, exist_ok=True)
+        SECRET_PATH.write_bytes(secret)
+        try:
+            os.chmod(str(SECRET_PATH), 0o600)
+        except OSError:
+            pass
+        log.info("Generated a new auth signing secret at %s", SECRET_PATH)
+        return secret
+    except OSError as exc:
+        log.warning("Cannot persist auth secret (%s) -- using an in-memory "
+                    "secret; sessions will not survive a restart", exc)
+        return secrets.token_hex(32).encode("ascii")
+
+
+_AUTH_SECRET = _load_or_create_secret()
+
+
+def hash_password(password, salt=None, rounds=_PBKDF2_ROUNDS):
+    """PBKDF2-SHA256 hash string: pbkdf2_sha256$rounds$salt$hex."""
+    salt = salt or secrets.token_hex(16)
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"),
+                             salt.encode("ascii"), rounds)
+    return "pbkdf2_sha256$%d$%s$%s" % (rounds, salt, dk.hex())
+
+
+def verify_password(password, stored):
+    """Verify a password against a stored hash. Plaintext is never accepted."""
+    if not stored or not isinstance(stored, str):
+        return False
+    parts = stored.split("$")
+    if len(parts) != 4 or parts[0] != "pbkdf2_sha256":
+        return False
+    try:
+        rounds = int(parts[1])
+    except ValueError:
+        return False
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"),
+                             parts[2].encode("ascii"), rounds)
+    return hmac.compare_digest(dk.hex(), parts[3])
+
+
+def migrate_user_passwords(cfg):
+    """Hash any plaintext `password:` entries in config. Returns True if changed.
+
+    Upgrade path for installs created before hashing existed.
+    """
+    changed = False
+    for user in cfg.get("users", []) or []:
+        if not isinstance(user, dict):
+            continue
+        plain = user.pop("password", None)
+        if plain not in (None, "") and not user.get("password_hash"):
+            user["password_hash"] = hash_password(str(plain))
+            changed = True
+        elif plain not in (None, ""):
+            changed = True  # dropped a redundant plaintext copy
+    return changed
+
+
+def _find_user(username):
+    with _config_lock:
+        for user in _config.get("users", []) or []:
+            if isinstance(user, dict) and user.get("username") == username:
+                return dict(user)
+    return None
+
+
+def _token_version(user):
+    """Fingerprint of the credentials a token was issued against.
+
+    Changing a role or password, or deleting the user, changes this value and
+    therefore invalidates every token already issued.
+    """
+    material = "%s|%s|%s" % (user.get("username", ""), user.get("role", ""),
+                             user.get("password_hash", ""))
+    return hmac.new(_AUTH_SECRET, material.encode("utf-8"),
+                    hashlib.sha256).hexdigest()[:12]
 
 # Roles: admin (full access), operator (can ack alerts, toggle maint),
 #         viewer (read-only)
@@ -1313,10 +1461,13 @@ AUTH_ROLES = {
 }
 
 
-def _generate_auth_token(username, role):
+def _generate_auth_token(username, role, version=None):
     """Generate a signed token for a user."""
     expires = int(time.time()) + _AUTH_TOKEN_EXPIRY
-    payload = "%s:%s:%d" % (username, role, expires)
+    if version is None:
+        user = _find_user(username) or {"username": username, "role": role}
+        version = _token_version(user)
+    payload = "%s:%s:%d:%s" % (username, role, expires, version)
     sig = hmac.new(_AUTH_SECRET, payload.encode("utf-8"),
                    hashlib.sha256).hexdigest()[:32]
     token = base64.urlsafe_b64encode(
@@ -1336,8 +1487,15 @@ def _validate_auth_token(token):
                                 hashlib.sha256).hexdigest()[:32]
         if not hmac.compare_digest(provided_sig, expected_sig):
             return None, None
-        username, role, expires_str = payload.split(":")
+        username, role, expires_str, version = payload.split(":")
         if int(expires_str) < int(time.time()):
+            return None, None
+        # Bind the token to the current credentials: deleting the user or
+        # changing their role/password invalidates outstanding tokens.
+        user = _find_user(username)
+        if not user or not hmac.compare_digest(version, _token_version(user)):
+            return None, None
+        if user.get("role", "viewer") != role:
             return None, None
         return username, role
     except Exception:
@@ -1352,8 +1510,12 @@ def _check_auth(required_perm="read"):
     with _config_lock:
         users = _config.get("users", [])
         auth_enabled = _config.get("auth_enabled", False)
-    if not auth_enabled or not users:
-        return ("admin", "admin")  # Auth disabled or no users = open access
+    if not auth_enabled:
+        return ("admin", "admin")  # Auth explicitly disabled = open access
+    if not users:
+        # Auth is on but every account is gone: fail closed rather than
+        # silently reopening the whole API.
+        abort(401)
 
     # Check Authorization header or cookie
     token = None
@@ -1374,6 +1536,45 @@ def _check_auth(required_perm="read"):
         abort(403)
 
     return (username, role)
+
+
+# Endpoints reachable without a token: the dashboard shell, static files and
+# the login/logout handlers. Everything else is protected by default.
+_AUTH_EXEMPT_ENDPOINTS = {
+    "static",
+    "dashboard",
+    "api_auth_login",
+    "api_auth_logout",
+}
+
+# Explicit permission per endpoint. Anything not listed falls back to the
+# heuristic in _required_perm_for(): GET -> read, everything else -> write.
+_ENDPOINT_PERMS = {
+    "api_auth_me": "read",
+    "api_get_settings": "config",
+    "api_update_settings": "config",
+    "api_test_email": "config",
+    "api_license": "read",
+    "api_activate_license": "config",
+    "api_backup": "config",
+    "api_restore": "config",
+}
+
+
+def _required_perm_for(endpoint, method):
+    """Map a Flask endpoint + method onto a required permission."""
+    if endpoint in _ENDPOINT_PERMS:
+        return _ENDPOINT_PERMS[endpoint]
+    name = endpoint or ""
+    if "user" in name:
+        return "users"
+    for token in ("setting", "config", "license", "backup", "restore",
+                  "plugin", "secret", "smtp", "webhook", "helpdesk"):
+        if token in name:
+            return "config"
+    if method in ("GET", "HEAD", "OPTIONS"):
+        return "read"
+    return "write"
 
 
 # ---------------------------------------------------------------------------
@@ -2621,6 +2822,20 @@ def run_security_scan(targets, scan_types, scan_id=None):
 def create_app():
     app = Flask(__name__, template_folder=str(BASE_DIR / "templates"))
 
+    @app.before_request
+    def _enforce_authorization():
+        """Central authorization gate.
+
+        Protected by default: a route has to be listed in
+        _AUTH_EXEMPT_ENDPOINTS to be reachable without a token, so adding a
+        new route cannot silently create an unauthenticated hole.
+        """
+        endpoint = request.endpoint
+        if endpoint is None or endpoint in _AUTH_EXEMPT_ENDPOINTS:
+            return None
+        _check_auth(_required_perm_for(endpoint, request.method))
+        return None
+
     @app.route("/")
     def dashboard():
         return render_template("dashboard.html")
@@ -3119,7 +3334,10 @@ def create_app():
             "smtp_port": smtp.get("smtp_port", 587),
             "use_tls": smtp.get("use_tls", True),
             "smtp_username": smtp.get("username", ""),
-            "smtp_password": smtp.get("password", ""),
+            # Never return the stored SMTP password. The UI shows whether
+            # one is set; submitting an empty value leaves it unchanged.
+            "smtp_password": "",
+            "smtp_password_set": bool(smtp.get("password", "")),
             "from_addr": smtp.get("from_addr", ""),
             "recipients": smtp.get("recipients", []),
             "cooldown_minutes": smtp.get("cooldown_minutes", 15),
@@ -3129,10 +3347,27 @@ def create_app():
     @app.route("/api/settings", methods=["PUT"])
     def api_update_settings():
         data = request.get_json(force=True)
+        if data.get("smtp_password", None) == "":
+            # Blank means "unchanged" -- the GET never reveals the stored value.
+            data = dict(data)
+            data.pop("smtp_password")
         with _config_lock:
             cfg = _config
             if "auth_enabled" in data:
-                cfg["auth_enabled"] = bool(data["auth_enabled"])
+                want = bool(data["auth_enabled"])
+                if want:
+                    admins = [u for u in cfg.get("users", []) or []
+                              if isinstance(u, dict)
+                              and u.get("role") == "admin"
+                              and u.get("password_hash")]
+                    if not admins:
+                        return jsonify({
+                            "error": "no_admin_user",
+                            "message": "Create an admin user before enabling "
+                                       "authentication, or you will lock "
+                                       "yourself out.",
+                        }), 400
+                cfg["auth_enabled"] = want
             if "check_interval_seconds" in data:
                 val = int(data["check_interval_seconds"])
                 if val < 5:
@@ -3328,9 +3563,11 @@ def create_app():
             users = _config.get("users", [])
 
         for u in users:
-            if u.get("username") == username and u.get("password") == password:
+            if u.get("username") != username:
+                continue
+            if verify_password(password, u.get("password_hash", "")):
                 role = u.get("role", "viewer")
-                token = _generate_auth_token(username, role)
+                token = _generate_auth_token(username, role, _token_version(u))
                 resp = jsonify({"token": token, "username": username,
                                 "role": role, "expires_in": _AUTH_TOKEN_EXPIRY})
                 resp.set_cookie("netmon_token", token, max_age=_AUTH_TOKEN_EXPIRY,
@@ -3370,12 +3607,19 @@ def create_app():
             return jsonify({"error": "Username and password required"}), 400
         if role not in AUTH_ROLES:
             return jsonify({"error": "Invalid role"}), 400
+        if not _USERNAME_RE.match(username):
+            return jsonify({"error": "Username may only contain letters, "
+                                     "digits and . _ @ -"}), 400
+        if len(password) < 8:
+            return jsonify({"error": "Password must be at least 8 characters"}), 400
         with _config_lock:
             users = _config.get("users", [])
             for u in users:
                 if u["username"] == username:
                     return jsonify({"error": "User already exists"}), 409
-            users.append({"username": username, "password": password, "role": role})
+            users.append({"username": username,
+                          "password_hash": hash_password(password),
+                          "role": role})
             _config["users"] = users
             save_config(_config)
         return jsonify({"status": "created", "username": username, "role": role})
@@ -3396,7 +3640,11 @@ def create_app():
                     if new_role:
                         u["role"] = new_role
                     if new_password:
-                        u["password"] = new_password
+                        if len(new_password) < 8:
+                            return jsonify({"error": "Password must be at "
+                                                     "least 8 characters"}), 400
+                        u["password_hash"] = hash_password(new_password)
+                        u.pop("password", None)
                     found = True
                     break
             if not found:
@@ -3409,7 +3657,18 @@ def create_app():
         _check_auth("users")
         with _config_lock:
             users = _config.get("users", [])
-            _config["users"] = [u for u in users if u["username"] != username]
+            remaining = [u for u in users if u.get("username") != username]
+            if len(remaining) == len(users):
+                return jsonify({"error": "User not found"}), 404
+            if _config.get("auth_enabled") and not [
+                    u for u in remaining
+                    if isinstance(u, dict) and u.get("role") == "admin"]:
+                return jsonify({
+                    "error": "last_admin",
+                    "message": "Cannot delete the last admin while "
+                               "authentication is enabled.",
+                }), 409
+            _config["users"] = remaining
             save_config(_config)
         return jsonify({"status": "deleted"})
 
