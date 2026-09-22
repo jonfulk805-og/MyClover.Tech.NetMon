@@ -231,6 +231,47 @@ def test_host_filter_restricts_events(netmon):
     assert none == [], "an unknown host widened to every device"
 
 
+def test_moved_device_host_filter_applies_before_the_limit(netmon):
+    """Round 2 P2: router moved .5 -> .9; host=.5 with limit=1 must still
+    return the .5 event rather than letting the newer .9 row take the slot."""
+    with netmon._config_lock:
+        netmon._config["devices"] = [{"name": "router", "host": "10.0.0.9",
+                                      "checks": []}]
+    _insert_result(netmon, "router", "ping", "ok", 50, host="10.0.0.5")
+    _insert_result(netmon, "router", "ping", "critical", 40, host="10.0.0.5")
+    _insert_result(netmon, "router", "ping", "ok", 10, host="10.0.0.9")
+    result = netmon.get_device_events(host_filter=["10.0.0.5"], limit=1,
+                                      start=_wire_bound(45), end=_wire_bound(0))
+    assert [(e["host"], e["status"]) for e in result["events"]] == [
+        ("10.0.0.5", "critical")]
+    assert result["truncated"] is False, "a filtered-out row counted as overflow"
+
+    # Transition state still spans the filtered row: the .9 recovery is a
+    # real critical -> ok change, not a first observation.
+    moved = netmon.get_device_events(host_filter=["10.0.0.9"],
+                                     start=_wire_bound(45), end=_wire_bound(0))
+    assert [(e["host"], e["status"], e["previous_status"])
+            for e in moved["events"]] == [("10.0.0.9", "ok", "critical")]
+
+
+def test_alert_host_is_the_host_at_fire_time(netmon):
+    """An alert raised while the device was on .5 belongs to .5, even though
+    the device is configured on .9 now."""
+    with netmon._config_lock:
+        netmon._config["devices"] = [{"name": "router", "host": "10.0.0.9",
+                                      "checks": []}]
+    _insert_result(netmon, "router", "ping", "critical", 40, host="10.0.0.5")
+    _insert_alert(netmon, "router", "critical", 39)
+    _insert_result(netmon, "router", "ping", "critical", 10, host="10.0.0.9")
+    _insert_alert(netmon, "router", "critical", 9)
+    old = netmon.get_device_events(host_filter=["10.0.0.5"], limit=1)
+    assert [(e["type"], e["host"]) for e in old["events"]] == [
+        ("alert", "10.0.0.5")]
+    new = netmon.get_device_events(host_filter=["10.0.0.9"])
+    assert [e["host"] for e in new["events"] if e["type"] == "alert"] == [
+        "10.0.0.9"]
+
+
 def test_steady_device_still_reports_its_host(netmon):
     """No transitions is the healthy case, and the consumer still needs the host."""
     with netmon._config_lock:

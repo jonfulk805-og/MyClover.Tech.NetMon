@@ -3481,6 +3481,7 @@ def get_device_events(start=None, end=None, device_filter=None,
     start_dt = _parse_instant(start)
     end_dt = _parse_instant(end)
     device_filter = list(device_filter or [])
+    wanted_hosts = None
     host_filter = [h for h in (host_filter or []) if h]
 
     device_hosts = {}
@@ -3494,6 +3495,7 @@ def get_device_events(start=None, end=None, device_filter=None,
         if host_filter:
             # An explicit host is a restriction: narrow (never widen) the device
             # set to the devices that actually live on those hosts.
+            wanted_hosts = set(host_filter)
             by_host = _resolve_host_filter(conn, host_filter, hosts)
             device_filter = ([d for d in device_filter if d in by_host]
                              if device_filter else sorted(by_host))
@@ -3545,6 +3547,13 @@ def get_device_events(start=None, end=None, device_filter=None,
             if prior == row["status"]:
                 continue
             previous[key] = row["status"]
+            row_host = row["host"] or hosts.get(row["device_name"], "")
+            # Transition state above is tracked across *every* row of the
+            # device, so a filtered-out row still counts as the prior state.
+            # The host test happens here, before the limit is applied, so a
+            # device that moved IPs cannot push matching events off the cap.
+            if wanted_hosts is not None and row_host not in wanted_hosts:
+                continue
             if prior is None:
                 # First observation in the window with no prior state is a
                 # baseline, not a transition -- only report it if it is bad,
@@ -3555,7 +3564,7 @@ def get_device_events(start=None, end=None, device_filter=None,
                 "type": "state_change",
                 "timestamp": _wire_timestamp(row["timestamp"]),
                 "device": row["device_name"],
-                "host": row["host"] or hosts.get(row["device_name"], ""),
+                "host": row_host,
                 "check_type": row["check_type"],
                 "check_label": row["check_label"],
                 "status": row["status"],
@@ -3571,11 +3580,29 @@ def get_device_events(start=None, end=None, device_filter=None,
                 "SELECT timestamp, device_name, check_type, check_label, status,"
                 " message, acknowledged, acknowledged_by FROM alerts"
                 "%s ORDER BY id ASC" % alert_clause, alert_params):
+            # alerts has no host column: use the host the check was running
+            # against when the alert fired, not the device's current host.
+            try:
+                fired = _parse_instant(row["timestamp"])
+            except (TypeError, ValueError):
+                fired = None
+            hrow = None
+            if fired is not None:
+                hrow = conn.execute(
+                    "SELECT host FROM check_results WHERE device_name = ?"
+                    " AND check_label IS ? AND host != '' AND %s <= ?"
+                    " ORDER BY id DESC LIMIT 1" % _TS_SQL,
+                    (row["device_name"], row["check_label"],
+                     _sql_bound(fired))).fetchone()
+            alert_host = (hrow["host"] if hrow else "") or hosts.get(
+                row["device_name"], "")
+            if wanted_hosts is not None and alert_host not in wanted_hosts:
+                continue
             events.append({
                 "type": "alert",
                 "timestamp": _wire_timestamp(row["timestamp"]),
                 "device": row["device_name"],
-                "host": hosts.get(row["device_name"], ""),
+                "host": alert_host,
                 "check_type": row["check_type"],
                 "check_label": row["check_label"],
                 "status": row["status"],

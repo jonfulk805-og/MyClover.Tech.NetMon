@@ -60,7 +60,12 @@ def test_state_survives_container_replacement(tmp_path):
 def test_legacy_install_is_migrated_once(tmp_path, monkeypatch):
     """A pre-volume install keeps its data when the env vars appear."""
     legacy_db = tmp_path / "legacy.db"
-    sqlite3.connect(str(legacy_db)).execute("CREATE TABLE t (a)")
+    # Close explicitly: Windows cannot rename a file SQLite still holds open
+    # (WinError 32), and CPython does not promise the handle is freed on GC.
+    conn = sqlite3.connect(str(legacy_db))
+    conn.execute("CREATE TABLE t (a)")
+    conn.commit()
+    conn.close()
     volume = tmp_path / "vol"
     volume.mkdir()
     (volume / "config.yaml").write_text(DEFAULT_CONFIG, encoding="utf-8")
