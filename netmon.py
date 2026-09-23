@@ -4190,8 +4190,35 @@ def create_app():
             "from_addr": smtp.get("from_addr", ""),
             "recipients": smtp.get("recipients", []),
             "cooldown_minutes": smtp.get("cooldown_minutes", 15),
+            # Like the SMTP password, the integration token is never returned
+            # here; it is shown once, when it is generated.
+            "integration_read_token_set": bool(
+                (cfg.get("integration", {}) or {}).get("read_token", "")),
         }
         return jsonify(settings)
+
+    @app.route("/api/settings/integration-token", methods=["POST"])
+    def api_settings_integration_token():
+        """Generate or clear the SentryLog read token from the Settings page.
+
+        The new token is returned once so it can be pasted into SentryLog;
+        GET /api/settings only ever says whether one is set.
+        """
+        data = request.get_json(silent=True) or {}
+        action = str(data.get("action", "")).strip().lower()
+        if action not in ("generate", "clear"):
+            return jsonify({"error": "action must be 'generate' or 'clear'"}), 400
+        token = secrets.token_urlsafe(32) if action == "generate" else ""
+        with _config_lock:
+            integ = _config.get("integration")
+            if not isinstance(integ, dict):
+                integ = {}
+                _config["integration"] = integ
+            integ["read_token"] = token
+            save_config(_config)
+        if action == "generate":
+            return jsonify({"ok": True, "read_token": token})
+        return jsonify({"ok": True})
 
     @app.route("/api/settings", methods=["PUT"])
     def api_update_settings():

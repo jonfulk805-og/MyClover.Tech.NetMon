@@ -1406,6 +1406,26 @@ a.port-link:hover {
     </div>
     <div style="margin-top:20px;">
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+            <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">SentryLog Integration (Incident Timeline)</h3>
+            <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">
+                Lets SentryLog read device up/down events (read-only) for its Incident Timeline.
+                Generate a token, copy it, and paste it into SentryLog &rarr; Settings &rarr; Netmon Integration &rarr; Read Token.
+                The token is shown only once; generating a new one replaces the old one.
+            </div>
+            <div style="font-size:13px;margin-bottom:10px;">Status: <span id="integ-token-status">-</span></div>
+            <div id="integ-token-reveal" style="display:none;margin-bottom:10px;">
+                <div style="display:flex;gap:8px;">
+                    <input type="text" id="integ-token-value" readonly style="flex:1;font-family:monospace;">
+                    <button class="btn btn-ghost btn-sm" onclick="copyIntegrationToken()">Copy</button>
+                </div>
+                <div id="integ-token-copied" style="font-size:12px;color:var(--status-ok);margin-top:4px;"></div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="integrationToken('generate')" id="integ-token-gen-btn">Generate Token</button>
+            <button class="btn btn-ghost btn-sm" onclick="integrationToken('clear')" style="margin-left:6px;">Disable</button>
+        </div>
+    </div>
+    <div style="margin-top:20px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
             <h3 style="color:var(--text-body);font-size:14px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">Helpdesk / PSA Integration (Pro+)</h3>
             <div class="form-group" style="margin-bottom:14px;">
                 <label>Provider</label>
@@ -4216,6 +4236,7 @@ function loadSettings() {
         document.getElementById('set-from-addr').value = s.from_addr || '';
         document.getElementById('set-recipients').value = (s.recipients || []).join(', ');
         document.getElementById('set-cooldown').value = s.cooldown_minutes || 15;
+        showIntegrationTokenStatus(!!s.integration_read_token_set);
         document.getElementById('settings-saved-msg').style.display = 'none';
         document.getElementById('settings-error-msg').style.display = 'none';
         // Auth settings
@@ -4369,6 +4390,45 @@ function saveSettings() {
     .then(function(r) { if (!r.ok) return r.json().then(function(e){ throw new Error(e.error || 'Error'); }); return r.json(); })
     .then(function() { document.getElementById('settings-saved-msg').style.display = 'block'; document.getElementById('settings-error-msg').style.display = 'none'; setTimeout(function(){ document.getElementById('settings-saved-msg').style.display = 'none'; }, 4000); })
     .catch(function(e) { document.getElementById('settings-error-msg').textContent = 'Error: ' + e.message; document.getElementById('settings-error-msg').style.display = 'block'; });
+}
+
+function showIntegrationTokenStatus(isSet) {
+    var st = document.getElementById('integ-token-status');
+    st.textContent = isSet ? 'Token set - SentryLog can read events' : 'Off (no token)';
+    st.style.color = isSet ? 'var(--status-ok)' : 'var(--text-dim)';
+    document.getElementById('integ-token-gen-btn').textContent = isSet ? 'Regenerate Token' : 'Generate Token';
+}
+
+function integrationToken(action) {
+    if (action === 'generate' && document.getElementById('integ-token-gen-btn').textContent.indexOf('Regenerate') === 0 &&
+        !confirm('Replace the current token? SentryLog will stop reading events until you paste the new one there.')) return;
+    if (action === 'clear' && !confirm('Disable the SentryLog integration token?')) return;
+    fetch('/api/settings/integration-token', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: action}) })
+    .then(function(r) { if (!r.ok) return r.json().then(function(e){ throw new Error(e.error || 'Error'); }); return r.json(); })
+    .then(function(d) {
+        var reveal = document.getElementById('integ-token-reveal');
+        document.getElementById('integ-token-copied').textContent = '';
+        if (d.read_token) {
+            document.getElementById('integ-token-value').value = d.read_token;
+            reveal.style.display = 'block';
+        } else {
+            document.getElementById('integ-token-value').value = '';
+            reveal.style.display = 'none';
+        }
+        showIntegrationTokenStatus(!!d.read_token);
+    })
+    .catch(function(e) { alert('Error: ' + e.message); });
+}
+
+function copyIntegrationToken() {
+    var el = document.getElementById('integ-token-value');
+    var msg = document.getElementById('integ-token-copied');
+    var done = function() { msg.textContent = 'Copied. Paste it into SentryLog Settings now - it will not be shown again.'; };
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(el.value).then(done, function() { el.select(); document.execCommand('copy'); done(); });
+    } else {
+        el.select(); document.execCommand('copy'); done();
+    }
 }
 
 function testEmail() {
