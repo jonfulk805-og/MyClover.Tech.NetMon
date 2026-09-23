@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MyClover.Tech.netmon v5.7 - Network Monitoring System
+MyClover.Tech.netmon v5.8 - Network Monitoring System
 Features: ICMP ping, TCP port, HTTP, SNMP checks; email alerts;
           Flask dashboard with device CRUD, links/notes, maintenance mode,
           device detail drawer, status filters/search,
@@ -5382,7 +5382,7 @@ def create_app():
 # ---------------------------------------------------------------------------
 
 def main():
-    log.info("MyClover.Tech.netmon v5.7 starting...")
+    log.info("MyClover.Tech.netmon v5.8 starting...")
     _reload_config()
 
     with _config_lock:

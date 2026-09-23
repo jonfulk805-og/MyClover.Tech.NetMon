@@ -1,5 +1,51 @@
 # Upgrading NetMon
 
+Two changes land together: the **5.8 hardening release** (persistence,
+authorization, SLA accuracy) and the **incident timeline feed** that
+SentryLog reads. Both are below. Start with the checklist.
+
+## Upgrade checklist
+
+1. **Back up first.** Copy `netmon.db` and `config.yaml` from wherever your
+   current install keeps them (beside `netmon.py`, or `/app/data` if you had
+   already moved them). The upgrade rewrites `config.yaml` (see section 2), so
+   this copy is also your rollback.
+2. **Write down every user's password.** Plaintext passwords get hashed and
+   removed from the file on first start. Hashes can't be turned back into
+   passwords.
+3. **Install the CI workflow** (once per repo). The new file replaces the
+   existing one, so use `-f`:
+   ```bash
+   git mv -f deploy/github-workflow-publish.yml .github/workflows/docker-publish.yml
+   git commit -m "CI: run tests before publishing the image" && git push
+   ```
+   From then on the Docker image is only published when the test suite passes.
+4. **Replace the container**, then check persistence:
+   ```bash
+   docker compose pull && docker compose up -d
+   docker exec <container> ls -la /app/data      # netmon.db, config.yaml, auth_secret.key
+   docker compose down && docker compose up -d   # destroy and recreate
+   ```
+   Your devices, users and history must still be there after the second `up`.
+5. **Log in again** (everyone is logged out once).
+6. **Look at HTTPS checks.** Internal hosts with a self-signed or private-CA
+   certificate now report failures until you add `ca_bundle` or
+   `verify_tls: false` to them (section 4).
+7. **Expect SLA numbers to change.** The old numbers were wrong (section 5).
+8. **If you use SentryLog's incident timeline**, set `integration.read_token`
+   (section 7). Upgrade NetMon before SentryLog. An older NetMon has no feed,
+   and SentryLog shows that as an error on the timeline tab.
+
+**Never delete `/app/data/auth_secret.key`.** It signs login tokens, and
+deleting it logs everyone out again.
+
+### Rolling back
+
+Older builds read `netmon.db` / `config.yaml` from beside `netmon.py`, not
+from `/app/data`, and they can't read hashed passwords. To roll back, restore
+the files you backed up in step 1 to the old location and start the old image.
+Data recorded after the upgrade stays in `/app/data`, untouched.
+
 ## 5.8 - persistence, authorization, SLA accuracy
 
 This release changes where data lives, how credentials are stored and how
@@ -92,3 +138,53 @@ The cycle now starts every `check_interval_seconds` from the previous start
 (no drift); overruns are logged. `/api/monitoring-health` reports last cycle,
 drift, notification queue depth and a `stale` flag, and `/api/status` marks
 each row with `age_seconds` / `stale`.
+
+`max_cycle_seconds` sets the per-cycle deadline. Checks that are still running
+at the deadline are not waited for: their results are picked up by the next
+cycle (`checks_recovered_late`). A check still in flight is not submitted again
+(`checks_skipped_inflight`).
+
+Cancelling a maintenance window now records `cancelled_at` (a new column,
+added automatically on start). A cancelled window excuses downtime only up to
+the moment it was cancelled.
+
+## Incident timeline feed (for SentryLog)
+
+### 7. New read-only endpoint: `GET /api/integration/events`
+
+SentryLog's Incident Timeline tab pulls device state changes and alerts from
+NetMon and interleaves them with its logs. Nothing changes for installs that
+don't use it.
+
+Setting up:
+
+```yaml
+# NetMon config.yaml
+integration:
+  read_token: "<long random string>"
+# generate: python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Put the same value in SentryLog's `netmon_integration.read_token`. The token is
+sent in the `X-Netmon-Integration-Token` header, and it only works on this one
+endpoint, for reads. It can't be replayed against the rest of the API. With
+`read_token` left empty the endpoint requires a normal user token, like every
+other route.
+
+What it returns: state *transitions* (not every check row) and alerts, oldest
+first, each with the device `host`. Also `device_hosts` (name -> host for every
+requested device NetMon knows, including healthy ones with no transitions) and
+`truncated`. Query parameters: `from`, `to`, `device`, `host`, `limit`
+(default 500, max 5000).
+
+### 8. Time contract: UTC on the wire
+
+- NetMon stores check times as naive UTC. The feed emits every timestamp as
+  UTC with a trailing `Z`.
+- `from` / `to` are ISO-8601. Offsets are honoured, and a bound with no offset
+  is read as UTC.
+- A bound that can't be parsed returns `400`, not a silently empty result.
+- `host` only ever narrows the result. It is matched against each event's
+  own host *before* the limit is applied. So after a device changes IP,
+  asking for the old IP still returns the events recorded on it. Alerts take
+  the host the check was running against when the alert fired.
