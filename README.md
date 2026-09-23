@@ -236,6 +236,43 @@ See [FEATURES.md](FEATURES.md) for the complete endpoint reference.
 
 ---
 
+## SentryLog Incident Timeline (integration)
+
+NetMon can export device state changes to [SentryLog](https://github.com/jonfulk805-og/myclover.tech.sentrylog),
+which interleaves them with syslog messages from the same host. The result answers
+the question neither tool can answer alone: *the switch went critical at 02:14 —
+what was it saying at 02:13?*
+
+**Enable it** in `config.yaml`:
+
+```yaml
+integration:
+  read_token: "paste-a-long-random-string-here"   # python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Then set the same value as `netmon_integration.read_token` in SentryLog and flip
+`netmon_integration.enabled: true`.
+
+**`GET /api/integration/events`** — `from`, `to`, `device` and `host` (comma
+separated), `limit` (default 500, max 5000). Returns state *transitions* and
+alerts, oldest first, each with the device `host`, plus `device_hosts` (name →
+host for every requested device NetMon knows, even one that stayed healthy) and
+`truncated`. Repeated identical check results are not events. `host` narrows the
+result; it never widens it.
+
+**Time contract:** UTC on the wire. `from`/`to` are ISO-8601; any offset is
+honoured, and a bound without one is taken as UTC. Every emitted timestamp ends
+in `Z`. An unparseable bound is a `400`, not an empty window.
+
+Security notes worth knowing before you enable it:
+
+- The token is accepted on **this endpoint only**, and only for reads. It is not
+  a general API credential and will be rejected everywhere else.
+- An empty `read_token` means the feed is **off** (it falls back to requiring a
+  normal user token) — it never means "any token matches".
+- Put NetMon and SentryLog on the same trusted network, or terminate TLS in front
+  of them. The token is a bearer secret in a header.
+
 ## Tech Stack
 
 | Component | Technology |

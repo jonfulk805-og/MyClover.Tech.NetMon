@@ -172,3 +172,11 @@ devices:
         label: "ICMP"
         warning_ms: 30
         critical_ms: 150
+
+# Integration feed for SentryLog's shared incident timeline.
+# read_token is a shared secret that grants read-only access to
+# /api/integration/events and nothing else. Empty = the feed requires a normal
+# user token like every other endpoint.
+# Generate: python -c "import secrets; print(secrets.token_urlsafe(32))"
+integration:
+  read_token: ""
