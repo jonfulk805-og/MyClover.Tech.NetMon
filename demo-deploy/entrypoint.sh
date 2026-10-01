@@ -12,7 +12,7 @@ if [ -z "${NETMON_DEMO_PASSWORD:-}" ]; then
     echo "[WARN] NETMON_DEMO_PASSWORD not set -- generated one for this run: ${NETMON_DEMO_PASSWORD}"
     echo "[WARN] Set it in /opt/netmon-demo/.env so it survives restarts."
 fi
-NETMON_DEMO_PASSWORD="$NETMON_DEMO_PASSWORD" python - <<'PYEOF'
+NETMON_DEMO_PASSWORD="$NETMON_DEMO_PASSWORD" NETMON_DEMO_LICENSE_KEY="${NETMON_DEMO_LICENSE_KEY:-}" python - <<'PYEOF'
 import hashlib, os, secrets, yaml
 path = "config.yaml"
 with open(path, encoding="utf-8") as f:
@@ -27,6 +27,10 @@ for u in users:
         u.pop("password", None)
         u["password_hash"] = "pbkdf2_sha256$%d$%s$%s" % (rounds, salt, dk.hex())
 cfg["users"] = users
+# Optional: a signed demo license from the VPS .env (keeps signed keys out of the repo).
+lic = os.environ.get("NETMON_DEMO_LICENSE_KEY", "").strip()
+if lic:
+    cfg["license_key"] = lic
 with open(path, "w", encoding="utf-8") as f:
     yaml.safe_dump(cfg, f, sort_keys=False)
 print("[OK] Demo login password applied for user 'demo'")
