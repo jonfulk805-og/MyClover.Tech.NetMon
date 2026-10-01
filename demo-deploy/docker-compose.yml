@@ -1,6 +1,6 @@
 # MyClover.Tech Suite - Live Demo Stack (Traefik Edition)
 # Usage: docker compose up -d
-# NetMon Demo:    https://demo.myclover.tech     (demo / TryNetMon2026)
+# NetMon Demo:    https://demo.myclover.tech     (user: demo, password: NETMON_DEMO_PASSWORD in .env)
 # SentryLog Demo: https://logs.demo.myclover.tech
 #
 # Traefik (already running on VPS) handles SSL + routing automatically.
@@ -23,6 +23,8 @@ services:
     environment:
       - DEMO_MODE=true
       - DEMO_DB_PATH=/app/netmon.db
+      - NETMON_DEMO_PASSWORD=${NETMON_DEMO_PASSWORD:-}
+      - NETMON_DEMO_LICENSE_KEY=${NETMON_DEMO_LICENSE_KEY:-}
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - AI_MODEL=phi3.5
     healthcheck:

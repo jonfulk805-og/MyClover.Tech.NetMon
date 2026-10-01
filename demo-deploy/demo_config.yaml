@@ -9,9 +9,11 @@
 license_key: "ENT-DEMO2026-1E5178571A318BFD"
 
 # Demo user authentication
+# No password is stored here (this repo is public). entrypoint.sh sets the
+# password_hash at container start from NETMON_DEMO_PASSWORD, which setup.sh
+# generates into /opt/netmon-demo/.env.
 users:
   - username: demo
-    password: TryNetMon2026
     role: admin
 
 # Disable outbound notifications (demo safety)
