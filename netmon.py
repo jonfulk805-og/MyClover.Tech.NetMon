@@ -124,6 +124,8 @@ def ensure_data_dir():
         _copy_if_missing(Path(str(BASE_DIR / "netmon.db") + suffix),
                          Path(str(DB_PATH) + suffix))
     _copy_if_missing(BASE_DIR / "config.yaml", DEFAULT_CFG)
+    # Fresh install: start from the tracked template (config.yaml is gitignored).
+    _copy_if_missing(BASE_DIR / "config.example.yaml", DEFAULT_CFG)
 
 
 ensure_data_dir()

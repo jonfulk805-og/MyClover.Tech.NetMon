@@ -23,11 +23,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY netmon.py .
-COPY config.yaml ./config.yaml.default
+COPY config.example.yaml ./config.yaml.default
 COPY ai_assistant.py .
 COPY stripe_handler.py .
 COPY license_signing.py .
-COPY stripe_config.yaml ./stripe_config.yaml.default
+COPY stripe_config.example.yaml ./stripe_config.yaml.default
 COPY templates/ ./templates/
 COPY plugins/ ./plugins/
 

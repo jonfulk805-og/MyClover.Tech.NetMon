@@ -99,7 +99,7 @@ docker compose up -d
 
 ### Custom Configuration
 
-Mount your own `config.yaml` to customize devices and settings:
+Copy `config.example.yaml` to `config.yaml` (gitignored, never commit it) and mount it to customize devices and settings:
 
 ```bash
 docker run -d \
@@ -127,7 +127,14 @@ pip install -r requirements.txt
 
 ### 2. Configure your devices
 
-Edit `config.yaml` to add your network devices:
+Copy the template, then edit `config.yaml` (it is gitignored, so your passwords and keys never get committed). NetMon also does this copy itself on first run:
+
+```bash
+cp config.example.yaml config.yaml
+cp stripe_config.example.yaml stripe_config.yaml   # only if you run stripe_handler.py
+```
+
+Add your network devices:
 
 ```yaml
 devices:
@@ -366,8 +373,8 @@ Run directly or set up as a Windows Service using [NSSM](https://nssm.cc/).
 myclover.tech.netmon/
 ├── netmon.py              # Main application (3,400+ lines)
 ├── stripe_handler.py      # Stripe payment integration
-├── config.yaml            # Monitoring configuration
-├── stripe_config.yaml     # Stripe/payment configuration
+├── config.example.yaml        # Monitoring config template (copy to config.yaml, gitignored)
+├── stripe_config.example.yaml # Stripe config template (copy to stripe_config.yaml, gitignored)
 ├── requirements.txt       # Python dependencies
 ├── FEATURES.md            # Detailed feature documentation
 ├── plugins/               # Custom check plugins
