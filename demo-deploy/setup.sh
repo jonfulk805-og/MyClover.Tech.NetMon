@@ -63,6 +63,22 @@ for f in Dockerfile Dockerfile.sentrylog docker-compose.yml \
 done
 chmod +x "$INSTALL_DIR/reset-demo.sh" "$INSTALL_DIR/entrypoint.sh" "$INSTALL_DIR/sentrylog_entrypoint.sh"
 
+# Demo login password: never in the repo. Kept in $INSTALL_DIR/.env (0600),
+# which docker compose reads automatically. Re-running setup keeps it unless
+# you pass a new one: NETMON_DEMO_PASSWORD='...' sudo ./setup.sh
+ENV_FILE="$INSTALL_DIR/.env"
+touch "$ENV_FILE" && chmod 600 "$ENV_FILE"
+if [ -z "${NETMON_DEMO_PASSWORD:-}" ]; then
+    NETMON_DEMO_PASSWORD="$(grep -E '^NETMON_DEMO_PASSWORD=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
+fi
+if [ -z "${NETMON_DEMO_PASSWORD:-}" ]; then
+    NETMON_DEMO_PASSWORD="$(python3 -c 'import secrets; print(secrets.token_urlsafe(9))' 2>/dev/null || openssl rand -base64 12 | tr -d '/+=')"
+fi
+grep -vE '^NETMON_DEMO_PASSWORD=' "$ENV_FILE" > "$ENV_FILE.tmp" || true
+echo "NETMON_DEMO_PASSWORD=$NETMON_DEMO_PASSWORD" >> "$ENV_FILE.tmp"
+mv -f "$ENV_FILE.tmp" "$ENV_FILE" && chmod 600 "$ENV_FILE"
+echo -e "${GREEN}[OK]${NC} Demo password stored in $ENV_FILE"
+
 # Copy NetMon app source
 if [ -d "$INSTALL_DIR/app" ]; then
     echo -e "${YELLOW}Updating existing NetMon app source...${NC}"
@@ -214,7 +230,8 @@ echo "============================================${NC}"
 echo ""
 echo "  NetMon Demo:    https://demo.myclover.tech"
 echo "  SentryLog Demo: https://logs.demo.myclover.tech"
-echo "  Login:          demo / TryNetMon2026"
+echo "  Login:          demo / ${NETMON_DEMO_PASSWORD}"
+echo "                  (stored in $INSTALL_DIR/.env -- edit + 'docker compose up -d' to change)"
 echo ""
 echo "  Traefik handles SSL automatically via"
 echo "  Let's Encrypt for both subdomains."
