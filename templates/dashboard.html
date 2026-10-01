@@ -1509,7 +1509,7 @@ a.port-link:hover {
             <div class="form-group" style="margin-bottom:12px;">
                 <label>License Key</label>
                 <div style="display:flex;gap:8px;">
-                    <input type="text" id="set-license-key" placeholder="PRO-XXXXXXXX-YYYYYYYYYYYYYYYY" style="flex:1;font-family:monospace;">
+                    <input type="text" id="set-license-key" placeholder="PRO-XXXXXXXX-SIGNATURE (long -- paste the whole key)" style="flex:1;font-family:monospace;">
                     <button class="btn btn-primary btn-sm" onclick="activateLicense()" id="activate-license-btn">Activate</button>
                 </div>
             </div>
@@ -2425,7 +2425,7 @@ devices:
             </ul>
 
             <h4>License key not accepted</h4>
-            <p>Copy your full license key exactly as received, including all dashes. Keys are case-sensitive.</p>
+            <p>Copy your full license key exactly as received, including all dashes. Keys are long (about 120 characters); paste the whole line.</p>
 
             <h4>Database errors or corruption</h4>
             <p>Stop netmon, rename/delete <code>netmon.db</code>, and restart. A fresh database will be created automatically. Note: this resets all history data.</p>

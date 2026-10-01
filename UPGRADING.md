@@ -1,5 +1,37 @@
 # Upgrading NetMon
 
+## License signing moved to Ed25519 (October 2026)
+
+The old license secret was hard-coded in `netmon.py` and `stripe_handler.py`.
+Both files are public, so anyone could mint Pro/Enterprise keys. A new shared
+secret would leak the same way, because `netmon.py` has to ship with whatever
+it checks keys against. So the scheme itself is replaced:
+
+- `netmon.py` now holds only an Ed25519 **public** key. Keys can be checked
+  with it, but not created.
+- The **private** key lives in `license_signing_key.pem` (gitignored) or in
+  `NETMON_LICENSE_SIGNING_KEY`. It is never committed.
+- Keys made with the old secret (16-character signature) are **rejected**.
+  The old secret is still in git history, but it no longer unlocks anything.
+
+Do this once, on your own machine (not the NAS), from the repo folder:
+
+```bash
+git pull
+pip install cryptography
+python generate_key.py --init        # creates license_signing_key.pem + edits netmon.py
+git add netmon.py && git commit -m "Embed license public key" && git push
+```
+
+Back up `license_signing_key.pem` offline right away. If you lose it, you can't
+issue keys that netmon accepts. Then rebuild the container and issue yourself
+a key with `python generate_key.py --tier ent --id <8 hex chars>`.
+
+Until `--init` has been run and the container rebuilt, the shipped public key
+is empty, so **every install runs Community tier** (fails closed).
+
+---
+
 Two changes land together: the **5.8 hardening release** (persistence,
 authorization, SLA accuracy) and the **incident timeline feed** that
 SentryLog reads. Both are below. Start with the checklist.

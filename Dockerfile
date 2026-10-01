@@ -26,6 +26,7 @@ COPY netmon.py .
 COPY config.yaml ./config.yaml.default
 COPY ai_assistant.py .
 COPY stripe_handler.py .
+COPY license_signing.py .
 COPY stripe_config.yaml ./stripe_config.yaml.default
 COPY templates/ ./templates/
 COPY plugins/ ./plugins/
