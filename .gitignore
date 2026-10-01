@@ -18,10 +18,12 @@ env/
 *.sqlite
 *.sqlite3
 
-# Config files with secrets (samples are tracked)
-# Uncomment these if you want to keep secrets out of git:
-# config.yaml
-# stripe_config.yaml
+# Real config files hold passwords/API keys and NetMon rewrites config.yaml at
+# runtime, so they are never tracked. Templates: config.example.yaml,
+# stripe_config.example.yaml (copied automatically on first run).
+/config.yaml
+/stripe_config.yaml
+/data/
 
 # IDE
 .vscode/

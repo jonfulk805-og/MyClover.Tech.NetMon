@@ -63,7 +63,8 @@ except ImportError:
 # ---------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent
 STRIPE_DB = BASE_DIR / "stripe_orders.db"
-STRIPE_CONFIG_FILE = BASE_DIR / "stripe_config.yaml"
+STRIPE_CONFIG_FILE = BASE_DIR / "stripe_config.yaml"          # gitignored, yours
+STRIPE_CONFIG_EXAMPLE = BASE_DIR / "stripe_config.example.yaml"  # tracked template
 
 log = logging.getLogger("stripe_handler")
 logging.basicConfig(
@@ -119,19 +120,20 @@ def load_config():
 
     _config = dict(defaults)
 
-    # Load YAML config if exists
-    if yaml and STRIPE_CONFIG_FILE.exists():
+    # Load YAML config if exists (falls back to the tracked template)
+    cfg_file = STRIPE_CONFIG_FILE if STRIPE_CONFIG_FILE.exists() else STRIPE_CONFIG_EXAMPLE
+    if yaml and cfg_file.exists():
         try:
-            with open(str(STRIPE_CONFIG_FILE), "r", encoding="utf-8") as f:
+            with open(str(cfg_file), "r", encoding="utf-8") as f:
                 file_cfg = yaml.safe_load(f) or {}
             for k, v in file_cfg.items():
                 if isinstance(v, dict) and isinstance(_config.get(k), dict):
                     _config[k].update(v)
                 else:
                     _config[k] = v
-            log.info("Loaded config from %s", STRIPE_CONFIG_FILE)
+            log.info("Loaded config from %s", cfg_file)
         except Exception as e:
-            log.warning("Error loading %s: %s", STRIPE_CONFIG_FILE, e)
+            log.warning("Error loading %s: %s", cfg_file, e)
 
     # Environment overrides (take priority)
     env_map = {
