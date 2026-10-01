@@ -42,3 +42,9 @@ logs/
 # Environment variables
 .env
 .env.local
+
+# Secrets -- never commit (the license private key, per-install auth secret)
+license_signing_key.pem
+*.pem
+*.key
+auth_secret.key

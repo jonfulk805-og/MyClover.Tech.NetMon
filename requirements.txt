@@ -4,6 +4,7 @@
 PyYAML>=6.0
 flask>=3.0
 requests>=2.31
+cryptography>=42   # Ed25519 license verification
 
 # Optional: SNMP deep polling (Enterprise)
 # Install net-snmp tools for snmpget/snmpwalk:

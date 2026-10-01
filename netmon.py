@@ -132,11 +132,26 @@ log = logging.getLogger("netmon")
 # ---------------------------------------------------------------------------
 # License / Tier System
 # ---------------------------------------------------------------------------
-# License keys are HMAC-SHA256 based. Format: TIER-XXXXXXXX-YYYYYYYY
-# where TIER is PRO or ENT, X is a unique id, Y is the HMAC signature.
-# Keys are validated locally -- no phone-home required.
+# License keys are Ed25519 signatures. Format: TIER-XXXXXXXX-SIGNATURE
+# where TIER is PRO or ENT, X is a unique id and SIGNATURE is base32 Ed25519
+# over b"NETMON-LICENSE-V2|TIER|ID". Keys are validated locally -- no
+# phone-home required.
+#
+# Only the PUBLIC key lives here. The private signing key stays with the
+# vendor (license_signing.py / generate_key.py --init) and is never committed,
+# so the public source cannot be used to mint keys. The old shared-secret
+# scheme is retired: keys signed with it are rejected.
+#
+# Set by `python generate_key.py --init`. Empty = no paid tier can activate.
+_LICENSE_PUBLIC_KEY_B64 = ""
+_LICENSE_SIGNED_PREFIX = b"NETMON-LICENSE-V2|"
 
-_LICENSE_SECRET = b"clovertech-netmon-2026-salt"  # Change for production
+try:
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    from cryptography.exceptions import InvalidSignature
+    _HAS_ED25519 = True
+except ImportError:
+    _HAS_ED25519 = False
 
 TIER_FREE = "community"
 TIER_PRO = "pro"
@@ -180,27 +195,32 @@ TIER_FEATURES = {
 _current_tier = TIER_FREE
 
 
-def _generate_license_key(tier_code, unique_id):
-    """Generate a license key (admin/build tool only)."""
-    payload = "%s-%s" % (tier_code, unique_id)
-    sig = hashlib.sha256(_LICENSE_SECRET + payload.encode("utf-8")).hexdigest()[:16]
-    return "%s-%s-%s" % (tier_code.upper(), unique_id.upper(), sig.upper())
-
-
 def validate_license_key(key):
     """Validate a license key and return the tier, or None if invalid."""
     if not key or not isinstance(key, str):
         return None
+    if not _LICENSE_PUBLIC_KEY_B64:
+        return None
+    if not _HAS_ED25519:
+        log.warning("License check needs the 'cryptography' package "
+                    "(pip install cryptography) -- running as Community tier")
+        return None
     parts = key.strip().upper().split("-")
     if len(parts) != 3:
         return None
-    tier_code, unique_id, provided_sig = parts
+    tier_code, unique_id, sig_text = parts
     tier_map = {"PRO": TIER_PRO, "ENT": TIER_ENT}
     if tier_code not in tier_map:
         return None
-    payload = "%s-%s" % (tier_code, unique_id)
-    expected_sig = hashlib.sha256(_LICENSE_SECRET + payload.encode("utf-8")).hexdigest()[:16].upper()
-    if provided_sig != expected_sig:
+    if not re.fullmatch(r"[0-9A-F]{8,32}", unique_id):
+        return None
+    try:
+        sig = base64.b32decode(sig_text + "=" * (-len(sig_text) % 8))
+        pub = Ed25519PublicKey.from_public_bytes(
+            base64.b64decode(_LICENSE_PUBLIC_KEY_B64))
+        pub.verify(sig, _LICENSE_SIGNED_PREFIX
+                   + ("%s|%s" % (tier_code, unique_id)).encode("ascii"))
+    except (InvalidSignature, ValueError, TypeError):
         return None
     return tier_map[tier_code]
 
@@ -226,7 +246,10 @@ def _load_license():
         log.info("License valid: %s tier", _current_tier)
     else:
         _current_tier = TIER_FREE
-        if key:
+        if key and not _LICENSE_PUBLIC_KEY_B64:
+            log.warning("No license public key built in -- paid tiers cannot "
+                        "activate (vendor: run generate_key.py --init)")
+        elif key:
             log.warning("Invalid license key -- running as Community (free) tier")
         else:
             log.info("No license key -- running as Community (free) tier")

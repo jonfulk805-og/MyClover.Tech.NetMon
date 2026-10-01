@@ -207,6 +207,24 @@ See `plugins/check_disk_space.py` for a working example.
 
 See `stripe_config.yaml` for configuration.
 
+### License signing (vendor)
+
+License keys are **Ed25519 signatures**. `netmon.py` ships only the public key;
+the private key never goes into git (`*.pem` is gitignored).
+
+1. One time: `python generate_key.py --init` -- writes `license_signing_key.pem`
+   and embeds the matching public key in `netmon.py`. Commit `netmon.py`, back
+   the `.pem` up offline.
+2. Manual keys: `python generate_key.py --tier ent --id CAFE0001`
+3. `stripe_handler.py` (Docker or not) reads the private key from
+   `NETMON_LICENSE_SIGNING_KEY` (PEM text or base64 seed),
+   `NETMON_LICENSE_SIGNING_KEY_FILE`, or `license_signing_key.pem`. It refuses to
+   issue keys that do not match the public key in `netmon.py`, and answers the
+   Stripe webhook with HTTP 500 (so Stripe retries) if no key is configured.
+
+Keys from the old shared-secret scheme (16-character signature) are no longer
+accepted.
+
 ---
 
 ## License Activation

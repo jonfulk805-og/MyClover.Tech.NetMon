@@ -1,69 +1,88 @@
 #!/usr/bin/env python3
 """
-MyClover.Tech.netmon - License Key Generator
+MyClover.Tech.netmon - License Key Generator (vendor side)
 
-Usage:
-    python generate_key.py --tier pro --id CUST001
-    python generate_key.py --tier ent --id CUST001
+One-time setup (creates the private signing key and embeds the PUBLIC key in
+netmon.py -- commit netmon.py afterwards, NEVER the .pem file):
+    python generate_key.py --init
+
+Issue keys:
+    python generate_key.py --tier pro --id CAFE0001
+    python generate_key.py --tier ent
     python generate_key.py --tier pro --batch 10
 
-Generates HMAC-SHA256 license keys that work with netmon's offline validation.
+Keys are Ed25519 signatures (see license_signing.py). The private key is read
+from NETMON_LICENSE_SIGNING_KEY, NETMON_LICENSE_SIGNING_KEY_FILE, or
+license_signing_key.pem next to this script.
 """
 import argparse
-import hashlib
-import secrets
 import sys
 
-# Must match _LICENSE_SECRET in netmon.py
-LICENSE_SECRET = b"CHANGE-ME-BEFORE-DEPLOYMENT"
+import license_signing as ls
 
 
-def generate_key(tier_code, unique_id):
-    """Generate a single license key."""
-    payload = "%s-%s" % (tier_code.upper(), unique_id.upper())
-    sig = hashlib.sha256(LICENSE_SECRET + payload.encode("utf-8")).hexdigest()[:16]
-    return "%s-%s" % (payload, sig.upper())
+def cmd_init(force):
+    try:
+        private_key = ls.create_key_pair(force=force)
+    except ls.LicenseSigningError as exc:
+        print("  [ERROR] %s" % exc)
+        return 1
+    pub = ls.public_key_b64(private_key)
+    ls.write_embedded_public_key(pub)
+    print()
+    print("  [OK] Private key written to %s" % ls.DEFAULT_KEY_FILE)
+    print("       Back it up offline (password manager / vault). Do NOT commit it.")
+    print("       Losing it means you cannot issue keys netmon accepts.")
+    print("  [OK] Public key embedded in netmon.py: %s" % pub)
+    print()
+    print("  Next: commit + push netmon.py, rebuild the container,")
+    print("        then: python generate_key.py --tier ent --id <YOURID>")
+    print()
+    return 0
 
 
-def generate_unique_id():
-    """Generate a random 8-character unique ID."""
-    return secrets.token_hex(4).upper()
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Generate netmon license keys")
-    parser.add_argument("--tier", required=True, choices=["pro", "ent"],
-                        help="License tier: pro or ent (enterprise)")
-    parser.add_argument("--id", default=None,
-                        help="Unique ID for the key (auto-generated if omitted)")
-    parser.add_argument("--batch", type=int, default=1,
-                        help="Generate multiple keys")
-    args = parser.parse_args()
-
-    tier = args.tier.upper()
-    if tier == "ENT":
-        tier_label = "Enterprise"
-    else:
-        tier_label = "Pro"
-
-    keys = []
-    for i in range(args.batch):
-        uid = args.id or generate_unique_id()
-        if args.batch > 1 and not args.id:
-            uid = generate_unique_id()
-        key = generate_key(tier, uid)
-        keys.append(key)
-
+def cmd_issue(tier, uid, batch):
+    try:
+        private_key = ls.load_private_key()
+        keys = [ls.generate_license_key(tier, uid if batch == 1 else None,
+                                        private_key=private_key)
+                for _ in range(batch)]
+    except ls.LicenseSigningError as exc:
+        print("  [ERROR] %s" % exc)
+        return 1
     print("\n  MyClover.Tech.netmon License Key Generator")
     print("  " + "=" * 42)
-    print("  Tier: %s" % tier_label)
+    print("  Tier: %s" % ("Enterprise" if tier == "ENT" else "Pro"))
     print()
     for k in keys:
         print("  %s" % k)
     print()
     print("  Paste into Settings > License > Activate")
     print()
+    return 0
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate netmon license keys")
+    parser.add_argument("--init", action="store_true",
+                        help="Create the signing key pair and embed the public key")
+    parser.add_argument("--force", action="store_true",
+                        help="With --init: replace an existing key pair "
+                             "(invalidates every key issued so far)")
+    parser.add_argument("--tier", choices=["pro", "ent"],
+                        help="License tier: pro or ent (enterprise)")
+    parser.add_argument("--id", default=None,
+                        help="Unique hex ID for the key (8-32 chars, random if omitted)")
+    parser.add_argument("--batch", type=int, default=1,
+                        help="Generate multiple keys (random IDs)")
+    args = parser.parse_args()
+
+    if args.init:
+        return cmd_init(args.force)
+    if not args.tier:
+        parser.error("--tier is required (or use --init)")
+    return cmd_issue(args.tier.upper(), args.id, max(1, args.batch))
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

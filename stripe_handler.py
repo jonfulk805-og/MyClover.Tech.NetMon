@@ -76,19 +76,16 @@ logging.basicConfig(
 )
 
 # ---------------------------------------------------------------------------
-# License key generation (mirrors netmon.py logic exactly)
+# License key generation -- Ed25519, private key loaded from env/file by
+# license_signing.py. Nothing secret is hard-coded here any more.
 # ---------------------------------------------------------------------------
-LICENSE_SECRET = b"clovertech-netmon-2026-salt"  # Must match netmon.py
+from license_signing import (  # noqa: E402
+    LicenseSigningError, generate_license_key as _sign_license_key)
 
 
 def generate_license_key(tier_code, unique_id=None):
-    """Generate a license key identical to netmon's validation logic."""
-    if unique_id is None:
-        unique_id = secrets.token_hex(4).upper()
-    tier_code = tier_code.upper()
-    payload = "%s-%s" % (tier_code, unique_id.upper())
-    sig = hashlib.sha256(LICENSE_SECRET + payload.encode("utf-8")).hexdigest()[:16]
-    return "%s-%s" % (payload, sig.upper())
+    """Issue a license key netmon will accept. Raises LicenseSigningError."""
+    return _sign_license_key(tier_code, unique_id)
 
 
 # ---------------------------------------------------------------------------
@@ -474,16 +471,23 @@ def create_stripe_app():
             subscription_id = session.get("subscription", "")
 
             if customer_email:
-                key = fulfill_order(
-                    session_id=session_id,
-                    customer_email=customer_email,
-                    tier=tier,
-                    amount_cents=amount,
-                    currency=currency,
-                    customer_id=customer_id,
-                    subscription_id=subscription_id,
-                )
-                log.info("Fulfilled: %s -> %s (key: %s)", customer_email, tier, key)
+                try:
+                    key = fulfill_order(
+                        session_id=session_id,
+                        customer_email=customer_email,
+                        tier=tier,
+                        amount_cents=amount,
+                        currency=currency,
+                        customer_id=customer_id,
+                        subscription_id=subscription_id,
+                    )
+                except LicenseSigningError as exc:
+                    # Not acknowledged -> Stripe retries once the key is fixed.
+                    log.error("Cannot issue license for session %s: %s",
+                              session_id, exc)
+                    return jsonify({"error": "license signing unavailable"}), 500
+                log.info("Fulfilled: %s -> %s (key id: %s)", customer_email, tier,
+                         "-".join(key.split("-")[:2]))
             else:
                 log.warning("No customer email in session %s", session_id)
 
@@ -591,7 +595,11 @@ def create_stripe_app():
             tier_code = "PRO"
             tier = "pro"
 
-        key = generate_license_key(tier_code)
+        try:
+            key = generate_license_key(tier_code)
+        except LicenseSigningError as exc:
+            log.error("Manual license generation failed: %s", exc)
+            return jsonify({"error": str(exc)}), 503
 
         # Store
         conn = sqlite3.connect(str(STRIPE_DB))
@@ -695,6 +703,14 @@ def main():
     if not stripe:
         log.error("stripe package is required. Install: pip install stripe")
         sys.exit(1)
+
+    try:
+        probe = generate_license_key("PRO")
+        log.info("License signing key OK (matches netmon.py public key)")
+        del probe
+    except LicenseSigningError as exc:
+        log.error("LICENSE SIGNING NOT READY -- paid orders will be retried by "
+                  "Stripe until this is fixed: %s", exc)
 
     app = create_stripe_app()
     host = _config.get("host", "0.0.0.0")
