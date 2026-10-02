@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MyClover.Tech.netmon - Stripe Payment & License Fulfillment
+MyClover.Tech NetMon - Stripe Payment & License Fulfillment
 ==========================================================
 
 Standalone Flask app that handles:
@@ -198,9 +198,9 @@ def send_license_email(customer_email, tier, license_key):
 
     tier_label = "Pro" if tier == "pro" else "Enterprise"
 
-    subject = "Your MyClover.Tech.netmon %s License Key" % tier_label
+    subject = "Your MyClover.Tech NetMon %s License Key" % tier_label
 
-    body_text = """Thank you for purchasing MyClover.Tech.netmon %s!
+    body_text = """Thank you for purchasing MyClover.Tech NetMon %s!
 
 Your license key:
 %s
@@ -637,7 +637,7 @@ def create_stripe_app():
         try:
             # Pro product
             pro_product = stripe.Product.create(
-                name="MyClover.Tech.netmon Pro",
+                name="MyClover.Tech NetMon Pro",
                 description="Unlimited devices, network map, discovery scanner, "
                             "inventory, scheduled downtime, and more.",
                 metadata={"tier": "pro"},
@@ -656,7 +656,7 @@ def create_stripe_app():
 
             # Enterprise product
             ent_product = stripe.Product.create(
-                name="MyClover.Tech.netmon Enterprise",
+                name="MyClover.Tech NetMon Enterprise",
                 description="Everything in Pro plus NOC display, SLA reports, "
                             "user auth, custom plugins, SNMP deep polling, "
                             "and multi-channel notifications.",
@@ -694,7 +694,7 @@ def create_stripe_app():
 # Main
 # ---------------------------------------------------------------------------
 def main():
-    log.info("MyClover.Tech.netmon Stripe Handler starting...")
+    log.info("MyClover.Tech NetMon Stripe Handler starting...")
     load_config()
     init_stripe_db()
 

@@ -766,7 +766,7 @@ a.port-link:hover {
 
 /* === Phase 1 reskin: brand, grouped nav, tier locks, onboarding, API banner === */
 .brand-wrap { display: flex; align-items: center; gap: 10px; }
-.brand-clover { flex: none; filter: drop-shadow(0 0 6px rgba(234,179,8,0.18)); }
+.brand-logo { flex: none; border-radius: 6px; object-fit: cover; box-shadow: 0 0 0 1px rgba(234,179,8,0.25), 0 0 8px rgba(234,179,8,0.15); }
 .header h1 .brand-prod { font-weight: 700; }
 .tier-chip { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
     padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-muted); }
@@ -782,9 +782,32 @@ a.port-link:hover {
     font-size: 11px; line-height: 18px; text-align: center; background: var(--status-critical); color: #fff; }
 .tabs .tab.out-of-group { display: none !important; }
 .tabs .tab { font-size: 13px; padding: 10px 16px; }
-.tab .tier-lock { margin-left: 6px; font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-    padding: 1px 5px; border-radius: 3px; border: 1px solid var(--border); color: var(--text-dim); vertical-align: 1px; }
-.tab .tier-lock.ent { border-color: rgba(234,179,8,.45); color: #c9a227; }
+.tier-lock { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+    line-height: 1; padding: 3px 6px; border-radius: 4px; background: #2563eb; color: #fff; vertical-align: 1px; }
+.tier-lock.ent { background: #b45309; }
+.nav-launch { margin-left: auto; align-self: center; display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted);
+    font-size: 13px; font-weight: 600; text-decoration: none; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; white-space: nowrap; }
+.nav-launch:hover { color: var(--text-primary); border-color: var(--accent); }
+.feat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 16px; }
+.feat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.feat-card h4 { color: var(--text-primary); font-size: 15px; margin: 0 0 6px; display: flex; align-items: center; gap: 4px; }
+.feat-card p { color: var(--text-muted); font-size: 13px; line-height: 1.5; margin: 0; }
+.feat-card .feat-free { margin-top: 10px; }
+.upgrade-page { text-align: center; padding: 64px 20px; }
+.upgrade-page h2 { color: var(--text-primary); margin: 12px 0 8px; }
+.upgrade-page p { color: var(--text-muted); margin: 0 auto 20px; max-width: 520px; line-height: 1.55; }
+.upgrade-page .tier-lock { font-size: 13px; padding: 5px 10px; margin: 0; }
+.fs-list { max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; margin: 12px 0; }
+.fs-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--border-light); font-size: 13px; color: var(--text-body); }
+.fs-row:last-child { border-bottom: none; }
+.fs-row .fs-ip { font-family: monospace; min-width: 120px; }
+.fs-row .fs-meta { color: var(--text-dim); margin-left: auto; font-size: 12px; }
+.fs-progress { height: 6px; background: var(--bg-deep); border-radius: 3px; overflow: hidden; margin: 12px 0; }
+.fs-progress > div { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+.fs-msg { font-size: 13px; color: var(--text-muted); margin: 8px 0; }
+.fs-msg.err { color: var(--status-critical); }
+a.btn { text-decoration: none; display: inline-block; }
+.ob-actions .ob-link { align-self: center; color: var(--accent); font-size: 14px; cursor: pointer; text-decoration: none; margin-left: 4px; }
 .api-banner { display: none; align-items: center; gap: 12px; margin-bottom: 16px; padding: 10px 14px; border-radius: 8px;
     background: var(--status-critical-bg); color: var(--status-critical); border: 1px solid var(--status-critical); font-size: 13px; }
 .api-banner.visible { display: flex; }
@@ -817,7 +840,7 @@ a.port-link:hover {
 <div id="login-overlay" style="display:none;position:fixed;inset:0;background:var(--bg-deep,#0a0c10);z-index:9999;align-items:center;justify-content:center;">
     <div style="background:var(--bg-card,#161b22);border:1px solid var(--border,#2a2f38);border-radius:12px;padding:40px;width:360px;max-width:90vw;">
         <div style="text-align:center;margin-bottom:24px;">
-            <div style="display:flex;align-items:center;justify-content:center;gap:10px;"><svg class="brand-clover" width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="clv-rL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a80"/><stop offset=".55" stop-color="#e53935"/><stop offset="1" stop-color="#7f1d1d"/></linearGradient><linearGradient id="clv-gL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9f6ca"/><stop offset=".55" stop-color="#22c55e"/><stop offset="1" stop-color="#14532d"/></linearGradient><linearGradient id="clv-oL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd0a1"/><stop offset=".55" stop-color="#f97316"/><stop offset="1" stop-color="#7c2d12"/></linearGradient><linearGradient id="clv-yL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".55" stop-color="#eab308"/><stop offset="1" stop-color="#713f12"/></linearGradient></defs><g stroke="#0b0d12" stroke-width="1.2"><path d="M16 15C16 9 13 5 9.5 5S4 8 5 11.5 10 16 16 15Z" fill="url(#clv-rL)"/><path d="M17 16C23 16 27 13 27 9.5S24 4 20.5 5 16 10 17 16Z" fill="url(#clv-gL)"/><path d="M16 17C16 23 19 27 22.5 27S28 24 27 20.5 22 16 16 17Z" fill="url(#clv-yL)"/><path d="M15 16C9 16 5 19 5 22.5S8 28 11.5 27 16 22 15 16Z" fill="url(#clv-oL)"/></g><circle cx="16" cy="16" r="1.6" fill="#0b0d12"/></svg><h1 style="font-size:20px;color:var(--text-primary,#e0e0e0);margin:0;">MyClover<span style="color:var(--accent,#5b9aff);">.</span>Tech NetMon</h1></div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:10px;"><img class="brand-logo" src="/static/img/myclover_logo.png" width="28" height="28" alt="MyClover.Tech"><h1 style="font-size:20px;color:var(--text-primary,#e0e0e0);margin:0;">MyClover<span style="color:var(--accent,#5b9aff);">.</span>Tech NetMon</h1></div>
             <p style="color:var(--text-dim,#666);font-size:12px;margin-top:4px;">Sign in to continue</p>
         </div>
         <div id="login-error" style="display:none;background:var(--status-critical-bg,#3b1c1c);color:var(--status-critical,#ff4444);padding:10px 14px;border-radius:6px;margin-bottom:16px;font-size:13px;"></div>
@@ -835,7 +858,7 @@ a.port-link:hover {
 
 <div class="header">
     <div class="brand-wrap">
-        <svg class="brand-clover" width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="clv-rH" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a80"/><stop offset=".55" stop-color="#e53935"/><stop offset="1" stop-color="#7f1d1d"/></linearGradient><linearGradient id="clv-gH" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9f6ca"/><stop offset=".55" stop-color="#22c55e"/><stop offset="1" stop-color="#14532d"/></linearGradient><linearGradient id="clv-oH" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd0a1"/><stop offset=".55" stop-color="#f97316"/><stop offset="1" stop-color="#7c2d12"/></linearGradient><linearGradient id="clv-yH" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".55" stop-color="#eab308"/><stop offset="1" stop-color="#713f12"/></linearGradient></defs><g stroke="#0b0d12" stroke-width="1.2"><path d="M16 15C16 9 13 5 9.5 5S4 8 5 11.5 10 16 16 15Z" fill="url(#clv-rH)"/><path d="M17 16C23 16 27 13 27 9.5S24 4 20.5 5 16 10 17 16Z" fill="url(#clv-gH)"/><path d="M16 17C16 23 19 27 22.5 27S28 24 27 20.5 22 16 16 17Z" fill="url(#clv-yH)"/><path d="M15 16C9 16 5 19 5 22.5S8 28 11.5 27 16 22 15 16Z" fill="url(#clv-oH)"/></g><circle cx="16" cy="16" r="1.6" fill="#0b0d12"/></svg>
+        <img class="brand-logo" src="/static/img/myclover_logo.png" width="24" height="24" alt="MyClover.Tech">
         <h1>MyClover<span class="brand-dot">.</span>Tech <span class="brand-prod">NetMon</span></h1>
         <span class="subtitle">v5.8</span>
         <span class="tier-chip" id="tier-chip" title="License tier">Free</span>
@@ -851,6 +874,7 @@ a.port-link:hover {
     <button class="nav-group active" data-group="monitor" onclick="selectNavGroup('monitor', true)">Monitor<span class="ng-count" id="ng-count-monitor" style="display:none;"></span></button>
     <button class="nav-group" data-group="investigate" onclick="selectNavGroup('investigate', true)">Investigate</button>
     <button class="nav-group" data-group="configure" onclick="selectNavGroup('configure', true)">Configure</button>
+    <a class="nav-launch" id="noc-launch" href="/noc" target="_blank" rel="noopener" title="Full-screen NOC wall display (opens in a new window)">NOC wall &#8599;</a>
 </div>
 <div class="tabs">
     <div class="tab active" data-tab="status" draggable="true"><span class="tab-grip">&#9776;</span>Status</div>
@@ -869,6 +893,30 @@ a.port-link:hover {
     <div class="tab" data-tab="help" draggable="true"><span class="tab-grip">&#9776;</span>Help</div>
     <div class="tab-hidden-indicator" id="hidden-tabs-indicator" onclick="showHiddenTabsMenu(this)" title="Show hidden tabs"></div>
 </div>
+
+<div class="modal-overlay" id="first-scan-modal">
+<div class="modal" style="width:620px;">
+    <h2>Scan my network <span style="font-size:12px;color:var(--text-dim);font-weight:400;">free, one time</span></h2>
+    <div id="fs-body"></div>
+    <div class="modal-actions" id="fs-actions"></div>
+</div>
+</div>
+
+<div class="modal-overlay" id="csv-modal">
+<div class="modal" style="width:620px;">
+    <h2>Import devices from CSV</h2>
+    <p class="fs-msg">Header row required. Columns: <code>name, host, group, check, port, url</code>. Only <code>host</code> is required; <code>check</code> is ping, tcp or http (default ping).</p>
+    <div class="form-group"><label>CSV file</label><input type="file" id="csv-file" accept=".csv,text/csv" onchange="csvFileChosen(this)"></div>
+    <div class="form-group"><label>Or paste CSV</label><textarea id="csv-text" rows="7" placeholder="name,host,group,check,port&#10;Core Router,192.168.1.1,Network,ping,&#10;NAS,192.168.1.20,Storage,tcp,445"></textarea></div>
+    <div class="fs-msg" id="csv-result"></div>
+    <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModalById('csv-modal')">Close</button>
+        <button class="btn btn-primary" id="csv-import-btn" onclick="submitCsvImport()">Import</button>
+    </div>
+</div>
+</div>
+
+<div class="content tab-content" id="tab-group-overview"></div>
 
 <!-- ========== STATUS TAB ========== -->
 <div class="content tab-content active" id="tab-status">
@@ -1939,7 +1987,7 @@ a.port-link:hover {
             <h4>Running as a Service (Linux)</h4>
             <pre>
 [Unit]
-Description=MyClover.Tech.netmon
+Description=MyClover.Tech NetMon
 After=network.target
 
 [Service]
@@ -3102,6 +3150,7 @@ function loadLicense() {
         _currentTier = data.tier || 'community';
         _tierFeatures = data.features || {};
         applyTierDecorations();
+        if (_currentTier === 'community' && !_firstScan) loadFirstScan();
         if (_devicesCache && !_devicesCache.length && document.querySelector('#status-cards .onboard')) {
             document.getElementById('status-cards').innerHTML = onboardingHTML();
         }
@@ -3112,6 +3161,8 @@ function loadLicense() {
 // The existing .tab elements, handlers, hide/reorder settings all stay; the
 // group bar only filters which tabs are shown in the sub-bar (via a class, so
 // it never fights the inline display used by Tab Visibility).
+var DEFAULT_TAB_ORDER = ['status','map','discovery','inventory','alerts','history','downtime','devices','reports','helpdesk','security','settings','ai_assistant','help'];
+var TAB_LABELS = {status:'Status',map:'Network Map',discovery:'Discovery',inventory:'Inventory',alerts:'Alerts',history:'History',downtime:'Downtime',devices:'Manage Devices',reports:'Reports',helpdesk:'Helpdesk',settings:'Settings',security:'Security',ai_assistant:'Chappie (AI)',help:'Help'};
 var NAV_GROUPS = {
     monitor: ['status', 'alerts', 'history', 'map'],
     investigate: ['discovery', 'inventory', 'downtime', 'security', 'reports', 'helpdesk', 'ai_assistant'],
@@ -3140,10 +3191,54 @@ function renderNavGroup() {
     });
 }
 
+var FEATURE_INFO = {
+    discovery: ['Network Discovery', 'Find every live host on a subnet, with open ports and reverse DNS.'],
+    inventory: ['Asset Inventory', 'Track hardware, owners and warranty; discovery results flow in automatically.'],
+    downtime: ['Scheduled Downtime', 'Plan maintenance windows so alerts stay quiet while you work.'],
+    map: ['Network Map', 'See parent/child links and which devices go dark when an uplink fails.'],
+    helpdesk: ['Helpdesk Integration', 'Open and link tickets automatically when a device goes down.'],
+    security: ['Security Scanner', 'Scan devices for exposed services and weak configurations.'],
+    reports: ['SLA & Uptime Reports', 'Uptime and availability per device and group, with CSV export.'],
+    ai_assistant: ['Chappie AI Assistant', 'Ask questions about your network in plain English.']
+};
+function tabUnlocked(name) {
+    if (!TAB_REQUIRED_TIER[name]) return true;
+    var allowed = (_tierFeatures && _tierFeatures.tabs) || [];
+    return allowed.indexOf(name) !== -1;
+}
+function showGroupOverview(group) {
+    var el = document.getElementById('tab-group-overview');
+    if (!el) return;
+    var title = group.charAt(0).toUpperCase() + group.slice(1);
+    var html = '<h2 style="color:var(--text-primary);font-size:20px;margin:0 0 6px;">' + esc(title) + '</h2>'
+        + '<p style="color:var(--text-muted);font-size:14px;margin:0;">These tools come with a paid plan. Each card shows which plan it needs. '
+        + 'You are on ' + esc(tierLabel(_currentTier)) + '.</p><div class="feat-grid">';
+    NAV_GROUPS[group].forEach(function(name) {
+        var info = FEATURE_INFO[name];
+        if (!info) return;
+        html += '<div class="feat-card"><h4>' + esc(info[0]) + tierTagHTML(TAB_REQUIRED_TIER[name]) + '</h4><p>' + esc(info[1]) + '</p>';
+        if (name === 'discovery' && _firstScan && _firstScan.available) {
+            html += '<div class="feat-free"><button class="btn btn-ghost btn-sm" onclick="openFirstScan()">Try it free: one /24 scan</button></div>';
+        }
+        html += '</div>';
+    });
+    html += '</div><div style="margin-top:18px;"><a class="btn btn-primary" href="https://myclover.tech/#pricing" target="_blank" rel="noopener">Compare Pro and Enterprise</a></div>';
+    el.innerHTML = html;
+    document.querySelectorAll('.tabs .tab').forEach(function(t){ t.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
+    el.classList.add('active');
+}
+
 function selectNavGroup(group, openTab) {
     _activeNavGroup = group;
     renderNavGroup();
     if (!openTab) return;
+    var anyUnlocked = false;
+    document.querySelectorAll('.tabs .tab').forEach(function(t) {
+        var n = t.getAttribute('data-tab');
+        if (navGroupOf(n) === group && t.style.display !== 'none' && tabUnlocked(n)) anyUnlocked = true;
+    });
+    if (!anyUnlocked) { showGroupOverview(group); return; }
     var active = document.querySelector('.tabs .tab.active');
     if (active && navGroupOf(active.getAttribute('data-tab')) === group) return;
     var want = _lastTabInGroup[group];
@@ -3151,7 +3246,8 @@ function selectNavGroup(group, openTab) {
     if (!target || target.style.display === 'none') {
         target = null;
         document.querySelectorAll('.tabs .tab').forEach(function(t) {
-            if (!target && navGroupOf(t.getAttribute('data-tab')) === group && t.style.display !== 'none') target = t;
+            var n = t.getAttribute('data-tab');
+            if (!target && navGroupOf(n) === group && t.style.display !== 'none' && tabUnlocked(n)) target = t;
         });
     }
     if (target) target.click();
@@ -3190,6 +3286,12 @@ function applyTierDecorations() {
         b.title = 'Requires ' + tierLabel(need);
         t.appendChild(b);
     });
+    var noc = document.getElementById('noc-launch');
+    if (noc) {
+        var oldN = noc.querySelector('.tier-lock');
+        if (oldN) oldN.parentNode.removeChild(oldN);
+        if (tier !== 'enterprise') noc.insertAdjacentHTML('beforeend', tierTagHTML('enterprise'));
+    }
 }
 renderNavGroup();
 function safeFetch(url, fallback) {
@@ -3198,14 +3300,29 @@ function safeFetch(url, fallback) {
         return r.json();
     });
 }
-function upgradeHTML(feature) {
-    return '<div style="text-align:center;padding:80px 20px;">'
-        + '<div style="font-size:48px;margin-bottom:16px;">&#128274;</div>'
-        + '<h2 style="color:#e2e8f0;margin-bottom:8px;">Pro Feature</h2>'
-        + '<p style="color:#94a3b8;margin-bottom:24px;">' + esc(feature) + ' requires a Pro or Enterprise license.</p>'
-        + '<a href="https://myclover.tech/#pricing" target="_blank" '
-        + 'style="display:inline-block;padding:10px 28px;background:#22c55e;color:#0a0e17;border-radius:8px;'
-        + 'text-decoration:none;font-weight:600;">View Pricing</a></div>';
+var FEATURE_TIER = {
+    'Network Map': 'pro', 'Network Discovery': 'pro', 'Asset Inventory': 'pro', 'Scheduled Downtime': 'pro',
+    'Helpdesk Integration': 'pro', 'SLA & Uptime Reports': 'enterprise', 'Security Scanner': 'enterprise',
+    'Chappie AI Assistant': 'enterprise', 'NOC Display': 'enterprise'
+};
+function tierTagHTML(tier) {
+    return '<span class="tier-lock' + (tier === 'enterprise' ? ' ent' : '') + '">' + (tier === 'enterprise' ? 'Ent' : 'Pro') + '</span>';
+}
+function upgradeHTML(feature, tier) {
+    tier = tier || FEATURE_TIER[feature] || 'pro';
+    var ent = tier === 'enterprise';
+    var line = ent ? esc(feature) + ' is an Enterprise feature. It needs an Enterprise license.'
+                   : esc(feature) + ' is a Pro feature. It is included in Pro and Enterprise.';
+    var extra = '';
+    if (feature === 'Network Discovery' && _firstScan && _firstScan.available) {
+        extra = '<p style="margin-top:14px;">Not ready to upgrade? Every install gets one free scan of one /24, up to 10 devices.</p>'
+            + '<button class="btn btn-ghost" onclick="openFirstScan()">Run my free scan</button>';
+    }
+    return '<div class="upgrade-page">' + tierTagHTML(tier)
+        + '<h2>' + (ent ? 'Enterprise' : 'Pro') + ' feature</h2>'
+        + '<p>' + line + ' You are on ' + esc(tierLabel(_currentTier)) + '.</p>'
+        + '<a class="btn btn-primary" href="https://myclover.tech/#pricing" target="_blank" rel="noopener">View pricing</a>'
+        + extra + '</div>';
 }
 loadLicense();
 
@@ -3309,24 +3426,181 @@ function onboardingHTML() {
     var allowed = (_tierFeatures && _tierFeatures.tabs) || [];
     var canDiscover = allowed.indexOf('discovery') !== -1;
     var maxDev = _tierFeatures ? _tierFeatures.max_devices : undefined;
-    var freeNote = (typeof maxDev !== 'number') ? 'Free covers your first 10 devices.'
-        : maxDev > 0 ? 'Your plan covers up to ' + maxDev + ' devices.' : 'Your plan covers unlimited devices.';
-    var html = '<div class="onboard">' + '<svg class="brand-clover" width="44" height="44" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="clv-rE" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a80"/><stop offset=".55" stop-color="#e53935"/><stop offset="1" stop-color="#7f1d1d"/></linearGradient><linearGradient id="clv-gE" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9f6ca"/><stop offset=".55" stop-color="#22c55e"/><stop offset="1" stop-color="#14532d"/></linearGradient><linearGradient id="clv-oE" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd0a1"/><stop offset=".55" stop-color="#f97316"/><stop offset="1" stop-color="#7c2d12"/></linearGradient><linearGradient id="clv-yE" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".55" stop-color="#eab308"/><stop offset="1" stop-color="#713f12"/></linearGradient></defs><g stroke="#0b0d12" stroke-width="1.2"><path d="M16 15C16 9 13 5 9.5 5S4 8 5 11.5 10 16 16 15Z" fill="url(#clv-rE)"/><path d="M17 16C23 16 27 13 27 9.5S24 4 20.5 5 16 10 17 16Z" fill="url(#clv-gE)"/><path d="M16 17C16 23 19 27 22.5 27S28 24 27 20.5 22 16 16 17Z" fill="url(#clv-yE)"/><path d="M15 16C9 16 5 19 5 22.5S8 28 11.5 27 16 22 15 16Z" fill="url(#clv-oE)"/></g><circle cx="16" cy="16" r="1.6" fill="#0b0d12"/></svg>'
+    var limitNote = (typeof maxDev !== 'number' || maxDev > 0)
+        ? 'Free covers your first ' + (maxDev || 10) + ' devices.'
+        : 'Your plan covers unlimited devices.';
+    var fs = _firstScan || {};
+    var found = (fs.results || []).filter(function(r) { return !r.is_monitored; }).length;
+    var primary;
+    if (fs.available) {
+        primary = '<button class="btn btn-primary" onclick="openFirstScan()">Scan my network (free)</button>';
+    } else if (fs.used_at && (fs.running || found)) {
+        primary = '<button class="btn btn-primary" onclick="openFirstScan()">' + (fs.running ? 'View scan progress' : 'Review scan results (' + found + ' found)') + '</button>';
+    } else if (canDiscover) {
+        primary = '<button class="btn btn-primary" onclick="openNavTab(\'discovery\')">Run discovery</button>';
+    } else {
+        primary = '<button class="btn btn-primary" onclick="openAddDevice()">+ Add your first device</button>';
+    }
+    var lead = fs.available
+        ? 'Scan one /24 of your LAN and pick up to 10 devices to monitor. The free scan runs once. You can also add devices by hand or import a CSV.'
+        : 'Point NetMon at a router, switch, server or anything with an IP address. It starts checking within one refresh cycle.';
+    var html = '<div class="onboard"><img class="brand-logo" src="/static/img/myclover_logo.png" width="44" height="44" alt="MyClover.Tech">'
         + '<h2>Add your first device</h2>'
-        + '<p class="lead">Point NetMon at a router, switch, server or anything with an IP address. '
-        + 'It starts checking within one refresh cycle and builds its status history here.</p>'
-        + '<div class="ob-actions">'
-        + '<button class="btn btn-primary" onclick="openAddDevice()">+ Add your first device</button>';
-    if (canDiscover) html += '<button class="btn btn-ghost" onclick="openNavTab(\'discovery\')">Run discovery</button>';
-    html += '</div>'
-        + '<div class="ob-note">' + esc(freeNote) + ' You can also list devices in <code>config.yaml</code>.</div>'
+        + '<p class="lead">' + lead + '</p>'
+        + '<div class="ob-actions">' + primary;
+    if (primary.indexOf('openAddDevice') === -1) html += '<button class="btn btn-ghost" onclick="openAddDevice()">+ Add a device</button>';
+    html += '<a class="ob-link" onclick="openCsvImport()">Import CSV</a>'
+        + '</div>'
+        + '<div class="ob-note">' + esc(limitNote) + ' You can also list devices in <code>config.yaml</code>.</div>'
         + '</div>'
         + '<div class="ob-steps">'
-        + '<div class="ob-step"><div class="ob-num">1</div><div><h4>Add a device</h4><p>Ping, TCP port, HTTP or SNMP checks. ' + esc(freeNote) + '</p><a onclick="openAddDevice()">Add device &rarr;</a></div></div>'
+        + '<div class="ob-step"><div class="ob-num">1</div><div><h4>Add devices</h4><p>Ping, TCP port, HTTP or SNMP checks. Scan, add by hand or import a CSV.</p><a onclick="openAddDevice()">Add device &rarr;</a></div></div>'
         + '<div class="ob-step"><div class="ob-num">2</div><div><h4>Set up alerts</h4><p>Get an email when something goes down.</p><a onclick="openNavTab(\'settings\')">Configure SMTP &rarr;</a></div></div>'
         + '<div class="ob-step"><div class="ob-num">3</div><div><h4>Connect SentryLog</h4><p>See what a device logged right before it went down, on one timeline.</p><a onclick="openNavTab(\'settings\')">Integration settings &rarr;</a></div></div>'
         + '</div>';
     return html;
+}
+
+// ===== Free first-run scan (one /24, up to 10 devices; limits enforced server-side) =====
+var _firstScan = null;
+var _fsPoll = null;
+function closeModalById(id) { var m = document.getElementById(id); if (m) m.classList.remove('open'); }
+function refreshOnboarding() {
+    var c = document.getElementById('status-cards');
+    if (c && c.querySelector('.onboard')) c.innerHTML = onboardingHTML();
+}
+function loadFirstScan() {
+    return fetch('/api/first-scan').then(function(r) { return r.ok ? r.json() : null; }).then(function(d) {
+        if (d) { _firstScan = d; refreshOnboarding(); }
+        return d;
+    }).catch(function() { return null; });
+}
+function openFirstScan() {
+    document.getElementById('first-scan-modal').classList.add('open');
+    loadFirstScan().then(function() { renderFirstScan(); });
+}
+function closeFirstScan() {
+    closeModalById('first-scan-modal');
+    if (_fsPoll) { clearTimeout(_fsPoll); _fsPoll = null; }
+}
+function renderFirstScan(msg, isErr) {
+    var fs = _firstScan || {};
+    var body = document.getElementById('fs-body');
+    var acts = document.getElementById('fs-actions');
+    var note = msg ? '<div class="fs-msg' + (isErr ? ' err' : '') + '">' + esc(msg) + '</div>' : '';
+    if (fs.available) {
+        body.innerHTML = '<p class="fs-msg">NetMon pings every address in one private /24 and checks common ports. '
+            + 'Pick up to 10 of the hosts it finds to start monitoring. This scan can run once per install; '
+            + 'unlimited scans come with Network Discovery (Pro).</p>'
+            + '<div class="form-group"><label>Subnet</label><input type="text" id="fs-range" value="' + escAttr(fs.suggested_range || '192.168.1.0/24') + '" placeholder="192.168.1.0/24"></div>' + note;
+        acts.innerHTML = '<button class="btn btn-ghost" onclick="closeFirstScan()">Cancel</button>'
+            + '<button class="btn btn-primary" id="fs-start" onclick="startFirstScan()">Start free scan</button>';
+        return;
+    }
+    if (fs.running) {
+        var p = fs.progress || {}; var pct = p.total ? Math.round(100 * p.scanned / p.total) : 0;
+        body.innerHTML = '<p class="fs-msg">Scanning ' + esc(fs.target) + ' &mdash; ' + (p.scanned || 0) + ' of ' + (p.total || '?') + ' addresses, ' + (p.alive || 0) + ' alive.</p>'
+            + '<div class="fs-progress"><div style="width:' + pct + '%"></div></div>' + note;
+        acts.innerHTML = '<button class="btn btn-ghost" onclick="closeFirstScan()">Run in background</button>';
+        if (_fsPoll) clearTimeout(_fsPoll);
+        _fsPoll = setTimeout(function() { loadFirstScan().then(function() { if (document.getElementById('first-scan-modal').classList.contains('open')) renderFirstScan(); }); }, 2000);
+        return;
+    }
+    var rows = (fs.results || []);
+    var cap = Math.max(0, Math.min(fs.import_cap || 0, 10 - (fs.imported || 0)));
+    if (!rows.length) {
+        body.innerHTML = '<p class="fs-msg">The free scan of ' + esc(fs.target || 'your subnet') + ' finished and found no live hosts. '
+            + 'Add devices by hand or import a CSV instead.</p>' + note;
+        acts.innerHTML = '<button class="btn btn-ghost" onclick="closeFirstScan(); openCsvImport();">Import CSV</button>'
+            + '<button class="btn btn-primary" onclick="closeFirstScan(); openAddDevice();">+ Add a device</button>';
+        return;
+    }
+    var picked = 0;
+    var list = rows.map(function(r) {
+        var dis = r.is_monitored || cap === 0;
+        var chk = !dis && picked < cap; if (chk) picked++;
+        return '<label class="fs-row"><input type="checkbox" class="fs-pick" value="' + escAttr(r.ip) + '"' + (chk ? ' checked' : '') + (dis ? ' disabled' : '') + ' onchange="fsLimitPicks()">'
+            + '<span class="fs-ip">' + esc(r.ip) + '</span><span>' + esc(r.hostname || '') + '</span>'
+            + '<span class="fs-meta">' + (r.is_monitored ? 'monitored' : (r.open_ports && r.open_ports.length ? 'ports ' + esc(r.open_ports.slice(0, 5).join(', ')) : '')) + '</span></label>';
+    }).join('');
+    body.innerHTML = '<p class="fs-msg">Found ' + rows.length + ' live host' + (rows.length === 1 ? '' : 's') + ' on ' + esc(fs.target) + '. '
+        + (cap ? 'Pick up to ' + cap + ' to monitor with a ping check (you can add more checks later).' : 'The free scan import limit is used up.') + '</p>'
+        + '<div class="fs-list">' + list + '</div><div class="fs-msg" id="fs-count"></div>' + note;
+    acts.innerHTML = '<button class="btn btn-ghost" onclick="closeFirstScan()">Close</button>'
+        + (cap ? '<button class="btn btn-primary" id="fs-import" onclick="importFirstScan()">Monitor selected</button>' : '');
+    fsLimitPicks();
+}
+function fsLimitPicks() {
+    var fs = _firstScan || {};
+    var cap = Math.max(0, Math.min(fs.import_cap || 0, 10 - (fs.imported || 0)));
+    var boxes = Array.prototype.slice.call(document.querySelectorAll('#fs-body .fs-pick'));
+    var n = boxes.filter(function(b) { return b.checked; }).length;
+    boxes.forEach(function(b) {
+        var mon = (fs.results || []).some(function(r) { return r.ip === b.value && r.is_monitored; });
+        if (!b.checked) b.disabled = mon || n >= cap;
+    });
+    var cnt = document.getElementById('fs-count');
+    if (cnt) cnt.textContent = n + ' of ' + cap + ' selected';
+    var btn = document.getElementById('fs-import');
+    if (btn) btn.disabled = n === 0;
+}
+function startFirstScan() {
+    var btn = document.getElementById('fs-start'); if (btn) btn.disabled = true;
+    var range = (document.getElementById('fs-range') || {}).value || '';
+    fetch('/api/first-scan', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({range: range}) })
+        .then(function(r) { return r.json().then(function(d) { return {ok: r.ok, d: d}; }); })
+        .then(function(res) {
+            if (!res.ok) { renderFirstScan(res.d.message || res.d.error || 'Scan could not start', true); return; }
+            return loadFirstScan().then(function() { renderFirstScan(); });
+        }).catch(function(e) { renderFirstScan('Scan could not start: ' + e.message, true); });
+}
+function importFirstScan() {
+    var ips = Array.prototype.slice.call(document.querySelectorAll('#fs-body .fs-pick:checked')).map(function(b) { return b.value; });
+    var btn = document.getElementById('fs-import'); if (btn) btn.disabled = true;
+    fetch('/api/first-scan/import', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ips: ips}) })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            var msg = 'Added ' + (d.added || []).length + ' device' + ((d.added || []).length === 1 ? '' : 's') + '.';
+            if (d.limit_reached) msg += ' Some were skipped: device limit reached.';
+            loadStatus();
+            return loadFirstScan().then(function() { renderFirstScan(msg); });
+        }).catch(function(e) { renderFirstScan('Import failed: ' + e.message, true); });
+}
+
+// ===== CSV device import =====
+function openCsvImport() {
+    document.getElementById('csv-text').value = '';
+    document.getElementById('csv-file').value = '';
+    document.getElementById('csv-result').textContent = '';
+    document.getElementById('csv-import-btn').disabled = false;
+    document.getElementById('csv-modal').classList.add('open');
+}
+function csvFileChosen(input) {
+    var f = input.files && input.files[0];
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function() { document.getElementById('csv-text').value = rd.result; };
+    rd.readAsText(f);
+}
+function submitCsvImport() {
+    var text = document.getElementById('csv-text').value;
+    var out = document.getElementById('csv-result');
+    if (!text.trim()) { out.className = 'fs-msg err'; out.textContent = 'Choose a file or paste CSV first.'; return; }
+    var btn = document.getElementById('csv-import-btn'); btn.disabled = true;
+    fetch('/api/devices/import', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({csv: text}) })
+        .then(function(r) { return r.json().then(function(d) { return {ok: r.ok, d: d}; }); })
+        .then(function(res) {
+            btn.disabled = false;
+            var d = res.d;
+            if (!res.ok) { out.className = 'fs-msg err'; out.textContent = d.message || d.error || 'Import failed'; return; }
+            var parts = ['Added ' + d.added.length + ' device' + (d.added.length === 1 ? '' : 's') + '.'];
+            if (d.skipped.length) parts.push('Skipped ' + d.skipped.length + ' (' + d.skipped.slice(0, 3).map(function(x) { return x.name + ': ' + x.reason; }).join('; ') + (d.skipped.length > 3 ? '; ...' : '') + ').');
+            if (d.limit_reached) parts.push('Device limit reached; Pro removes the limit.');
+            if (d.errors && d.errors.length) parts.push(d.errors.slice(0, 3).join('; '));
+            out.className = 'fs-msg' + (d.added.length ? '' : ' err');
+            out.textContent = parts.join(' ');
+            if (d.added.length) loadStatus();
+        }).catch(function(e) { btn.disabled = false; out.className = 'fs-msg err'; out.textContent = 'Import failed: ' + e.message; });
 }
 
 // Search/filter bar and widget toggle mean nothing with zero devices.
@@ -3367,6 +3641,7 @@ function buildStatusData(parentMap, statusMap) {
     if (!devices.length) {
         summaryBar.innerHTML = '';
         container.innerHTML = onboardingHTML();
+        if (!_firstScan || _firstScan.running) loadFirstScan();
         setStatusChromeVisible(false);
         _allCards = []; _allGroups = [];
         return;
@@ -3442,6 +3717,9 @@ function buildStatusData(parentMap, statusMap) {
         });
     });
 
+    var devOrder = {};
+    devices.forEach(function(d, i) { if (!(d.name in devOrder)) devOrder[d.name] = i; });
+    _allCards.forEach(function(c, i) { c.devIdx = devOrder[c.deviceName]; c.cardIdx = i; });
     _allGroups = Object.keys(groupSet).sort();
     var sel = document.getElementById('filter-group');
     var curVal = sel.value;
@@ -3536,13 +3814,21 @@ function applyFilters() {
                 + '<button class="' + (viewMode === 'list' ? 'active' : '') + '" onclick="setGroupView(\'' + escAttr(grp) + '\', \'list\')" title="List view">&#9776;</button>'
                 + '</div></div>';
             // Sort: problems first, then pinned, then name (stable for equal keys)
+            // Sort whole devices, not cards: worst check first, then pinned, then
+            // config.yaml order. A device's cards stay together in check order.
+            var devWorst = {};
+            byGroup[grp].forEach(function(c) {
+                var v = cardSeverity(c);
+                if (!(c.deviceName in devWorst) || v < devWorst[c.deviceName]) devWorst[c.deviceName] = v;
+            });
             var sorted = byGroup[grp].slice().sort(function(a, b) {
-                var sev = cardSeverity(a) - cardSeverity(b);
+                if (a.deviceName === b.deviceName) return a.cardIdx - b.cardIdx;
+                var sev = devWorst[a.deviceName] - devWorst[b.deviceName];
                 if (sev) return sev;
                 var aPinned = pinnedDevices.indexOf(a.deviceName) >= 0 ? 0 : 1;
                 var bPinned = pinnedDevices.indexOf(b.deviceName) >= 0 ? 0 : 1;
                 if (aPinned !== bPinned) return aPinned - bPinned;
-                return a.deviceName < b.deviceName ? -1 : a.deviceName > b.deviceName ? 1 : 0;
+                return (a.devIdx - b.devIdx) || (a.cardIdx - b.cardIdx);
             });
             html += '<div class="cards' + listCls + '">';
             sorted.forEach(function(item) {
@@ -5260,8 +5546,8 @@ setTimeout(function() {
 
 // ===== Tier 2: Tab Reorder, Visibility & Accent (v5.5) =====
 
-var DEFAULT_TAB_ORDER = ['status','map','discovery','inventory','alerts','history','downtime','devices','reports','security','settings','help'];
-var TAB_LABELS = {status:'Status',map:'Network Map',discovery:'Discovery',inventory:'Inventory',alerts:'Alerts',history:'History',downtime:'Downtime',devices:'Manage Devices',reports:'Reports',settings:'Settings',security:'Security',help:'Help'};
+// DEFAULT_TAB_ORDER / TAB_LABELS are defined near the top of the script:
+// loadPrefs() runs long before this point and needs them.
 
 // --- Accent Color ---
 function setAccent(color) {
@@ -5559,7 +5845,12 @@ function showHiddenTabsMenu(indicatorEl) {
 function getTabOrder() {
     try {
         var order = JSON.parse(localStorage.getItem('netmon-tabOrder'));
-        if (order && order.length === DEFAULT_TAB_ORDER.length) return order;
+        if (Array.isArray(order) && order.length) {
+            // Keep the saved order, drop unknown names, append tabs added since it was saved.
+            var out = order.filter(function(n, i) { return DEFAULT_TAB_ORDER.indexOf(n) !== -1 && order.indexOf(n) === i; });
+            DEFAULT_TAB_ORDER.forEach(function(n) { if (out.indexOf(n) === -1) out.push(n); });
+            return out;
+        }
     } catch(e) {}
     return DEFAULT_TAB_ORDER.slice();
 }
