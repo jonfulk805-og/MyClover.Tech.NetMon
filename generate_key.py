@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MyClover.Tech.netmon - License Key Generator (vendor side)
+MyClover.Tech NetMon - License Key Generator (vendor side)
 
 One-time setup (creates the private signing key and embeds the PUBLIC key in
 netmon.py -- commit netmon.py afterwards, NEVER the .pem file):
@@ -50,7 +50,7 @@ def cmd_issue(tier, uid, batch):
     except ls.LicenseSigningError as exc:
         print("  [ERROR] %s" % exc)
         return 1
-    print("\n  MyClover.Tech.netmon License Key Generator")
+    print("\n  MyClover.Tech NetMon License Key Generator")
     print("  " + "=" * 42)
     print("  Tier: %s" % ("Enterprise" if tier == "ENT" else "Pro"))
     print()

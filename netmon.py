@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MyClover.Tech.netmon v5.8 - Network Monitoring System
+MyClover.Tech NetMon v5.8 - Network Monitoring System
 Features: ICMP ping, TCP port, HTTP, SNMP checks; email alerts;
           Flask dashboard with device CRUD, links/notes, maintenance mode,
           device detail drawer, status filters/search,
@@ -1022,7 +1022,7 @@ def send_alert_email(result, smtp_cfg):
     if key in _last_alert_email and (now - _last_alert_email[key]) < cooldown:
         return False
 
-    subject = "[MyClover.Tech.netmon %s] %s - %s" % (result["status"], result["device_name"],
+    subject = "[MyClover.Tech NetMon %s] %s - %s" % (result["status"], result["device_name"],
                                                      result.get("check_label", ""))
     body_text = (
         "Device: %s\nHost: %s\nCheck: %s\nStatus: %s\nMessage: %s\nTime: %s"
@@ -1135,7 +1135,7 @@ def _send_slack_webhook(result, url):
                 {"title": "Status", "value": result["status"], "short": True},
                 {"title": "Message", "value": result.get("message", ""), "short": False},
             ],
-            "footer": "MyClover.Tech.netmon",
+            "footer": "MyClover.Tech NetMon",
             "ts": int(time.time()),
         }]
     }
@@ -1986,8 +1986,12 @@ def _scan_worker(ip, scan_ports_list, port_timeout, results_list, results_lock):
 
 
 def run_scan(ip_range_str, scan_port_list=None, port_timeout=1000, max_threads=50,
-             auto_inventory=True):
-    """Run a network scan in background."""
+             auto_inventory=True, scan_id=None):
+    """Run a network scan in background.
+
+    scan_id may be supplied by the caller (the free first-run scan records it
+    before the thread starts so its results can be found again later).
+    """
     global _scan_state
 
     try:
@@ -1999,7 +2003,7 @@ def run_scan(ip_range_str, scan_port_list=None, port_timeout=1000, max_threads=5
         log.error("Scan parse error: %s", e)
         return
 
-    scan_id = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).strftime("%Y%m%d_%H%M%S")
+    scan_id = scan_id or datetime.datetime.now(datetime.UTC).replace(tzinfo=None).strftime("%Y%m%d_%H%M%S")
 
     with _scan_lock:
         _scan_state["running"] = True
@@ -2059,6 +2063,196 @@ def run_scan(ip_range_str, scan_port_list=None, port_timeout=1000, max_threads=5
         log.info("Inventory updated: %d new, %d updated", result["imported"], result["updated"])
 
     log.info("Scan complete: %d/%d alive", _scan_state["alive"], _scan_state["total"])
+
+
+# ---------------------------------------------------------------------------
+# Free first-run scan + CSV device import (onboarding)
+# ---------------------------------------------------------------------------
+# Every tier gets exactly one discovery scan of one private /24 so a new user
+# has something on screen in a minute. It is enforced here, not in the UI:
+# one time per install (recorded in config before the scan starts), private
+# IPv4 only, at most 256 addresses, and at most FIRST_SCAN_MAX_IMPORT devices
+# can be imported from it (also never past the tier's device limit).
+
+FIRST_SCAN_MAX_IPS = 256
+FIRST_SCAN_MAX_IMPORT = 10
+CSV_IMPORT_MAX_ROWS = 500
+
+
+def _first_scan_record():
+    with _config_lock:
+        rec = _config.get("first_scan") or {}
+    return rec if isinstance(rec, dict) else {}
+
+
+def _default_scan_subnet():
+    """Best guess at the local /24 (no packets are sent by a UDP connect)."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("10.255.255.255", 1))
+            ip = s.getsockname()[0]
+        finally:
+            s.close()
+        net = ipaddress.ip_network(ip + "/24", strict=False)
+        if net.is_private and not net.is_loopback and not net.is_link_local:
+            return str(net)
+    except Exception:
+        pass
+    return ""
+
+
+def validate_first_scan_range(range_str):
+    """Return a normalised CIDR string, or raise ValueError with a reason."""
+    range_str = (range_str or "").strip()
+    if not range_str:
+        raise ValueError("A range is required, e.g. 192.168.1.0/24")
+    if "/" not in range_str:
+        range_str += "/24"
+    try:
+        net = ipaddress.ip_network(range_str, strict=False)
+    except ValueError:
+        raise ValueError("Use CIDR notation, e.g. 192.168.1.0/24")
+    if net.version != 4:
+        raise ValueError("The free scan supports IPv4 only")
+    if net.num_addresses > FIRST_SCAN_MAX_IPS:
+        raise ValueError("The free scan covers one /24 (256 addresses) at most")
+    if not net.is_private or net.is_loopback or net.is_link_local:
+        raise ValueError("The free scan only covers private LAN ranges")
+    return str(net)
+
+
+def _device_slots_left():
+    """How many more devices the current tier allows (None = unlimited)."""
+    max_dev = get_tier_features()["max_devices"]
+    if not max_dev:
+        return None
+    with _config_lock:
+        count = len(_config.get("devices", []))
+    return max(0, max_dev - count)
+
+
+def _first_scan_results(scan_id):
+    if not scan_id:
+        return []
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(
+        "SELECT ip, hostname, open_ports, response_ms FROM scan_results "
+        "WHERE scan_id=? AND is_alive=1", (scan_id,)).fetchall()
+    conn.close()
+    with _config_lock:
+        monitored = {d.get("host", "") for d in _config.get("devices", [])}
+    out = []
+    for r in rows:
+        ports = r["open_ports"] or ""
+        out.append({
+            "ip": r["ip"],
+            "hostname": r["hostname"] or "",
+            "open_ports": [int(p) for p in ports.split(",") if p.strip()],
+            "response_ms": r["response_ms"],
+            "is_monitored": r["ip"] in monitored,
+        })
+    out.sort(key=lambda x: tuple(int(p) for p in x["ip"].split(".")))
+    return out
+
+
+def _unique_device_name(base, taken):
+    name = base or "device"
+    n = 2
+    while name in taken:
+        name = "%s-%d" % (base, n)
+        n += 1
+    taken.add(name)
+    return name
+
+
+def parse_device_csv(text):
+    """Parse CSV text into (devices, errors).
+
+    Header row required; columns (case-insensitive): name, host, group,
+    check (ping|tcp|http), port, url. Only name and host are required; a
+    missing check means ping.
+    """
+    import csv
+    import io
+    devices, errors = [], []
+    reader = csv.DictReader(io.StringIO(text or ""))
+    if not reader.fieldnames:
+        return [], ["The file is empty"]
+    fields = {f.strip().lower(): f for f in reader.fieldnames if f}
+    if "host" not in fields:
+        return [], ["The header row needs at least a 'host' column (name, host, group, check, port, url)"]
+
+    def col(row, key):
+        src = fields.get(key)
+        return str(row.get(src) or "").strip() if src else ""
+
+    for i, row in enumerate(reader, start=2):
+        if len(devices) >= CSV_IMPORT_MAX_ROWS:
+            errors.append("Stopped after %d rows" % CSV_IMPORT_MAX_ROWS)
+            break
+        host = col(row, "host")
+        if not host:
+            if any(str(v or "").strip() for v in row.values()):
+                errors.append("Row %d: missing host" % i)
+            continue
+        ctype = (col(row, "check") or "ping").lower()
+        if ctype not in ("ping", "tcp", "http"):
+            errors.append("Row %d: unknown check '%s' (use ping, tcp or http)" % (i, ctype))
+            continue
+        check = {"type": ctype, "label": ctype.upper() if ctype != "ping" else "Ping"}
+        if ctype == "tcp":
+            try:
+                check["port"] = int(col(row, "port"))
+            except ValueError:
+                errors.append("Row %d: tcp check needs a numeric port" % i)
+                continue
+            check["label"] = "TCP %d" % check["port"]
+        if ctype == "http":
+            check["url"] = col(row, "url") or ("http://%s/" % host)
+        devices.append({
+            "name": col(row, "name") or host,
+            "host": host,
+            "group": col(row, "group") or "Default",
+            "checks": [check],
+        })
+    return devices, errors
+
+
+def add_devices_capped(new_devices, cap=None):
+    """Append sanitised devices to config, honouring the tier limit and cap.
+
+    Returns dict(added=[names], skipped=[{name, reason}], limit_reached=bool).
+    """
+    added, skipped = [], []
+    limit_reached = False
+    max_dev = get_tier_features()["max_devices"]
+    with _config_lock:
+        devices = _config.setdefault("devices", [])
+        names = {d["name"] for d in devices}
+        hosts = {d.get("host", "") for d in devices}
+        for raw in new_devices:
+            dev = _sanitize_device(raw)
+            if not dev["host"]:
+                continue
+            if dev["host"] in hosts:
+                skipped.append({"name": dev["name"], "reason": "already monitored"})
+                continue
+            if (max_dev and len(devices) >= max_dev) or (cap is not None and len(added) >= cap):
+                limit_reached = True
+                skipped.append({"name": dev["name"], "reason": "device limit"})
+                continue
+            if dev["name"] in names:
+                skipped.append({"name": dev["name"], "reason": "name already exists"})
+                continue
+            devices.append(dev)
+            names.add(dev["name"])
+            hosts.add(dev["host"])
+            added.append(dev["name"])
+        if added:
+            save_config(_config)
+    return {"added": added, "skipped": skipped, "limit_reached": limit_reached}
 
 
 # ---------------------------------------------------------------------------
@@ -2801,7 +2995,7 @@ def create_ticket_from_alert(result):
         result.get("check_label", ""),
     )
     description = (
-        "MyClover.Tech.netmon auto-generated ticket\n\n"
+        "MyClover.Tech NetMon auto-generated ticket\n\n"
         "Device: %s\n"
         "Host: %s\n"
         "Check: %s (%s)\n"
@@ -3657,7 +3851,8 @@ def get_device_events(start=None, end=None, device_filter=None,
 
 
 def create_app():
-    app = Flask(__name__, template_folder=str(BASE_DIR / "templates"))
+    app = Flask(__name__, template_folder=str(BASE_DIR / "templates"),
+                static_folder=str(BASE_DIR / "static"))
 
     @app.before_request
     def _enforce_authorization():
@@ -4092,6 +4287,97 @@ def create_app():
             r["is_monitored"] = r["ip"] in monitored_hosts
         return jsonify(results)
 
+    # --- Free first-run scan + CSV import (all tiers, limits enforced here) ---
+
+    @app.route("/api/first-scan", methods=["GET"])
+    def api_first_scan_status():
+        rec = _first_scan_record()
+        scan_id = rec.get("scan_id", "")
+        with _scan_lock:
+            running = _scan_state["running"] and _scan_state["scan_id"] == scan_id
+            progress = {"total": _scan_state["total"], "scanned": _scan_state["scanned"],
+                        "alive": _scan_state["alive"]} if running else None
+        slots = _device_slots_left()
+        cap = FIRST_SCAN_MAX_IMPORT if slots is None else min(FIRST_SCAN_MAX_IMPORT, slots)
+        return jsonify({
+            "available": not rec.get("used_at"),
+            "used_at": rec.get("used_at"),
+            "target": rec.get("target", ""),
+            "suggested_range": _default_scan_subnet(),
+            "running": bool(running),
+            "progress": progress,
+            "import_cap": cap,
+            "imported": rec.get("imported", 0),
+            "results": [] if running else _first_scan_results(scan_id),
+        })
+
+    @app.route("/api/first-scan", methods=["POST"])
+    def api_first_scan_start():
+        data = request.get_json(silent=True) or {}
+        if _first_scan_record().get("used_at"):
+            return jsonify({"error": "first_scan_used",
+                            "message": "The free scan has already been used on this install. "
+                                       "Network Discovery (Pro) runs unlimited scans."}), 409
+        try:
+            target = validate_first_scan_range(data.get("range") or _default_scan_subnet())
+        except ValueError as e:
+            return jsonify({"error": "bad_range", "message": str(e)}), 400
+        with _scan_lock:
+            if _scan_state["running"]:
+                return jsonify({"error": "A scan is already running"}), 409
+        scan_id = "first_" + datetime.datetime.now(datetime.UTC).replace(
+            tzinfo=None).strftime("%Y%m%d_%H%M%S")
+        with _config_lock:
+            if (_config.get("first_scan") or {}).get("used_at"):
+                return jsonify({"error": "first_scan_used"}), 409
+            _config["first_scan"] = {
+                "used_at": datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat(),
+                "target": target, "scan_id": scan_id, "imported": 0,
+            }
+            save_config(_config)
+        t = threading.Thread(target=run_scan, args=(target,),
+                             kwargs={"auto_inventory": False, "scan_id": scan_id})
+        t.daemon = True
+        t.start()
+        return jsonify({"status": "started", "target": target,
+                        "total_ips": len(parse_ip_range(target))}), 202
+
+    @app.route("/api/first-scan/import", methods=["POST"])
+    def api_first_scan_import():
+        data = request.get_json(silent=True) or {}
+        rec = _first_scan_record()
+        if not rec.get("scan_id"):
+            return jsonify({"error": "no_first_scan"}), 400
+        found = {r["ip"]: r for r in _first_scan_results(rec["scan_id"])}
+        wanted = [ip for ip in (data.get("ips") or []) if ip in found]
+        remaining = max(0, FIRST_SCAN_MAX_IMPORT - int(rec.get("imported", 0) or 0))
+        with _config_lock:
+            taken = {d["name"] for d in _config.get("devices", [])}
+        new_devs = []
+        for ip in wanted:
+            r = found[ip]
+            base = (r["hostname"].split(".")[0] if r["hostname"] else ip)
+            new_devs.append({"name": _unique_device_name(base, taken), "host": ip,
+                             "group": "Discovered",
+                             "checks": [{"type": "ping", "label": "Ping"}]})
+        result = add_devices_capped(new_devs, cap=remaining)
+        if result["added"]:
+            with _config_lock:
+                fs = _config.setdefault("first_scan", {})
+                fs["imported"] = int(fs.get("imported", 0) or 0) + len(result["added"])
+                save_config(_config)
+        return jsonify(result)
+
+    @app.route("/api/devices/import", methods=["POST"])
+    def api_import_devices_csv():
+        data = request.get_json(silent=True) or {}
+        devices, errors = parse_device_csv(data.get("csv", ""))
+        if not devices and errors:
+            return jsonify({"error": "bad_csv", "message": errors[0], "errors": errors}), 400
+        result = add_devices_capped(devices)
+        result["errors"] = errors
+        return jsonify(result)
+
     # --- Network Map API (Pro+) ---
 
     @app.route("/api/map/data")
@@ -4323,8 +4609,8 @@ def create_app():
             return jsonify({"ok": False, "error": "No recipients configured"}), 400
         try:
             from_addr = smtp_cfg.get("from_addr", smtp_cfg.get("username", "netmon@localhost"))
-            subject = "MyClover.Tech.netmon Test Alert"
-            body = "This is a test alert from MyClover.Tech.netmon. If you received this, your email settings are working correctly."
+            subject = "MyClover.Tech NetMon Test Alert"
+            body = "This is a test alert from MyClover.Tech NetMon. If you received this, your email settings are working correctly."
             msg = email.mime.multipart.MIMEMultipart("alternative")
             msg["Subject"] = subject
             msg["From"] = from_addr
@@ -4620,7 +4906,7 @@ def create_app():
             "check_label": "Test Check",
             "status": "WARNING",
             "response_ms": 42.0,
-            "message": "This is a test notification from MyClover.Tech.netmon",
+            "message": "This is a test notification from MyClover.Tech NetMon",
         }
         try:
             hook_type = data.get("type", "generic")
@@ -5434,7 +5720,7 @@ def create_app():
 # ---------------------------------------------------------------------------
 
 def main():
-    log.info("MyClover.Tech.netmon v5.8 starting...")
+    log.info("MyClover.Tech NetMon v5.8 starting...")
     _reload_config()
 
     with _config_lock:

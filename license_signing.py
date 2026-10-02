@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MyClover.Tech.netmon - license signing (vendor side ONLY).
+MyClover.Tech NetMon - license signing (vendor side ONLY).
 
 License keys are Ed25519 signatures. The PRIVATE key never ships with netmon
 and never goes into git; netmon.py only embeds the PUBLIC key, so reading the

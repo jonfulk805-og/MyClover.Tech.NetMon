@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MyClover.Tech.netmon - NOC Display</title>
+<title>MyClover.Tech NetMon - NOC Display</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #0a0e17; color: #e2e8f0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; overflow: hidden; height: 100vh; }
 .noc-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; background: #111827; border-bottom: 1px solid #1e293b; }
-.noc-title { font-size: 20px; font-weight: 700; }
+.noc-title { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
 .noc-title span.green { color: #22c55e; }
 .noc-title span.dim { color: #64748b; font-weight: 400; font-size: 14px; margin-left: 12px; }
 .noc-clock { font-size: 28px; font-weight: 300; font-variant-numeric: tabular-nums; color: #94a3b8; }
@@ -53,7 +53,7 @@ body { background: #0a0e17; color: #e2e8f0; font-family: 'Segoe UI', system-ui, 
 </head>
 <body>
 <div class="noc-header">
-    <div class="noc-title">&#x1F340; <span class="green">My</span>Clover<span class="green">.</span>Tech<span class="green">.</span>netmon <span class="dim">NOC Display</span></div>
+    <div class="noc-title"><img src="/static/img/myclover_logo.png" width="32" height="32" alt="MyClover.Tech" style="border-radius:6px;"><span>MyClover<span class="green">.</span>Tech NetMon</span><span class="dim">NOC Display</span></div>
     <div class="noc-clock" id="noc-clock">--:--:--</div>
 </div>
 <div class="noc-body" id="noc-body">

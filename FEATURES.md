@@ -1,14 +1,14 @@
-# MyClover.Tech.netmon - Features Document
+# MyClover.Tech NetMon - Features Document
 
 **Version:** 5.0
 **Build Date:** 2026-05-05
-**Product:** MyClover.Tech.netmon - Network Monitoring System
+**Product:** MyClover.Tech NetMon - Network Monitoring System
 
 ---
 
 ## Product Overview
 
-MyClover.Tech.netmon is a lightweight, self-hosted network monitoring system built in Python. It provides real-time monitoring of network devices and services with a modern dark-themed web dashboard, email alerting, network discovery, asset inventory management, and enterprise-grade features like host dependencies, performance graphing, alert acknowledgment, and scheduled downtime windows.
+MyClover.Tech NetMon is a lightweight, self-hosted network monitoring system built in Python. It provides real-time monitoring of network devices and services with a modern dark-themed web dashboard, email alerting, network discovery, asset inventory management, and enterprise-grade features like host dependencies, performance graphing, alert acknowledgment, and scheduled downtime windows.
 
 ---
 
@@ -182,7 +182,7 @@ MyClover.Tech.netmon is a lightweight, self-hosted network monitoring system bui
 | v2 | 2026-05 | Device CRUD via web, REST API, live config |
 | v3 | 2026-05 | Links/Notes, maintenance mode, detail drawer, filters |
 | v4 | 2026-05 | Discovery scanner, network map, settings, inventory, alive-only scans, batch delete, Windows ping fix |
-| **v5** | **2026-05** | **Host dependencies, performance graphing, alert acknowledgment, scheduled downtime, renamed to MyClover.Tech.netmon** |
+| **v5** | **2026-05** | **Host dependencies, performance graphing, alert acknowledgment, scheduled downtime, renamed to MyClover.Tech NetMon** |
 
 ---
 
@@ -259,7 +259,7 @@ python3 netmon.py
 ### As a Service (Linux systemd)
 ```ini
 [Unit]
-Description=MyClover.Tech.netmon
+Description=MyClover.Tech NetMon
 After=network.target
 
 [Service]
@@ -274,4 +274,4 @@ WantedBy=multi-user.target
 
 ---
 
-*MyClover.Tech.netmon - Open-source network monitoring for teams that demand reliability.*
+*MyClover.Tech NetMon - Open-source network monitoring for teams that demand reliability.*

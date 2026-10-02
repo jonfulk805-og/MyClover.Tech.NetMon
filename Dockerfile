@@ -29,6 +29,7 @@ COPY stripe_handler.py .
 COPY license_signing.py .
 COPY stripe_config.example.yaml ./stripe_config.yaml.default
 COPY templates/ ./templates/
+COPY static/ ./static/
 COPY plugins/ ./plugins/
 
 # Create data directory for persistent storage
