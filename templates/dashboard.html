@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MyClover.Tech.netmon</title>
+<title>MyClover.Tech NetMon</title>
 <script src="https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
@@ -763,6 +763,52 @@ a.port-link:hover {
     padding: 4px 12px; border-radius: 6px; font-size: 11px; cursor: pointer;
 }
 .ai-clear-btn:hover { color: var(--text-primary); border-color: var(--text-muted); }
+
+/* === Phase 1 reskin: brand, grouped nav, tier locks, onboarding, API banner === */
+.brand-wrap { display: flex; align-items: center; gap: 10px; }
+.brand-clover { flex: none; filter: drop-shadow(0 0 6px rgba(234,179,8,0.18)); }
+.header h1 .brand-prod { font-weight: 700; }
+.tier-chip { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-muted); }
+.tier-chip.tier-pro { color: var(--accent); border-color: var(--accent); }
+.tier-chip.tier-enterprise { color: #eab308; border-color: #eab308; }
+.nav-groups { display: flex; gap: 4px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
+    padding: 0 24px; overflow-x: auto; }
+.nav-group { background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted);
+    font-size: 15px; font-weight: 600; padding: 12px 16px; cursor: pointer; white-space: nowrap; }
+.nav-group:hover { color: var(--text-body); }
+.nav-group.active { color: var(--accent); border-bottom-color: var(--accent); }
+.nav-group .ng-count { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 6px; border-radius: 9px;
+    font-size: 11px; line-height: 18px; text-align: center; background: var(--status-critical); color: #fff; }
+.tabs .tab.out-of-group { display: none !important; }
+.tabs .tab { font-size: 13px; padding: 10px 16px; }
+.tab .tier-lock { margin-left: 6px; font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    padding: 1px 5px; border-radius: 3px; border: 1px solid var(--border); color: var(--text-dim); vertical-align: 1px; }
+.tab .tier-lock.ent { border-color: rgba(234,179,8,.45); color: #c9a227; }
+.api-banner { display: none; align-items: center; gap: 12px; margin-bottom: 16px; padding: 10px 14px; border-radius: 8px;
+    background: var(--status-critical-bg); color: var(--status-critical); border: 1px solid var(--status-critical); font-size: 13px; }
+.api-banner.visible { display: flex; }
+.api-banner .btn { margin-left: auto; }
+.onboard { border: 1px dashed var(--border); border-radius: 12px; padding: 40px 24px; text-align: center; background: var(--bg-card); }
+.onboard h2 { color: var(--text-primary); font-size: 22px; margin: 14px 0 8px; }
+.onboard p.lead { color: var(--text-muted); max-width: 560px; margin: 0 auto 20px; line-height: 1.55; font-size: 14px; }
+.onboard .ob-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.onboard .ob-note { color: var(--text-dim); font-size: 12px; margin-top: 14px; }
+.onboard code { background: var(--bg-deep); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 12px; }
+.ob-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 14px; text-align: left; }
+.ob-step { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; display: flex; gap: 12px; }
+.ob-step .ob-num { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--accent); color: var(--accent);
+    font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.ob-step h4 { color: var(--text-primary); font-size: 14px; margin: 2px 0 4px; }
+.ob-step p { color: var(--text-muted); font-size: 13px; line-height: 1.5; margin: 0 0 6px; }
+.ob-step a { color: var(--accent); font-size: 13px; cursor: pointer; text-decoration: none; }
+@media (max-width: 640px) {
+    .header { flex-wrap: wrap; gap: 8px; padding: 12px; }
+    .nav-groups { padding: 0 8px; }
+    .nav-group { padding: 10px 10px; font-size: 14px; }
+    .tabs { padding: 0 8px; }
+    .onboard { padding: 28px 14px; }
+}
 </style>
 </head>
 <body>
@@ -771,7 +817,7 @@ a.port-link:hover {
 <div id="login-overlay" style="display:none;position:fixed;inset:0;background:var(--bg-deep,#0a0c10);z-index:9999;align-items:center;justify-content:center;">
     <div style="background:var(--bg-card,#161b22);border:1px solid var(--border,#2a2f38);border-radius:12px;padding:40px;width:360px;max-width:90vw;">
         <div style="text-align:center;margin-bottom:24px;">
-            <h1 style="font-size:20px;color:var(--text-primary,#e0e0e0);margin:0;">MyClover<span style="color:var(--accent,#5b9aff);">.</span>tech<span style="color:var(--accent,#5b9aff);">.</span>netmon</h1>
+            <div style="display:flex;align-items:center;justify-content:center;gap:10px;"><svg class="brand-clover" width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="clv-rL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a80"/><stop offset=".55" stop-color="#e53935"/><stop offset="1" stop-color="#7f1d1d"/></linearGradient><linearGradient id="clv-gL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9f6ca"/><stop offset=".55" stop-color="#22c55e"/><stop offset="1" stop-color="#14532d"/></linearGradient><linearGradient id="clv-oL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd0a1"/><stop offset=".55" stop-color="#f97316"/><stop offset="1" stop-color="#7c2d12"/></linearGradient><linearGradient id="clv-yL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".55" stop-color="#eab308"/><stop offset="1" stop-color="#713f12"/></linearGradient></defs><g stroke="#0b0d12" stroke-width="1.2"><path d="M16 15C16 9 13 5 9.5 5S4 8 5 11.5 10 16 16 15Z" fill="url(#clv-rL)"/><path d="M17 16C23 16 27 13 27 9.5S24 4 20.5 5 16 10 17 16Z" fill="url(#clv-gL)"/><path d="M16 17C16 23 19 27 22.5 27S28 24 27 20.5 22 16 16 17Z" fill="url(#clv-yL)"/><path d="M15 16C9 16 5 19 5 22.5S8 28 11.5 27 16 22 15 16Z" fill="url(#clv-oL)"/></g><circle cx="16" cy="16" r="1.6" fill="#0b0d12"/></svg><h1 style="font-size:20px;color:var(--text-primary,#e0e0e0);margin:0;">MyClover<span style="color:var(--accent,#5b9aff);">.</span>Tech NetMon</h1></div>
             <p style="color:var(--text-dim,#666);font-size:12px;margin-top:4px;">Sign in to continue</p>
         </div>
         <div id="login-error" style="display:none;background:var(--status-critical-bg,#3b1c1c);color:var(--status-critical,#ff4444);padding:10px 14px;border-radius:6px;margin-bottom:16px;font-size:13px;"></div>
@@ -788,9 +834,11 @@ a.port-link:hover {
 </div>
 
 <div class="header">
-    <div style="display:flex;align-items:baseline;">
-        <h1>MyClover<span class="brand-dot">.</span>tech<span class="brand-dot">.</span>netmon</h1>
-        <span class="subtitle">Network Monitoring System v5.8</span>
+    <div class="brand-wrap">
+        <svg class="brand-clover" width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="clv-rH" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a80"/><stop offset=".55" stop-color="#e53935"/><stop offset="1" stop-color="#7f1d1d"/></linearGradient><linearGradient id="clv-gH" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9f6ca"/><stop offset=".55" stop-color="#22c55e"/><stop offset="1" stop-color="#14532d"/></linearGradient><linearGradient id="clv-oH" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd0a1"/><stop offset=".55" stop-color="#f97316"/><stop offset="1" stop-color="#7c2d12"/></linearGradient><linearGradient id="clv-yH" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".55" stop-color="#eab308"/><stop offset="1" stop-color="#713f12"/></linearGradient></defs><g stroke="#0b0d12" stroke-width="1.2"><path d="M16 15C16 9 13 5 9.5 5S4 8 5 11.5 10 16 16 15Z" fill="url(#clv-rH)"/><path d="M17 16C23 16 27 13 27 9.5S24 4 20.5 5 16 10 17 16Z" fill="url(#clv-gH)"/><path d="M16 17C16 23 19 27 22.5 27S28 24 27 20.5 22 16 16 17Z" fill="url(#clv-yH)"/><path d="M15 16C9 16 5 19 5 22.5S8 28 11.5 27 16 22 15 16Z" fill="url(#clv-oH)"/></g><circle cx="16" cy="16" r="1.6" fill="#0b0d12"/></svg>
+        <h1>MyClover<span class="brand-dot">.</span>Tech <span class="brand-prod">NetMon</span></h1>
+        <span class="subtitle">v5.8</span>
+        <span class="tier-chip" id="tier-chip" title="License tier">Free</span>
     </div>
     <div style="display:flex;align-items:center;gap:12px;">
         <span id="auth-user-badge" style="display:none;font-size:12px;color:var(--text-dim);background:var(--bg-card);padding:4px 10px;border-radius:4px;border:1px solid var(--border);"></span>
@@ -799,6 +847,11 @@ a.port-link:hover {
     </div>
 </div>
 
+<div class="nav-groups" id="nav-groups">
+    <button class="nav-group active" data-group="monitor" onclick="selectNavGroup('monitor', true)">Monitor<span class="ng-count" id="ng-count-monitor" style="display:none;"></span></button>
+    <button class="nav-group" data-group="investigate" onclick="selectNavGroup('investigate', true)">Investigate</button>
+    <button class="nav-group" data-group="configure" onclick="selectNavGroup('configure', true)">Configure</button>
+</div>
 <div class="tabs">
     <div class="tab active" data-tab="status" draggable="true"><span class="tab-grip">&#9776;</span>Status</div>
     <div class="tab" data-tab="map" draggable="true"><span class="tab-grip">&#9776;</span>Network Map</div>
@@ -819,6 +872,10 @@ a.port-link:hover {
 
 <!-- ========== STATUS TAB ========== -->
 <div class="content tab-content active" id="tab-status">
+    <div class="api-banner" id="api-banner" role="alert">
+        <span id="api-banner-text">Can't reach the NetMon API.</span>
+        <button class="btn btn-ghost btn-sm" onclick="loadStatus()">Retry now</button>
+    </div>
     <div id="summary-bar" class="summary-bar"></div>
     <div class="filter-bar">
         <span class="filter-label">Search:</span>
@@ -828,6 +885,7 @@ a.port-link:hover {
         <span class="filter-label">Status:</span>
         <select id="filter-status" onchange="applyFilters()">
             <option value="">All</option>
+            <option value="problems">Problems only</option>
             <option value="ok">OK</option>
             <option value="warning">Warning</option>
             <option value="critical">Critical</option>
@@ -2457,7 +2515,7 @@ devices:
     <div class="help-section" data-keywords="skin theme dark light mode appearance color visual style midnight corporate blue matrix cyber amber noc solarized">
         <div class="help-heading" onclick="toggleHelp(this)">Visual Skins &amp; Themes</div>
         <div class="help-body">
-            <p>MyClover.Tech.netmon ships with 6 built-in visual skins that change the entire dashboard appearance.</p>
+            <p>MyClover.Tech NetMon ships with 6 built-in visual skins that change the entire dashboard appearance.</p>
             <h4>Available Skins</h4>
             <table class="data-table" style="margin-bottom:16px;">
                 <thead><tr><th>Skin</th><th>Description</th></tr></thead>
@@ -2520,7 +2578,7 @@ devices:
 
     <!-- About -->
     <div class="help-section" data-keywords="about version info stack technology python flask sqlite chart.js vis.js">
-        <div class="help-heading" onclick="toggleHelp(this)">About MyClover.Tech.NetMon v5.8</div>
+        <div class="help-heading" onclick="toggleHelp(this)">About MyClover.Tech NetMon v5.8</div>
         <div class="help-body">
             <h4>Technology Stack</h4>
             <ul>
@@ -3043,8 +3101,97 @@ function loadLicense() {
     return fetch('/api/license').then(function(r){ return r.json(); }).then(function(data) {
         _currentTier = data.tier || 'community';
         _tierFeatures = data.features || {};
+        applyTierDecorations();
+        if (_devicesCache && !_devicesCache.length && document.querySelector('#status-cards .onboard')) {
+            document.getElementById('status-cards').innerHTML = onboardingHTML();
+        }
     }).catch(function(){});
 }
+
+// ===== Grouped navigation (Monitor / Investigate / Configure) =====
+// The existing .tab elements, handlers, hide/reorder settings all stay; the
+// group bar only filters which tabs are shown in the sub-bar (via a class, so
+// it never fights the inline display used by Tab Visibility).
+var NAV_GROUPS = {
+    monitor: ['status', 'alerts', 'history', 'map'],
+    investigate: ['discovery', 'inventory', 'downtime', 'security', 'reports', 'helpdesk', 'ai_assistant'],
+    configure: ['devices', 'settings', 'help']
+};
+var TAB_REQUIRED_TIER = {
+    map: 'pro', discovery: 'pro', inventory: 'pro', downtime: 'pro', helpdesk: 'pro',
+    security: 'enterprise', reports: 'enterprise', ai_assistant: 'enterprise'
+};
+var _activeNavGroup = 'monitor';
+var _lastTabInGroup = {};
+
+function navGroupOf(tabName) {
+    for (var g in NAV_GROUPS) { if (NAV_GROUPS[g].indexOf(tabName) !== -1) return g; }
+    return 'configure';
+}
+
+function renderNavGroup() {
+    document.querySelectorAll('.nav-groups .nav-group').forEach(function(b) {
+        b.classList.toggle('active', b.getAttribute('data-group') === _activeNavGroup);
+    });
+    document.querySelectorAll('.tabs .tab').forEach(function(t) {
+        var name = t.getAttribute('data-tab');
+        if (!name) return;
+        t.classList.toggle('out-of-group', navGroupOf(name) !== _activeNavGroup);
+    });
+}
+
+function selectNavGroup(group, openTab) {
+    _activeNavGroup = group;
+    renderNavGroup();
+    if (!openTab) return;
+    var active = document.querySelector('.tabs .tab.active');
+    if (active && navGroupOf(active.getAttribute('data-tab')) === group) return;
+    var want = _lastTabInGroup[group];
+    var target = want ? document.querySelector('.tabs .tab[data-tab="' + want + '"]') : null;
+    if (!target || target.style.display === 'none') {
+        target = null;
+        document.querySelectorAll('.tabs .tab').forEach(function(t) {
+            if (!target && navGroupOf(t.getAttribute('data-tab')) === group && t.style.display !== 'none') target = t;
+        });
+    }
+    if (target) target.click();
+}
+
+function syncNavGroupForTab(tabName) {
+    var g = navGroupOf(tabName);
+    _lastTabInGroup[g] = tabName;
+    if (g !== _activeNavGroup) { _activeNavGroup = g; }
+    renderNavGroup();
+}
+
+function tierLabel(tier) {
+    if (tier === 'enterprise') return 'Enterprise';
+    if (tier === 'pro') return 'Pro';
+    return 'Free';
+}
+
+function applyTierDecorations() {
+    var tier = _currentTier || 'community';
+    var chip = document.getElementById('tier-chip');
+    if (chip) {
+        chip.textContent = tierLabel(tier);
+        chip.className = 'tier-chip' + (tier === 'pro' ? ' tier-pro' : tier === 'enterprise' ? ' tier-enterprise' : '');
+    }
+    var allowed = (_tierFeatures && _tierFeatures.tabs) || [];
+    document.querySelectorAll('.tabs .tab').forEach(function(t) {
+        var name = t.getAttribute('data-tab');
+        var old = t.querySelector('.tier-lock');
+        if (old) old.parentNode.removeChild(old);
+        var need = TAB_REQUIRED_TIER[name];
+        if (!need || allowed.indexOf(name) !== -1) return;
+        var b = document.createElement('span');
+        b.className = 'tier-lock' + (need === 'enterprise' ? ' ent' : '');
+        b.textContent = need === 'enterprise' ? 'Ent' : 'Pro';
+        b.title = 'Requires ' + tierLabel(need);
+        t.appendChild(b);
+    });
+}
+renderNavGroup();
 function safeFetch(url, fallback) {
     return fetch(url).then(function(r) {
         if (r.status === 403) return fallback !== undefined ? fallback : [];
@@ -3068,6 +3215,7 @@ document.querySelectorAll('.tab').forEach(function(tab) {
         document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
         tab.classList.add('active');
         document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+        syncNavGroupForTab(tab.dataset.tab);
         if (tab.dataset.tab === 'devices') loadDevices();
         if (tab.dataset.tab === 'discovery') { loadDiscoveryTab(); }
         if (tab.dataset.tab === 'map') loadNetworkMap();
@@ -3130,15 +3278,71 @@ function loadStatus() {
             else if (s.status === 'WARNING' && cur !== 'CRITICAL') statusMap[s.device_name] = 'WARNING';
             else if (!(s.device_name in statusMap)) statusMap[s.device_name] = s.status;
         });
+        setApiBanner(null);
         buildStatusData(parentMap, statusMap);
         applyFilters();
         updateFreshnessBanner();
         console.log('[NetMon] loadStatus complete');
     }).catch(function(err) {
         console.error('[NetMon] loadStatus error:', err);
+        // Never show the zero-device onboarding for an outage: keep the last good
+        // data on screen (if any) and say plainly that the API is unreachable.
+        setApiBanner(err);
         var c = document.getElementById('status-cards');
-        if (c) c.innerHTML = '<div class="empty-state"><p style="color:var(--text-dim);">Failed to load devices: ' + err.message + '</p><p style="font-size:12px;color:var(--text-dim);">Check the console (F12) for details.</p></div>';
+        if (c && !(_allCards && _allCards.length)) {
+            c.innerHTML = '<div class="empty-state"><p style="color:var(--text-dim);">Device list unavailable until the API responds.</p></div>';
+        }
     });
+}
+
+function setApiBanner(err) {
+    var b = document.getElementById('api-banner');
+    if (!b) return;
+    if (!err) { b.classList.remove('visible'); return; }
+    var stale = (_allCards && _allCards.length) ? ' Showing the last data received.' : '';
+    document.getElementById('api-banner-text').textContent =
+        "Can't reach the NetMon API (" + (err.message || err) + '). Retrying automatically.' + stale;
+    b.classList.add('visible');
+}
+
+function onboardingHTML() {
+    var allowed = (_tierFeatures && _tierFeatures.tabs) || [];
+    var canDiscover = allowed.indexOf('discovery') !== -1;
+    var maxDev = _tierFeatures ? _tierFeatures.max_devices : undefined;
+    var freeNote = (typeof maxDev !== 'number') ? 'Free covers your first 10 devices.'
+        : maxDev > 0 ? 'Your plan covers up to ' + maxDev + ' devices.' : 'Your plan covers unlimited devices.';
+    var html = '<div class="onboard">' + '<svg class="brand-clover" width="44" height="44" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="clv-rE" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a80"/><stop offset=".55" stop-color="#e53935"/><stop offset="1" stop-color="#7f1d1d"/></linearGradient><linearGradient id="clv-gE" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9f6ca"/><stop offset=".55" stop-color="#22c55e"/><stop offset="1" stop-color="#14532d"/></linearGradient><linearGradient id="clv-oE" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd0a1"/><stop offset=".55" stop-color="#f97316"/><stop offset="1" stop-color="#7c2d12"/></linearGradient><linearGradient id="clv-yE" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".55" stop-color="#eab308"/><stop offset="1" stop-color="#713f12"/></linearGradient></defs><g stroke="#0b0d12" stroke-width="1.2"><path d="M16 15C16 9 13 5 9.5 5S4 8 5 11.5 10 16 16 15Z" fill="url(#clv-rE)"/><path d="M17 16C23 16 27 13 27 9.5S24 4 20.5 5 16 10 17 16Z" fill="url(#clv-gE)"/><path d="M16 17C16 23 19 27 22.5 27S28 24 27 20.5 22 16 16 17Z" fill="url(#clv-yE)"/><path d="M15 16C9 16 5 19 5 22.5S8 28 11.5 27 16 22 15 16Z" fill="url(#clv-oE)"/></g><circle cx="16" cy="16" r="1.6" fill="#0b0d12"/></svg>'
+        + '<h2>Add your first device</h2>'
+        + '<p class="lead">Point NetMon at a router, switch, server or anything with an IP address. '
+        + 'It starts checking within one refresh cycle and builds its status history here.</p>'
+        + '<div class="ob-actions">'
+        + '<button class="btn btn-primary" onclick="openAddDevice()">+ Add your first device</button>';
+    if (canDiscover) html += '<button class="btn btn-ghost" onclick="openNavTab(\'discovery\')">Run discovery</button>';
+    html += '</div>'
+        + '<div class="ob-note">' + esc(freeNote) + ' You can also list devices in <code>config.yaml</code>.</div>'
+        + '</div>'
+        + '<div class="ob-steps">'
+        + '<div class="ob-step"><div class="ob-num">1</div><div><h4>Add a device</h4><p>Ping, TCP port, HTTP or SNMP checks. ' + esc(freeNote) + '</p><a onclick="openAddDevice()">Add device &rarr;</a></div></div>'
+        + '<div class="ob-step"><div class="ob-num">2</div><div><h4>Set up alerts</h4><p>Get an email when something goes down.</p><a onclick="openNavTab(\'settings\')">Configure SMTP &rarr;</a></div></div>'
+        + '<div class="ob-step"><div class="ob-num">3</div><div><h4>Connect SentryLog</h4><p>See what a device logged right before it went down, on one timeline.</p><a onclick="openNavTab(\'settings\')">Integration settings &rarr;</a></div></div>'
+        + '</div>';
+    return html;
+}
+
+// Search/filter bar and widget toggle mean nothing with zero devices.
+function setStatusChromeVisible(show) {
+    var tab = document.getElementById('tab-status');
+    if (!tab) return;
+    var fb = tab.querySelector('.filter-bar');
+    if (fb) fb.style.display = show ? '' : 'none';
+    if (fb && fb.nextElementSibling && fb.nextElementSibling.querySelector('button')) {
+        fb.nextElementSibling.style.display = show ? '' : 'none';
+    }
+}
+
+function openNavTab(name) {
+    var t = document.querySelector('.tabs .tab[data-tab="' + name + '"]');
+    if (t) t.click();
 }
 
 function isAncestorDown(name, parentMap, statusMap) {
@@ -3162,11 +3366,13 @@ function buildStatusData(parentMap, statusMap) {
 
     if (!devices.length) {
         summaryBar.innerHTML = '';
-        container.innerHTML = '<div class="empty-state"><p>No devices configured yet.</p><p style="font-size:13px;color:var(--text-dim);">Go to <strong>Manage Devices</strong> to add your first device.</p></div>';
+        container.innerHTML = onboardingHTML();
+        setStatusChromeVisible(false);
         _allCards = []; _allGroups = [];
         return;
     }
 
+    setStatusChromeVisible(true);
     var resultMap = {};
     results.forEach(function(r) { resultMap[r.device_name + '|' + (r.check_label || '')] = r; });
 
@@ -3244,7 +3450,31 @@ function buildStatusData(parentMap, statusMap) {
     sel.value = curVal;
 }
 
+// Lower = worse; problems sort to the top of each group and groups with
+// problems sort above healthy groups.
+var STATUS_SEVERITY = { critical: 0, warning: 1, 'parent-down': 2, unknown: 3, pending: 4, maint: 5, ok: 6 };
+function cardSeverity(c) {
+    if (c.maintenance) return STATUS_SEVERITY.maint;
+    if (c.parentDown) return STATUS_SEVERITY['parent-down'];
+    var v = STATUS_SEVERITY[c.statusClass];
+    return v === undefined ? 3 : v;
+}
+function isProblemCard(c) { return !c.maintenance && cardSeverity(c) <= 2; }
+
+function updateProblemBadge() {
+    var names = {};
+    (_allCards || []).forEach(function(c) { if (isProblemCard(c)) names[c.deviceName] = true; });
+    var n = Object.keys(names).length;
+    var el = document.getElementById('ng-count-monitor');
+    if (!el) return;
+    el.textContent = n;
+    el.title = n + ' device' + (n === 1 ? '' : 's') + ' with problems';
+    el.style.display = n ? '' : 'none';
+}
+
 function applyFilters() {
+    updateProblemBadge();
+    if (!_devicesCache.length) return;  // onboarding panel owns the view
     var search = (document.getElementById('filter-search').value || '').toLowerCase();
     var groupF = document.getElementById('filter-group').value;
     var statusF = document.getElementById('filter-status').value;
@@ -3252,6 +3482,7 @@ function applyFilters() {
     var filtered = _allCards.filter(function(c) {
         if (search && c.deviceName.toLowerCase().indexOf(search) === -1 && c.host.toLowerCase().indexOf(search) === -1) return false;
         if (groupF && c.group !== groupF) return false;
+        if (statusF === 'problems') return isProblemCard(c);
         if (statusF) {
             if (statusF === 'maint' && !c.maintenance) return false;
             if (statusF === 'parent-down' && !c.parentDown) return false;
@@ -3289,7 +3520,13 @@ function applyFilters() {
     } else {
         var pinnedDevices = getPinnedDevices();
         var defaultLayout = localStorage.getItem('netmon-cardLayout') || 'grid';
-        Object.keys(byGroup).sort().forEach(function(grp) {
+        var groupWorst = {};
+        Object.keys(byGroup).forEach(function(g) {
+            groupWorst[g] = Math.min.apply(null, byGroup[g].map(cardSeverity));
+        });
+        Object.keys(byGroup).sort(function(a, b) {
+            return (groupWorst[a] - groupWorst[b]) || (a < b ? -1 : a > b ? 1 : 0);
+        }).forEach(function(grp) {
             var groupViewKey = 'netmon-groupView-' + grp;
             var viewMode = localStorage.getItem(groupViewKey) || defaultLayout;
             var listCls = viewMode === 'list' ? ' list-view' : '';
@@ -3298,11 +3535,14 @@ function applyFilters() {
                 + '<button class="' + (viewMode === 'grid' ? 'active' : '') + '" onclick="setGroupView(\'' + escAttr(grp) + '\', \'grid\')" title="Grid view">&#9638;</button>'
                 + '<button class="' + (viewMode === 'list' ? 'active' : '') + '" onclick="setGroupView(\'' + escAttr(grp) + '\', \'list\')" title="List view">&#9776;</button>'
                 + '</div></div>';
-            // Sort: pinned devices first
+            // Sort: problems first, then pinned, then name (stable for equal keys)
             var sorted = byGroup[grp].slice().sort(function(a, b) {
+                var sev = cardSeverity(a) - cardSeverity(b);
+                if (sev) return sev;
                 var aPinned = pinnedDevices.indexOf(a.deviceName) >= 0 ? 0 : 1;
                 var bPinned = pinnedDevices.indexOf(b.deviceName) >= 0 ? 0 : 1;
-                return aPinned - bPinned;
+                if (aPinned !== bPinned) return aPinned - bPinned;
+                return a.deviceName < b.deviceName ? -1 : a.deviceName > b.deviceName ? 1 : 0;
             });
             html += '<div class="cards' + listCls + '">';
             sorted.forEach(function(item) {
@@ -4248,6 +4488,7 @@ function loadSettings() {
     fetch('/api/license').then(function(r){ return r.json(); }).then(function(lic) {
         _currentTier = lic.tier;
         _tierFeatures = lic.features || {};
+        applyTierDecorations();
         var badge = document.getElementById('license-tier-badge');
         var usage = document.getElementById('license-usage');
         var tierColors = { community: '#888', pro: '#22c55e', enterprise: '#a78bfa' };
